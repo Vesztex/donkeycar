@@ -125,6 +125,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
         class PidController:
             def __init__(self):
                 self.pid = PID(Kp=cfg.PID_P, Ki=cfg.PID_I, Kd=cfg.PID_D)
+                self.pid.output_limits = (0, None)
 
             def run(self, set_point, feedback):
                 self.pid.setpoint = set_point

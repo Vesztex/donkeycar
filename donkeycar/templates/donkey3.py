@@ -58,7 +58,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
 
     odo = Odometer(gpio=cfg.ODOMETER_GPIO,
                    tick_per_meter=cfg.TICK_PER_M,
-                   weight=0.1,
+                   weight=1.0,
                    debug=verbose)
     car.add(odo, outputs=['car/speed'])
     lap = LapTimer(gpio=cfg.LAP_TIMER_GPIO)

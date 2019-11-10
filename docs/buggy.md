@@ -320,8 +320,8 @@ I will post the circuit at some point later. I put the light at some
 place on the track and the car recognises each time is passes the sensor.
 This gives me laps and lap-times that I add to the tub - super useful.
 ![laptimer1](./assets/laptimer1.jpeg)
-![laptimer2](./assets/laptimer1.jpeg)
-![laptimer3](./assets/laptimer1.jpeg)
+![laptimer2](./assets/laptimer2.jpeg)
+![laptimer3](./assets/laptimer3.jpeg)
 Please note, the IR diode emits non-visible light, what lights up red is
 just a status led showing the thing to be on/off.
 

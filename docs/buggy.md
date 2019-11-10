@@ -310,7 +310,7 @@ a lot. I have now 630 ticks per meter.
 
 1. I made more space for the 3S battery. This fits and works fine.
 
-1. I made a lap timer and added it to the car [laptimer-car](./assets/laptimer-car.jpeg). 
+1. I made a lap timer and added it to the car ![laptimer-car](./assets/laptimer-car.jpeg). 
 This is simply a [TSOP 4838] (https://www.ebay.co.uk/itm/2pcs-IR-Receiver-Module-38-kHz-TSOP4838-DIP-3-UK-SELLER-675/223411429453?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2057872.m2749.l2649). 
 The sensor recognises 38kHz pulsed IR lights, which is used in legacy IR
 remote controls. I made a donkey part for the sensor.
@@ -324,3 +324,6 @@ This gives me laps and lap-times that I add to the tub - super useful.
 ![laptimer3](./assets/laptimer1.jpeg)
 Please note, the IR diode emits non-visible light, what lights up red is
 just a status led showing the thing to be on/off.
+
+1. And this is a sneak preview of s/th new... more to come soon.
+![sneak](./assets/sneak.jpeg).

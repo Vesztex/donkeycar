@@ -310,11 +310,10 @@ a lot. I have now 630 ticks per meter.
 
 1. I made more space for the 3S battery. This fits and works fine.
 
-1. I made a lap timer and added it to the car ![laptimer-car](./assets/laptimer-car.jpeg). 
-This is simply a [TSOP 4838] (https://www.ebay.co.uk/itm/2pcs-IR-Receiver-Module-38-kHz-TSOP4838-DIP-3-UK-SELLER-675/223411429453?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2057872.m2749.l2649). 
+1. I made a lap timer and added it to the car.![laptimer-car](./assets/laptimer-car.jpeg)
+It is made of a sensor [TSOP 4838](https://www.ebay.co.uk/itm/2pcs-IR-Receiver-Module-38-kHz-TSOP4838-DIP-3-UK-SELLER-675/223411429453?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2057872.m2749.l2649). 
 The sensor recognises 38kHz pulsed IR lights, which is used in legacy IR
-remote controls. I made a donkey part for the sensor.
-
+remote controls. To read it in the car loop I made a donkey part for it.
 In order to create that pulsed light I made a timer 555-based light.
 I will post the circuit at some point later. I put the light at some 
 place on the track and the car recognises each time is passes the sensor.

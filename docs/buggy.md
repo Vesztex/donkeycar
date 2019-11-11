@@ -292,15 +292,14 @@ the pinion from the factory motor over. The gear was not perfectly
 centered and there was a small bid of wobble. After running with the SK3
 motor which pinion fits more precise to the drive shaft I have observed 
 almost no wear on the spur gear. I cannot recommend these 370 motors, as
-they get very hot and I destroyed tow of them during crashes, they seem
+they get very hot and I destroyed two of them during crashes, they seem
 to be rather fragile.
 ![370-motors](./assets/370-motors.jpeg)
+Even with the better alignment I would prefer a metal drive train throughout though.
 
-I had ordered a metal one from Ebay some months ago but it never 
-showed up. I would prefer a metal drive train throughout though.
-
-1. I will probably also fit some sort of mini OLED display for showing 
+1. I plan to also fit some sort of mini OLED display for showing 
 battery charge and processor temperature or similar.
+
 
 ### Updates
 1. Installed hall effect sensor underneath the build plate which now 
@@ -310,11 +309,15 @@ a lot. I have now 630 ticks per meter.
 
 1. I made more space for the 3S battery. This fits and works fine.
 
+1. The RPi now has a cooling fan as it was throttling its CPU - thanks for the community help
+getting to the bottom of this. The fan required drilling holes into the cover, otherwise its rotation
+was too restricted leading to massive power drain andore throttling. 
+
 1. I made a lap timer and added it to the car.![laptimer-car](./assets/laptimer-car.jpeg)
 It is made of a sensor [TSOP 4838](https://www.ebay.co.uk/itm/2pcs-IR-Receiver-Module-38-kHz-TSOP4838-DIP-3-UK-SELLER-675/223411429453?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2057872.m2749.l2649). 
 The sensor recognises 38kHz pulsed IR lights, which is used in legacy IR
 remote controls. To read it in the car loop I made a donkey part for it.
-In order to create that pulsed light I made a timer 555-based light.
+In order to create that pulsed light I designed a timer 555-based light.
 I will post the circuit at some point later. I put the light at some 
 place on the track and the car recognises each time is passes the sensor.
 This gives me laps and lap-times that I add to the tub - super useful.

@@ -258,7 +258,7 @@ The front of the donkey car has a small cutout to supply the RPi with
 external power if needed.
 ![front](./assets/front.jpeg)
 
-The rear of the donkey car. Obviously I couldn't wait to try out the car 
+The rear of the donkey car. I couldn't wait to try out the car 
 hence it is already dirty. Here the cover is attached to the rear 
 suspension tower with an m4 screw, just screwed into a spacer block that 
 sticks out on the rear of the cover.
@@ -269,9 +269,9 @@ electronics and it keeps them reasonably shielded from physical impacts.
 All in all the whole construction now also feels rigid enough for 
 hopefully many rounds of _fast_ and _out-of-control_ driving.
 
-### To do
-1. Obviously when running an outrunner motor there is no need to use an 
-odometer on the drive shaft any longer that has a disk with embedded 
+## To do
+1. When running an outrunner motor there is no need to use an 
+odometer on the drive shaft any longer utilising a disk with embedded 
 neodym magnets. You get a much higher angular resolution when placing 
 the hall sensor (I am using a bipolar latching SS460S) directly next to 
 the rotating can of the motor. I will do this at some point.
@@ -295,37 +295,41 @@ almost no wear on the spur gear. I cannot recommend these 370 motors, as
 they get very hot and I destroyed two of them during crashes, they seem
 to be rather fragile.
 ![370-motors](./assets/370-motors.jpeg)
-Even with the better alignment I would prefer a metal drive train throughout though.
+Even with the better alignment I would prefer a metal drive train 
+throughout though.
 
 1. I plan to also fit some sort of mini OLED display for showing 
 battery charge and processor temperature or similar.
 
 
-### Updates
-1. Installed hall effect sensor underneath the build plate which now 
-reads the outrunner magnets directly. This increases the resolution by 
-a lot. I have now 630 ticks per meter.
-![odometer](./assets/odometer.jpeg)
+## Updates
+1. Installed hall effect sensor underneath the build plate which now
+   reads the outrunner magnets directly. This increases the resolution
+   by a lot. I have now 630 ticks per meter.
+   ![odometer](./assets/odometer.jpeg)
 
-1. I made more space for the 3S battery. This fits and works fine.
+2. I made more space for the 3S battery. This fits and works fine.
 
-1. The RPi now has a cooling fan as it was throttling its CPU - thanks for the community help
-getting to the bottom of this. The fan required drilling holes into the cover, otherwise its rotation
-was too restricted leading to massive power drain andore throttling. 
+3. The RPi now has a cooling fan as it was throttling its CPU - thanks
+   for the community help getting to the bottom of this. The fan
+   required drilling holes into the cover, otherwise its rotation was
+   too restricted leading to power drain and more throttling.
 
-1. I made a lap timer and added it to the car.![laptimer-car](./assets/laptimer-car.jpeg)
-It is made of a sensor [TSOP 4838](https://www.ebay.co.uk/itm/2pcs-IR-Receiver-Module-38-kHz-TSOP4838-DIP-3-UK-SELLER-675/223411429453?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2057872.m2749.l2649). 
-The sensor recognises 38kHz pulsed IR lights, which is used in legacy IR
-remote controls. To read it in the car loop I made a donkey part for it.
-In order to create that pulsed light I designed a timer 555-based light.
-I will post the circuit at some point later. I put the light at some 
-place on the track and the car recognises each time is passes the sensor.
-This gives me laps and lap-times that I add to the tub - super useful.
-![laptimer1](./assets/laptimer1.jpeg)
-![laptimer2](./assets/laptimer2.jpeg)
-![laptimer3](./assets/laptimer3.jpeg)
-Please note, the IR diode emits non-visible light, what lights up red is
-just a status led showing the thing to be on/off.
+4. I made a lap timer and added it to the car.
+   ![laptimer-car](./assets/laptimer-car.jpeg). It is activated by a
+   sensor
+   [TSOP 4838](https://www.ebay.co.uk/itm/2pcs-IR-Receiver-Module-38-kHz-TSOP4838-DIP-3-UK-SELLER-675/223411429453?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2057872.m2749.l2649).
+   The sensor recognises 38kHz pulsed IR lights, which is used in legacy
+   IR remote controls. To read the signal in the car loop I made a
+   donkey part for it. In order to create that pulsed light I designed a
+   timer 555-based light. I will post the circuit at some point later. I
+   put the light at some place on the track and the car recognises each
+   time is passes the sensor. This gives me laps and lap-times that I
+   add to the tub - super useful. ![laptimer1](./assets/laptimer1.jpeg)
+   ![laptimer2](./assets/laptimer2.jpeg)
+   ![laptimer3](./assets/laptimer3.jpeg) Please note, the IR diode emits
+   non-visible light, what lights up red is just a status led showing
+   the thing to be on/off.
 
-1. And this is a sneak preview of s/th new... more to come soon.
-![sneak](./assets/sneak.jpeg).
+5. And this is a sneak preview of s/th new... more to come soon.
+   ![sneak](./assets/sneak.jpeg).

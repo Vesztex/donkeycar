@@ -141,7 +141,7 @@ class LapTimer:
             # Sleep for 2ms. At 5m/s car makes 1cm / 2ms. At that speed trigger
             # determines how many cm the car has to be in the absorption area
             # of the IR signal (by default 5). This scales down w/ the speed.
-            time.sleep(0.002)
+            time.sleep(0.001)
 
     def run_threaded(self):
         """

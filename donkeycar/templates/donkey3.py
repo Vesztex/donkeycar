@@ -162,7 +162,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
     if not no_cam and (model_path is None or record_on_ai):
         class RecordingCondition:
             def run(self, throttle_on, throttle_val):
-                return throttle_on and throttle_val > 0
+                if model_path is None:
+                    return throttle_on and throttle_val > 0
+                else:
+                    return record_on_ai
 
         car.add(RecordingCondition(),
                 inputs=['user/throttle_on', 'user/throttle'],

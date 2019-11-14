@@ -61,7 +61,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
                    weight=1.0,
                    debug=verbose)
     car.add(odo, outputs=['car/speed'])
-    lap = LapTimer(gpio=cfg.LAP_TIMER_GPIO)
+    lap = LapTimer(gpio=cfg.LAP_TIMER_GPIO, trigger=4)
     car.add(lap, outputs=['car/lap'], threaded=True)
 
     # create the RC receiver with 3 channels

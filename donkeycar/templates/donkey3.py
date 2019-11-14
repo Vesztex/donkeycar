@@ -108,7 +108,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
                 if user_mode == 0:
                     return user_var
                 else:
-                    return pilot_var
+                    return pilot_var * cfg.AI_THROTTLE_MULT
 
         # switch between user or pilot speed (if pid) or throttle (if no pid)
         var = 'speed' if use_pid else 'throttle'

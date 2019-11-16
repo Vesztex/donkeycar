@@ -191,8 +191,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
         types = ['image_array', 'float', 'float', 'float', 'int', 'str']
 
         # multiple tubs
-        tub_handle = TubHandler(path=cfg.DATA_PATH)
-        tub = tub_handle.new_tub_writer(inputs=inputs,
+        tub_handler = TubHandler(path=cfg.DATA_PATH)
+        tub = tub_handler.new_tub_writer(inputs=inputs,
                                         types=types,
                                         allow_reverse=False)
         car.add(tub,
@@ -200,9 +200,11 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
                 outputs=["tub/num_records"],
                 run_condition='user/recording')
 
-        # add a tub wiper that is triggered by channel 3 on the RC
-        tub_wipe = TubWiper(tub, num_records=cfg.DRIVE_LOOP_HZ)
-        car.add(tub_wipe, inputs=['user/wiper_on'])
+        # add a tub wiper that is triggered by channel 3 on the RC, but only
+        # if we don't use channel 3 for switching between ai & manual
+        if model_path is None:
+            tub_wiper = TubWiper(tub, num_records=cfg.DRIVE_LOOP_HZ)
+            car.add(tub_wiper, inputs=['user/wiper_on'])
 
     # run the vehicle
     car.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS,

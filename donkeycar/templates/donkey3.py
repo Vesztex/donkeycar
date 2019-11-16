@@ -183,7 +183,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
                 def run(self, pilot_angle):
                     return pilot_angle
             pilot_to_user_steering = Identity()
-            car.add(pilot_to_user_steering, 'pilot/angle', 'user/angle')
+            car.add(pilot_to_user_steering, ['pilot/angle'], ['user/angle'])
 
         # add tub to save data
         inputs = ['cam/image_array', 'user/angle', 'user/throttle',

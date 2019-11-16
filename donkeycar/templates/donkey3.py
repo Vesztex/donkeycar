@@ -51,9 +51,20 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
     clock = Timestamp()
     car.add(clock, outputs=['timestamp'])
 
+    # only record if cam is on and no auto-pilot
+    record_on_ai = cfg.RECORD_DURING_AI if hasattr(cfg, 'RECORD_DURING_AI') \
+        else False
+
+    car_frequency = cfg.DRIVE_LOOP_HZ
+    frame_rate = cfg.CAMERA_FRAMERATE
+    if model_path is not None and record_on_ai \
+            and hasattr(cfg, 'FREQ_REDUCTION_WITH_AI'):
+        car_frequency = int(cfg.FREQ_REDUCTION_WITH_AI * car_frequency)
+        frame_rate = int(cfg.FREQ_REDUCTION_WITH_AI * frame_rate)
+
     if not no_cam:
         cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
-                       image_d=cfg.IMAGE_DEPTH, framerate=cfg.CAMERA_FRAMERATE)
+                       image_d=cfg.IMAGE_DEPTH, framerate=frame_rate)
         car.add(cam, outputs=['cam/image_array'], threaded=True)
 
     odo = Odometer(gpio=cfg.ODOMETER_GPIO,
@@ -160,10 +171,6 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
         else 'throttle'
     car.add(throttle, inputs=[input_field], threaded=True)
 
-    # only record if cam is on and no auto-pilot
-    record_on_ai = cfg.RECORD_DURING_AI if hasattr(cfg, 'RECORD_DURING_AI') \
-        else False
-
     if not no_cam and (model_path is None or record_on_ai):
         class RecordingCondition:
             def run(self, throttle_on, throttle_val):
@@ -203,11 +210,11 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
         # add a tub wiper that is triggered by channel 3 on the RC, but only
         # if we don't use channel 3 for switching between ai & manual
         if model_path is None:
-            tub_wiper = TubWiper(tub, num_records=cfg.DRIVE_LOOP_HZ)
+            tub_wiper = TubWiper(tub, num_records=car_frequency)
             car.add(tub_wiper, inputs=['user/wiper_on'])
 
     # run the vehicle
-    car.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS,
+    car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS,
               verbose=verbose)
 
 

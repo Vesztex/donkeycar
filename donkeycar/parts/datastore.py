@@ -247,7 +247,7 @@ class Tub(object):
                 img = Image.fromarray(np.uint8(val))
                 name = self.make_file_name(key, ext='.jpg')
                 img.save(os.path.join(self.path, name))
-                json_data[key]=name
+                json_data[key] = name
 
             else:
                 msg = 'Tub does not know what to do with this type {}'.format(typ)
@@ -276,7 +276,7 @@ class Tub(object):
         json_path = self.get_json_record_path(i)
         if os.path.exists(json_path):
             os.unlink(json_path)
-        img_filename = '%d_cam-image_array_.jpg' % (i)
+        img_filename = '%d_cam-image_array_.jpg' % i
         img_path = os.path.join(self.path, img_filename)
         if os.path.exists(img_path):
             os.unlink(img_path)
@@ -483,7 +483,6 @@ class TubWriter(Tub):
         to disk.
         '''
         assert len(self.inputs) == len(args)
-        self.record_time = int(time.time() - self.start_time)
         record = dict(zip(self.inputs, args))
         self.put_record(record)
         return self.current_ix

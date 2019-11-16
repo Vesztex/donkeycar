@@ -72,6 +72,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
     car.add(rc_throttle, outputs=['user/throttle', 'user/throttle_on'])
     car.add(rc_wiper, outputs=['user/wiper', 'user/wiper_on'])
 
+    pilot_throttle_var = 'pilot/throttle'
     # if pid we want to convert throttle to speed
     if use_pid:
         class Rescaler:
@@ -79,6 +80,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
                 return controller_input * cfg.MAX_SPEED
 
         car.add(Rescaler(), inputs=['user/throttle'], outputs=['user/speed'])
+        pilot_throttle_var = 'pilot/speed'
 
     # load model if present
     if model_path is not None:
@@ -97,8 +99,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
         car.add(ImgPrecondition(cfg), inputs=['cam/image_array'],
                 outputs=['cam/normalized/cropped'])
 
-        outputs = ['pilot/angle', 'pilot/speed' if use_pid else 'pilot/throttle']
+        outputs = ['pilot/angle', pilot_throttle_var]
         car.add(kl, inputs=['cam/normalized/cropped'], outputs=outputs)
+        # if driving w/ ai switch between user throttle or pilot throttle by
+        # pressing chanel 3 on the remote control
         mode_switch = ModeSwitch(num_modes=2)
         car.add(mode_switch, inputs=['user/wiper_on'], outputs=['user/mode'])
 
@@ -136,7 +140,16 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
         pid = PidController()
         car.add(pid, inputs=[speed, 'car/speed'], outputs=['throttle'])
 
-    # create the PWM throttle controller for esc
+    # create and add the PWM steering controller
+    steering_controller = PCA9685(cfg.STEERING_CHANNEL)
+    steering = PWMSteering(controller=steering_controller,
+                           left_pulse=cfg.STEERING_LEFT_PWM,
+                           right_pulse=cfg.STEERING_RIGHT_PWM)
+    # feed signal which is either rc (user) or ai
+    input_field = 'user/angle' if model_path is None else 'pilot/angle'
+    car.add(steering, inputs=[input_field], threaded=True)
+
+    # create and add the PWM throttle controller for esc
     throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL)
     throttle = PWMThrottle(controller=throttle_controller,
                            max_pulse=cfg.THROTTLE_FORWARD_PWM,
@@ -146,14 +159,6 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
     input_field = 'user/throttle' if not use_pid and model_path is None \
         else 'throttle'
     car.add(throttle, inputs=[input_field], threaded=True)
-    # create the PWM steering controller
-    steering_controller = PCA9685(cfg.STEERING_CHANNEL)
-    steering = PWMSteering(controller=steering_controller,
-                           left_pulse=cfg.STEERING_LEFT_PWM,
-                           right_pulse=cfg.STEERING_RIGHT_PWM)
-    # feed signal which is either rc (user) or ai
-    input_field = 'user/angle' if model_path is None else 'pilot/angle'
-    car.add(steering, inputs=[input_field], threaded=True)
 
     # only record if cam is on and no auto-pilot
     record_on_ai = cfg.RECORD_DURING_AI if hasattr(cfg, 'RECORD_DURING_AI') \
@@ -171,19 +176,25 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
                 inputs=['user/throttle_on', 'user/throttle'],
                 outputs=['user/recording'])
 
+        # if recording ai, push pilot steering into user steering variable, so
+        # it gets recorded in the tub
+        if model_path is not None and record_on_ai:
+            class Identity:
+                def run(self, pilot_angle):
+                    return pilot_angle
+            pilot_to_user_steering = Identity()
+            car.add(pilot_to_user_steering, 'pilot/angle', 'user/angle')
+
         # add tub to save data
         inputs = ['cam/image_array', 'user/angle', 'user/throttle',
                   'car/speed', 'car/lap', 'timestamp']
         types = ['image_array', 'float', 'float', 'float', 'int', 'str']
-        # add debug output to tub
-        if verbose and use_pid:
-            inputs += [speed, 'throttle']
-            types += ['float', 'float']
+
         # multiple tubs
-        tubh = TubHandler(path=cfg.DATA_PATH)
-        tub = tubh.new_tub_writer(inputs=inputs,
-                                  types=types,
-                                  allow_reverse=False)
+        tub_handle = TubHandler(path=cfg.DATA_PATH)
+        tub = tub_handle.new_tub_writer(inputs=inputs,
+                                        types=types,
+                                        allow_reverse=False)
         car.add(tub,
                 inputs=inputs,
                 outputs=["tub/num_records"],

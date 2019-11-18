@@ -28,14 +28,15 @@ class Odometer:
         self._pi = pigpio.pi()
         self._last_tick = None
         self._last_tick_speed = None
+        self.last_tick_diff = 0
         self._weight = weight
         self._avg = 0.0
+        self.inst = 0.0
         self._max_speed = 0.0
         self._distance = 0
         self._debug = debug
-        self._run_counter = 0
         self._debug_data = dict(tick=[])
-        self._last_lo = None
+        self.scale = 1.0e6 / self._tick_per_meter
 
         # pigpio callback mechanics
         self._pi.set_pull_up_down(self._gpio, pigpio.PUD_UP)
@@ -53,10 +54,13 @@ class Odometer:
         import pigpio
         if self._last_tick is not None:
             diff = pigpio.tickDiff(self._last_tick, tick)
-            self._avg = self._weight * diff + (1.0 - self._weight) * self._avg
+            self.inst = 0.5 * (diff + self.last_tick_diff)
+            self._avg = self._weight * self.inst  \
+                        + (1.0 - self._weight) * self._avg
             self._distance += 1
             if self._debug:
                 self._debug_data['tick'].append(diff)
+            self.last_tick_diff = diff
         self._last_tick = tick
 
     def run(self):
@@ -66,14 +70,15 @@ class Odometer:
         :return speed: in m / s
         """
         speed = 0.0
-        if self._last_tick_speed != self._last_tick and self._avg != 0.0:
-            speed = 1.0e6 / (self._avg * self._tick_per_meter)
+        inst_speed = 0.0
+        if self._last_tick_speed != self._last_tick and self.inst != 0.0:
+            speed = self.scale / self._avg
+            inst_speed = self.scale / self.inst
             self._max_speed = max(self._max_speed, speed)
         self._last_tick_speed = self._last_tick
-        if self._debug and self._run_counter % 1 == 0:
-            print("Speed =", speed)
-        self._run_counter += 1
-        return speed
+        if self._debug:
+            print("Speed =", speed, "InstSpeed = ", inst_speed)
+        return speed, inst_speed
 
     def shutdown(self):
         """

@@ -69,9 +69,9 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
 
     odo = Odometer(gpio=cfg.ODOMETER_GPIO,
                    tick_per_meter=cfg.TICK_PER_M,
-                   weight=1.0,
+                   weight=0.1,
                    debug=verbose)
-    car.add(odo, outputs=['car/speed'])
+    car.add(odo, outputs=['car/speed', 'car/inst_speed'])
     lap = LapTimer(gpio=cfg.LAP_TIMER_GPIO, trigger=4)
     car.add(lap, outputs=['car/lap'], threaded=True)
 
@@ -145,11 +145,12 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
             def run(self, set_point, feedback):
                 self.pid.setpoint = set_point
                 if verbose:
-                    print('setpoint{0:4.2f} feedback{1:4.2f}'.format(set_point,feedback))
+                    print('setpoint{0:4.2f} feedback{1:4.2f}'
+                          .format(set_point, feedback))
                 return self.pid(feedback)
 
         pid = PidController()
-        car.add(pid, inputs=[speed, 'car/speed'], outputs=['throttle'])
+        car.add(pid, inputs=[speed, 'car/inst_speed'], outputs=['throttle'])
 
     # create and add the PWM steering controller
     steering_controller = PCA9685(cfg.STEERING_CHANNEL)
@@ -194,14 +195,15 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
 
         # add tub to save data
         inputs = ['cam/image_array', 'user/angle', 'user/throttle',
-                  'car/speed', 'car/lap', 'timestamp']
-        types = ['image_array', 'float', 'float', 'float', 'int', 'str']
+                  'car/speed', 'car/inst_speed', 'car/lap', 'timestamp']
+        types = ['image_array', 'float', 'float', 'float', 'float', 'int',
+                 'str']
 
         # multiple tubs
         tub_handler = TubHandler(path=cfg.DATA_PATH)
         tub = tub_handler.new_tub_writer(inputs=inputs,
-                                        types=types,
-                                        allow_reverse=False)
+                                         types=types,
+                                         allow_reverse=False)
         car.add(tub,
                 inputs=inputs,
                 outputs=["tub/num_records"],

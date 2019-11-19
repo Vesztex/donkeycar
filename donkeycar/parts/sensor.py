@@ -9,6 +9,7 @@ from json import dump
 from os.path import join
 from os import getcwd
 
+
 class Odometer:
     """
     Odometric part to measure the speed usually through hall sensors sensing

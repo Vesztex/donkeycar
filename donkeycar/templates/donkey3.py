@@ -145,7 +145,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
             def run(self, set_point, feedback):
                 self.pid.setpoint = set_point
                 if verbose:
-                    print('setpoint{0:4.2f} feedback{1:4.2f}'
+                    print('setpoint {0:4.2f} feedback {1:4.2f}'
                           .format(set_point, feedback))
                 return self.pid(feedback)
 

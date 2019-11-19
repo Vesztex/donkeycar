@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import time
+from simple_pid import PID
 
 
 class Lambda:
@@ -112,3 +113,20 @@ class PIDController:
 
     def shutdown(self):
         pass
+
+
+class SimplePidController:
+    """
+    Donkey part wrap of SimplePid https://github.com/m-lundberg/simple-pid
+    """
+    def __init__(self, p, i, d, debug=False):
+        self.pid = PID(Kp=p, Ki=i, Kd=d)
+        self.pid.output_limits = (0, None)
+        self.debug = debug
+
+    def run(self, set_point, feedback):
+        self.pid.setpoint = set_point
+        if self.debug:
+            print('setpoint {0:4.2f} feedback {1:4.2f}'
+                  .format(set_point, feedback))
+        return self.pid(feedback)

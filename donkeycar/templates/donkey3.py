@@ -12,7 +12,7 @@ Options:
 """
 
 from docopt import docopt
-from simple_pid import PID
+
 
 import donkeycar as dk
 from donkeycar.parts.camera import PiCamera
@@ -20,7 +20,8 @@ from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
     RCReceiver, ModeSwitch
 from donkeycar.parts.datastore import TubWiper, TubHandler
 from donkeycar.parts.clock import Timestamp
-from donkeycar.parts.transform import PIDController
+from donkeycar.parts.transform import SimplePidController
+
 from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.utils import normalize_and_crop
 
@@ -136,20 +137,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
     # drive by pid w/ speed
     if use_pid:
         # add pid controller to convert throttle value into speed
-        # pid = PIDController(p=cfg.PID_P, i=cfg.PID_I, d=cfg.PID_D, debug=False)
-        class PidController:
-            def __init__(self):
-                self.pid = PID(Kp=cfg.PID_P, Ki=cfg.PID_I, Kd=cfg.PID_D)
-                self.pid.output_limits = (0, None)
-
-            def run(self, set_point, feedback):
-                self.pid.setpoint = set_point
-                if verbose:
-                    print('setpoint {0:4.2f} feedback {1:4.2f}'
-                          .format(set_point, feedback))
-                return self.pid(feedback)
-
-        pid = PidController()
+        pid = SimplePidController(p=cfg.PID_P, i=cfg.PID_I, d=cfg.PID_D,
+                                  debug=verbose)
         car.add(pid, inputs=[speed, 'car/inst_speed'], outputs=['throttle'])
 
     # create and add the PWM steering controller

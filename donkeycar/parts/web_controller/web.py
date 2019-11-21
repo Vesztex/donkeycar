@@ -114,7 +114,6 @@ class LocalWebController(tornado.web.Application):
 
         this_dir = os.path.dirname(os.path.realpath(__file__))
         self.static_file_path = os.path.join(this_dir, 'templates', 'static')
-
         self.angle = 0.0
         self.throttle = 0.0
         self.mode = 'user'
@@ -130,6 +129,9 @@ class LocalWebController(tornado.web.Application):
         settings = {'debug': True}
 
         super().__init__(handlers, **settings)
+
+        print("... you can now go to <your pis hostname.local>:8887 to drive "
+              "your car.")
 
     def update(self, port=8887):
         ''' Start the tornado webserver. '''

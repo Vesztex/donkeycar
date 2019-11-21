@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-
 import time
 from simple_pid import PID
+
+from donkeycar.utils import normalize_and_crop
 
 
 class Lambda:
@@ -130,3 +131,15 @@ class SimplePidController:
             print('setpoint {0:4.2f} feedback {1:4.2f}'
                   .format(set_point, feedback))
         return self.pid(feedback)
+
+
+class ImgPrecondition:
+    """
+    Donkey part wrapping around normalisation and cropping
+    """
+    def __init__(self, cfg):
+        self.cfg = cfg
+
+    def run(self, img_arr):
+        return normalize_and_crop(img_arr, self.cfg)
+

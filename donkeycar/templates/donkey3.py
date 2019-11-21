@@ -4,7 +4,8 @@ Script to drive a donkey 2 car using the RC controller instead of the web
 controller and to do a calibration of the RC throttle and steering triggers.
 
 Usage:
-    manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--verbose]
+    manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web] \
+    [--verbose]
     manage.py (calibrate)
 
 Options:
@@ -13,17 +14,15 @@ Options:
 
 from docopt import docopt
 
-
 import donkeycar as dk
 from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
     RCReceiver, ModeSwitch
 from donkeycar.parts.datastore import TubWiper, TubHandler
 from donkeycar.parts.clock import Timestamp
-from donkeycar.parts.transform import SimplePidController
-
+from donkeycar.parts.transform import SimplePidController, ImgPrecondition
 from donkeycar.parts.sensor import Odometer, LapTimer
-from donkeycar.utils import normalize_and_crop
+from donkeycar.parts.controller import LocalWebController
 
 
 class TypePrinter:
@@ -34,7 +33,8 @@ class TypePrinter:
         print("Type of", self.type_name, type(in_type))
 
 
-def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
+def drive(cfg, use_pid=False, no_cam=False, model_path=None,
+          web=False, verbose=False):
     """
     Construct a working robotic vehicle from many parts. Each part runs as a job
     in the Vehicle loop, calling either its run or run_threaded method depending
@@ -76,13 +76,21 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
     lap = LapTimer(gpio=cfg.LAP_TIMER_GPIO, trigger=4)
     car.add(lap, outputs=['car/lap'], threaded=True)
 
-    # create the RC receiver with 3 channels
-    rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
-    rc_throttle = RCReceiver(cfg.THROTTLE_RC_GPIO)
-    rc_wiper = RCReceiver(cfg.DATA_WIPER_RC_GPIO, jitter=0.05, no_action=0)
-    car.add(rc_steering, outputs=['user/angle', 'user/steering_on'])
-    car.add(rc_throttle, outputs=['user/throttle', 'user/throttle_on'])
-    car.add(rc_wiper, outputs=['user/wiper', 'user/wiper_on'])
+    if web:
+        car.add(LocalWebController(),
+                inputs=['cam/image_array'],
+                outputs=['user/angle', 'user/throttle', 'user/mode',
+                         'user/recording'],
+                threaded=True)
+
+    else:
+        # create the RC receiver with 3 channels
+        rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
+        rc_throttle = RCReceiver(cfg.THROTTLE_RC_GPIO)
+        rc_wiper = RCReceiver(cfg.DATA_WIPER_RC_GPIO, jitter=0.05, no_action=0)
+        car.add(rc_steering, outputs=['user/angle', 'user/steering_on'])
+        car.add(rc_throttle, outputs=['user/throttle', 'user/throttle_on'])
+        car.add(rc_wiper, outputs=['user/wiper', 'user/wiper_on'])
 
     pilot_throttle_var = 'pilot/throttle'
     # if pid we want to convert throttle to speed
@@ -100,13 +108,6 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, verbose=False):
         model_type = 'tflite_linear' if '.tflite' in model_path else 'linear'
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)
-
-        class ImgPrecondition:
-            def __init__(self, cfg):
-                self.cfg = cfg
-
-            def run(self, img_arr):
-                return normalize_and_crop(img_arr, self.cfg)
 
         car.add(ImgPrecondition(cfg), inputs=['cam/image_array'],
                 outputs=['cam/normalized/cropped'])
@@ -254,6 +255,7 @@ if __name__ == '__main__':
               use_pid=args['--pid'],
               no_cam=args['--no_cam'],
               model_path=args['--model'],
+              use_web=args['--web'],
               verbose=args['--verbose'])
     elif args['calibrate']:
         calibrate(config)

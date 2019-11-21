@@ -255,7 +255,7 @@ if __name__ == '__main__':
               use_pid=args['--pid'],
               no_cam=args['--no_cam'],
               model_path=args['--model'],
-              use_web=args['--web'],
+              web=args['--web'],
               verbose=args['--verbose'])
     elif args['calibrate']:
         calibrate(config)

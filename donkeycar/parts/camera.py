@@ -2,6 +2,8 @@ import os
 import time
 import numpy as np
 from PIL import Image
+import cv2
+from socket import *
 import glob
 from donkeycar.utils import rgb2gray
 
@@ -193,17 +195,20 @@ class CSICamera(BaseCamera):
         self.running = False
         print('stoping CSICamera')
         time.sleep(.5)
-        del(self.camera)
+        del self.camera
+
 
 class V4LCamera(BaseCamera):
     '''
-    uses the v4l2capture library from this fork for python3 support: https://github.com/atareao/python3-v4l2capture
+    uses the v4l2capture library from this fork for python3 support:
+    https://github.com/atareao/python3-v4l2capture
     sudo apt-get install libv4l-dev
     cd python3-v4l2capture
     python setup.py build
     pip install -e .
     '''
-    def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20, dev_fn="/dev/video0", fourcc='MJPG'):
+    def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20,
+                 dev_fn="/dev/video0", fourcc='MJPG'):
 
         self.running = True
         self.frame = None
@@ -235,7 +240,6 @@ class V4LCamera(BaseCamera):
         # Start the device. This lights the LED if it's a camera that has one.
         self.video.start()
 
-
     def update(self):
         import select
         from donkeycar.parts.image import JpgToImgArr
@@ -249,11 +253,9 @@ class V4LCamera(BaseCamera):
             image_data = self.video.read_and_queue()
             self.frame = jpg_conv.run(image_data)
 
-
     def shutdown(self):
         self.running = False
         time.sleep(0.5)
-
 
 
 class MockCamera(BaseCamera):
@@ -271,6 +273,7 @@ class MockCamera(BaseCamera):
 
     def shutdown(self):
         pass
+
 
 class ImageListCamera(BaseCamera):
     '''
@@ -310,3 +313,19 @@ class ImageListCamera(BaseCamera):
 
     def shutdown(self):
         pass
+
+
+class FrameStreamer:
+    def __init__(self, host="DirksMacBook.home", port=13000):
+        self.address = (host, port)
+        self.socket = socket(AF_INET, SOCK_DGRAM)
+        print('Created FrameStreamer to host {}, port {}'.format(host, port))
+
+    def run(self, image_array):
+        mg_str = cv2.imencode('.jpg', image_array)[1].tostring()
+        b = mg_str.encode('utf-8')
+        self.socket.sendto(b, self.address)
+
+    def shutdown(self):
+        self.socket.close()
+

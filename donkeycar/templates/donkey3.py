@@ -7,6 +7,7 @@ Usage:
     manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web] \
     [--verbose]
     manage.py (calibrate)
+    manage.py (stream)
 
 Options:
     -h --help        Show this screen.
@@ -15,7 +16,7 @@ Options:
 from docopt import docopt
 
 import donkeycar as dk
-from donkeycar.parts.camera import PiCamera
+from donkeycar.parts.camera import PiCamera, FrameStreamer
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
     RCReceiver, ModeSwitch
 from donkeycar.parts.datastore import TubWiper, TubHandler
@@ -247,6 +248,19 @@ def calibrate(cfg):
     donkey_car.start(rate_hz=10, max_loop_count=cfg.MAX_LOOPS)
 
 
+def stream(cfg):
+    car = dk.vehicle.Vehicle()
+    clock = Timestamp()
+    car.add(clock, outputs=['timestamp'])
+    hz = 1
+    cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
+                   image_d=cfg.IMAGE_DEPTH, framerate=hz)
+    car.add(cam, outputs=['cam/image_array'], threaded=True)
+    streamer = FrameStreamer()
+    car.add(streamer, inputs=['cam/image_array'])
+    car.start(rate_hz=hz, max_loop_count=cfg.MAX_LOOPS)
+
+
 if __name__ == '__main__':
     args = docopt(__doc__)
     config = dk.load_config()
@@ -259,3 +273,5 @@ if __name__ == '__main__':
               verbose=args['--verbose'])
     elif args['calibrate']:
         calibrate(config)
+    elif args['stream']:
+        stream(config)

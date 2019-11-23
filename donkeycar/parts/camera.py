@@ -2,7 +2,8 @@ import os
 import time
 import numpy as np
 from PIL import Image
-import cv2
+#import cv2
+import base64
 from socket import *
 import glob
 from donkeycar.utils import rgb2gray
@@ -322,8 +323,9 @@ class FrameStreamer:
         print('Created FrameStreamer to host {}, port {}'.format(host, port))
 
     def run(self, image_array):
-        mg_str = cv2.imencode('.jpg', image_array)[1].tostring()
-        b = mg_str.encode('utf-8')
+        # mg_str = cv2.imencode('.jpg', image_array)[1].tostring()
+        # b = mg_str.encode('utf-8')
+        b = base64.b64encode(img)
         self.socket.sendto(b, self.address)
 
     def shutdown(self):

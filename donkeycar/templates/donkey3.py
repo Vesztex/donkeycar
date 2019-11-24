@@ -252,17 +252,12 @@ def stream(cfg):
     car = dk.vehicle.Vehicle()
     clock = Timestamp()
     car.add(clock, outputs=['timestamp'])
-    hz = cfg.CAMERA_FRAMERATE
+    hz = 20
     cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
                    image_d=cfg.IMAGE_DEPTH, framerate=hz)
     car.add(cam, outputs=['cam/image_array'], threaded=True)
     streamer = FrameStreamer()
     car.add(streamer, inputs=['cam/image_array'])
-    tub_handler = TubHandler(path=cfg.DATA_PATH)
-    inputs = ['cam/image_array', 'timestamp']
-    types = ['image_array', 'str']
-    tub = tub_handler.new_tub_writer(inputs=inputs, types=types)
-    car.add(tub, inputs=inputs, outputs=["tub/num_records"])
     car.start(rate_hz=hz, max_loop_count=cfg.MAX_LOOPS)
 
 

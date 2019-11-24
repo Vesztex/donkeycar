@@ -3,6 +3,7 @@ import time
 import numpy as np
 from PIL import Image
 #import cv2
+import io
 import base64
 from socket import *
 import glob
@@ -323,10 +324,11 @@ class FrameStreamer:
         print('Created FrameStreamer to host {}, port {}'.format(host, port))
 
     def run(self, image_array):
-        # mg_str = cv2.imencode('.jpg', image_array)[1].tostring()
-        # b = mg_str.encode('utf-8')
-        b = base64.b64encode(image_array)
-        self.socket.sendto(b, self.address)
+        img = Image.fromarray(np.uint8(image_array))
+        with io.BytesIO() as output:
+            img.save(output, format="JPEG")
+            b = output.getvalue()
+            self.socket.sendto(b, self.address)
 
     def shutdown(self):
         self.socket.close()

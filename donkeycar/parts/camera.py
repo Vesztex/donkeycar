@@ -325,7 +325,8 @@ class FrameStreamer:
 
     def run(self, image_array):
         img = Image.fromarray(np.uint8(image_array))
-        print('img size {} and max val {}'.format(img.shape, img.max()))
+        print('img size {} and max val {}'.format(image_array.shape,
+                                                  image_array.max()))
         with io.BytesIO() as output:
             img.save(output, format="JPEG")
             b = output.getvalue()

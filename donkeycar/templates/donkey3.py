@@ -259,6 +259,11 @@ def stream(cfg):
     streamer = FrameStreamer()
     car.add(streamer, inputs=['cam/image_array'])
     car.start(rate_hz=hz, max_loop_count=cfg.MAX_LOOPS)
+    tub_handler = TubHandler(path=cfg.DATA_PATH)
+    inputs = ['cam/image_array', 'timestamp']
+    types = ['image_array', 'str']
+    tub = tub_handler.new_tub_writer(inputs=inputs, types=types)
+    car.add(tub, inputs=inputs, outputs=["tub/num_records"])
 
 
 if __name__ == '__main__':

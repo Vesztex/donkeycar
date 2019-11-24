@@ -252,7 +252,7 @@ def stream(cfg):
     car = dk.vehicle.Vehicle()
     clock = Timestamp()
     car.add(clock, outputs=['timestamp'])
-    hz = 1
+    hz = cfg.CAMERA_FRAMERATE
     cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
                    image_d=cfg.IMAGE_DEPTH, framerate=hz)
     car.add(cam, outputs=['cam/image_array'], threaded=True)

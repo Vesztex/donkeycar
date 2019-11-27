@@ -330,8 +330,7 @@ class FrameStreamer:
             except gaierror:
                 print('.', end='')
                 time.sleep(1)
-        if self.socket is None:
-            print('failed!' if self.socket is None else 'done.')
+        print('failed!' if self.socket is None else 'done.')
 
     def run(self, image_array):
         if self.socket is None:

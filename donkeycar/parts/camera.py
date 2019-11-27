@@ -5,7 +5,7 @@ from PIL import Image
 #import cv2
 import io
 import base64
-from socket import *
+from socket import socket, gaierror
 import glob
 from donkeycar.utils import rgb2gray
 
@@ -327,7 +327,7 @@ class FrameStreamer:
             try:
                 self.socket = socket(AF_INET, SOCK_DGRAM)
                 break
-            except socket.gaierror:
+            except gaierror:
                 print('.', end='')
                 time.sleep(1)
         if self.socket is None:
@@ -342,7 +342,7 @@ class FrameStreamer:
             b = output.getvalue()
             try:
                 self.socket.sendto(b, self.address)
-            except socket.gaierror:
+            except gaierror:
                 print('Could not send frame through socket - skipped')
 
     def shutdown(self):

@@ -1,12 +1,12 @@
 
-import sys
-import os
-import socket
 import shutil
 import argparse
 import json
-import time
 
+from socket import *
+from PIL import Image
+import cv2
+import io
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
 from donkeycar.utils import *
@@ -14,6 +14,11 @@ from donkeycar.management.tub import TubManager
 from donkeycar.management.joystick_creator import CreateJoystick
 import numpy as np
 from prettytable import PrettyTable
+
+
+
+
+
 
 PACKAGE_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 TEMPLATES_PATH = os.path.join(PACKAGE_PATH, 'templates')
@@ -636,6 +641,43 @@ class ShowLapTimes(BaseCommand):
         self.print_laps(cfg, args.tub)
 
 
+class Monitor(BaseCommand):
+
+    def parse_args(self, args):
+        parser = argparse.ArgumentParser(prog='monitor',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('--size', help='display window size')
+        parser.add_argument('--config', default='./config.py',
+                            help='location of config file to use. default: '
+                                 './config.py')
+        parsed_args = parser.parse_args(args)
+        return parsed_args
+
+    def run(self, args):
+        args = self.parse_args(args)
+        cfg = load_config(args.config)
+        address = (cfg.PC_HOSTNAME, cfg.PC_PORT)
+        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        my_socket.bind(address)
+        buf = 16000
+        print('Donkey FPV monitor starting up on host {} port {}'
+              .format(cfg.PC_HOSTNAME, cfg.PC_PORT))
+        try:
+            while True:
+                data, _ = my_socket.recvfrom(buf)
+                b = io.BytesIO(data)
+                image = Image.open(b)
+                #img_res = image.resize((768, 576))
+                img_np = np.array(image) / 255.0
+                #im_scaled = cv2.resize(img_np, (768, 576))
+                cv2.imshow('DonkeyFPV', img_np)
+        except KeyboardInterrupt:
+            pass
+
+        cv2.destroyAllWindows()
+        my_socket.close()
+
+
 def execute_from_command_line():
     """
     This is the function linked to the "donkey" terminal command.
@@ -654,7 +696,8 @@ def execute_from_command_line():
                 'contrain': ConTrain,
                 'cnnactivations': ShowCnnActivations,
                 'update': UpdateCar,
-                'laps': ShowLapTimes
+                'laps': ShowLapTimes,
+                'monitor': Monitor,
                 }
 
     args = sys.argv[:]

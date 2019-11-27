@@ -2,7 +2,6 @@ import os
 import time
 import numpy as np
 from PIL import Image
-#import cv2
 import io
 import base64
 from socket import socket, gaierror, AF_INET, SOCK_DGRAM

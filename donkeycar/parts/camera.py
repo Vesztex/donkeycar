@@ -320,16 +320,32 @@ class ImageListCamera(BaseCamera):
 class FrameStreamer:
     def __init__(self, host="DirksMacBook.home", port=13000):
         self.address = (host, port)
-        self.socket = socket(AF_INET, SOCK_DGRAM)
-        print('Created FrameStreamer to host {}, port {}'.format(host, port))
+        self.socket = None
+        print('Created FrameStreamer to host {}, port {}. Trying to '
+              'connect...'.format(host, port), end='')
+        for i in range(10):
+            try:
+                self.socket = socket(AF_INET, SOCK_DGRAM)
+                break
+            except socket.gaierror:
+                print('.', end='')
+                time.sleep(1)
+        if self.socket is None:
+            print('failed!' if self.socket is None else 'done.')
 
     def run(self, image_array):
+        if self.socket is None:
+            return
         img = Image.fromarray(np.uint8(image_array))
         with io.BytesIO() as output:
             img.save(output, format="JPEG")
             b = output.getvalue()
-            self.socket.sendto(b, self.address)
+            try:
+                self.socket.sendto(b, self.address)
+            except socket.gaierror:
+                print('Could not send frame through socket - skipped')
 
     def shutdown(self):
-        self.socket.close()
+        if self.socket is not None:
+            self.socket.close()
 

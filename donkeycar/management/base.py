@@ -657,17 +657,19 @@ class Monitor(BaseCommand):
         my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         my_socket.bind(address)
         buf = 16000
+        cv2.namedWindow('DonkeyFPV', cv2.WINDOW_NORMAL)
         print('Donkey FPV monitor starting up on host {} port {}'
               .format(cfg.PC_HOSTNAME, cfg.PC_PORT))
         try:
             while True:
-                data, _ = my_socket.recvfrom(buf)
+                (data, addr) = my_socket.recvfrom(buf)
                 b = io.BytesIO(data)
                 image = Image.open(b)
                 #img_res = image.resize((768, 576))
                 img_np = np.array(image) / 255.0
                 #im_scaled = cv2.resize(img_np, (768, 576))
                 cv2.imshow('DonkeyFPV', img_np)
+                cv2.waitKey(1)
         except KeyboardInterrupt:
             pass
 

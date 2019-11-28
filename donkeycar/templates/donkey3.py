@@ -5,7 +5,7 @@ controller and to do a calibration of the RC throttle and steering triggers.
 
 Usage:
     manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web] \
-    [--verbose]
+    [--fpv] [--verbose]
     manage.py (calibrate)
     manage.py (stream)
 
@@ -35,7 +35,7 @@ class TypePrinter:
 
 
 def drive(cfg, use_pid=False, no_cam=False, model_path=None,
-          web=False, verbose=False):
+          web=False, fpv=False, verbose=False):
     """
     Construct a working robotic vehicle from many parts. Each part runs as a job
     in the Vehicle loop, calling either its run or run_threaded method depending
@@ -83,8 +83,12 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
                 outputs=['user/angle', 'user/throttle', 'user/mode',
                          'user/recording'],
                 threaded=True)
-
+        assert not fpv, 'You cannot have web controller and FPV together'
     else:
+        if fpv:
+            streamer = FrameStreamer()
+            car.add(streamer, inputs=['cam/image_array'])
+
         # create the RC receiver with 3 channels
         rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
         rc_throttle = RCReceiver(cfg.THROTTLE_RC_GPIO)
@@ -270,6 +274,7 @@ if __name__ == '__main__':
               no_cam=args['--no_cam'],
               model_path=args['--model'],
               web=args['--web'],
+              fpv=args['--fpv'],
               verbose=args['--verbose'])
     elif args['calibrate']:
         calibrate(config)

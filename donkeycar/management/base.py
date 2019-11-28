@@ -4,8 +4,9 @@ import argparse
 import json
 
 from socket import *
-
 import io
+from threading import Thread
+
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
 from donkeycar.utils import *
@@ -637,6 +638,17 @@ class ShowLapTimes(BaseCommand):
 
 
 class Monitor(BaseCommand):
+    def __init__(self):
+        self.t = Thread(target=self.update, args=())
+        self.t.daemon = True
+        self.my_socket = None
+        self.buf = 16000
+        self.count = 0
+        self.socket_data = (None, None)
+
+    def update(self):
+        while True:
+            self.socket_data = self.my_socket.recvfrom(self.buf)
 
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='monitor',
@@ -654,27 +666,29 @@ class Monitor(BaseCommand):
         args = self.parse_args(args)
         cfg = load_config(args.config)
         address = (cfg.PC_HOSTNAME, cfg.PC_PORT)
-        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        my_socket.bind(address)
-        buf = 16000
+        self.my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.my_socket.bind(address)
         cv2.namedWindow('DonkeyFPV', cv2.WINDOW_NORMAL)
         print('Donkey FPV monitor starting up on host {} port {}'
               .format(cfg.PC_HOSTNAME, cfg.PC_PORT))
+        self.t.start()
+
         try:
             while True:
-                (data, addr) = my_socket.recvfrom(buf)
-                b = io.BytesIO(data)
+                if self.socket_data[0] is None:
+                    continue
+                b = io.BytesIO(self.socket_data[0])
                 image = Image.open(b)
-                #img_res = image.resize((768, 576))
-                img_np = np.array(image) / 255.0
-                #im_scaled = cv2.resize(img_np, (768, 576))
-                cv2.imshow('DonkeyFPV', img_np)
+                # img_res = image.resize((768, 576))
+                img = np.array(image) / 255.0
+                img_scaled = cv2.resize(img, (768, 576))
+                cv2.imshow('DonkeyFPV', img_scaled)
                 cv2.waitKey(1)
         except KeyboardInterrupt:
             pass
 
         cv2.destroyAllWindows()
-        my_socket.close()
+        self.my_socket.close()
 
 
 def execute_from_command_line():

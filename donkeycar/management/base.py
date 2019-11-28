@@ -4,8 +4,7 @@ import argparse
 import json
 
 from socket import *
-from PIL import Image
-import cv2
+
 import io
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
@@ -14,10 +13,6 @@ from donkeycar.management.tub import TubManager
 from donkeycar.management.joystick_creator import CreateJoystick
 import numpy as np
 from prettytable import PrettyTable
-
-
-
-
 
 
 PACKAGE_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -654,6 +649,8 @@ class Monitor(BaseCommand):
         return parsed_args
 
     def run(self, args):
+        from PIL import Image
+        import cv2
         args = self.parse_args(args)
         cfg = load_config(args.config)
         address = (cfg.PC_HOSTNAME, cfg.PC_PORT)

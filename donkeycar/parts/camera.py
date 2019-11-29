@@ -330,7 +330,7 @@ class FrameStreamer:
                 print('.', end='')
                 time.sleep(1)
         print('failed!' if self.socket is None else 'done.')
-        self.bytes = None
+        self.bytes = bytes(196*144)
         self.running = True
 
     def update(self):

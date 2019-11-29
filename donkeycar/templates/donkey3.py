@@ -261,7 +261,7 @@ def stream(cfg):
                    image_d=cfg.IMAGE_DEPTH, framerate=hz)
     car.add(cam, outputs=['cam/image_array'], threaded=True)
     streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)
-    car.add(streamer, inputs=['cam/image_array'])
+    car.add(streamer, inputs=['cam/image_array'], threaded=True)
     car.start(rate_hz=hz, max_loop_count=cfg.MAX_LOOPS)
 
 

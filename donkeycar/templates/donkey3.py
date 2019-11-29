@@ -87,7 +87,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     else:
         if fpv:
             streamer = FrameStreamer()
-            car.add(streamer, inputs=['cam/image_array'])
+            car.add(streamer, inputs=['cam/image_array'], threaded=True)
 
         # create the RC receiver with 3 channels
         rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)

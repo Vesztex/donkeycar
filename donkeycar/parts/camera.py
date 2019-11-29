@@ -330,20 +330,34 @@ class FrameStreamer:
                 print('.', end='')
                 time.sleep(1)
         print('failed!' if self.socket is None else 'done.')
+        self.bytes = None
+        self.running = True
 
-    def run(self, image_array):
+    def update(self):
+        # stream frames continuously to udp socket
+        while self.running and self.bytes is not None:
+            try:
+                self.socket.sendto(self.bytes, self.address)
+            except gaierror:
+                pass
+
+    def run_threaded(self, image_array):
         if self.socket is None:
             return
         img = Image.fromarray(np.uint8(image_array))
         with io.BytesIO() as output:
             img.save(output, format="JPEG")
-            b = output.getvalue()
-            try:
-                self.socket.sendto(b, self.address)
-            except gaierror:
-                pass
+            self.bytes = output.getvalue()
+
+    def run(self, image_array):
+        self.run_threaded(image_array)
+        try:
+            self.socket.sendto(self.bytes, self.address)
+        except gaierror:
+            pass
 
     def shutdown(self):
+        self.running = False
         if self.socket is not None:
             self.socket.close()
 

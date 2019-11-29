@@ -19,6 +19,7 @@ from prettytable import PrettyTable
 PACKAGE_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 TEMPLATES_PATH = os.path.join(PACKAGE_PATH, 'templates')
 
+ONE_BYTE_SCALE = 1.0 / 255.0
 
 def make_dir(path):
     real_path = os.path.expanduser(path)
@@ -653,7 +654,7 @@ class Monitor(BaseCommand):
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='monitor',
                                          usage='%(prog)s [options]')
-        parser.add_argument('--size', help='display window size')
+        parser.add_argument('--scale', help='scale frame size', default=1.0)
         parser.add_argument('--config', default='./config.py',
                             help='location of config file to use. default: '
                                  './config.py')
@@ -665,13 +666,15 @@ class Monitor(BaseCommand):
         import cv2
         args = self.parse_args(args)
         cfg = load_config(args.config)
-        address = (cfg.PC_HOSTNAME, cfg.PC_PORT)
+        address = (cfg.PC_HOSTNAME, cfg.FPV_PORT)
         self.my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.my_socket.bind(address)
-        cv2.namedWindow('DonkeyFPV', cv2.WINDOW_NORMAL)
-        print('Donkey FPV monitor starting up on host {} port {}'
-              .format(cfg.PC_HOSTNAME, cfg.PC_PORT))
+        cv2.namedWindow('Donkey FPV', cv2.WINDOW_NORMAL)
+        scale = float(args.scale)
         self.t.start()
+        print('Donkey FPV monitor starting up on host {} port {}. Receiving '
+              'data from {}. Frame scaling by {}'
+              .format(*address, self.socket_data[1], scale))
         count = 0
         proc_time = 0.0
         last_time = time.time()
@@ -682,13 +685,13 @@ class Monitor(BaseCommand):
                     continue
                 b = io.BytesIO(self.socket_data[0])
                 image = Image.open(b)
-                # img_res = image.resize((768, 576))
-                img = np.array(image) / 255.0
-                img_scaled = cv2.resize(img, (384, 288))
+                img_np = np.array(image) * ONE_BYTE_SCALE
+                img_scaled = cv2.resize(img_np, None, fx=scale, fy=scale) \
+                    if scale is not 1.0 else img_np
+                cv2.imshow('Donkey FPV', img_scaled)
+                cv2.waitKey(1)
                 now = time.time()
                 proc_time += now - last_time
-                cv2.imshow('DonkeyFPV', img_scaled)
-                cv2.waitKey(1)
                 last_time = now
                 count += 1
         except KeyboardInterrupt:
@@ -696,8 +699,8 @@ class Monitor(BaseCommand):
 
         cv2.destroyAllWindows()
         self.my_socket.close()
-        print('Processed {0:} frames with average time {1:3.1f}ms'
-              .format(count, proc_time * 1000 / count))
+        print('Processed {0:} frames with average rate {1:3.1f}fps'
+              .format(count, count / proc_time))
 
 
 def execute_from_command_line():

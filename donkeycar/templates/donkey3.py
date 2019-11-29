@@ -86,7 +86,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         assert not fpv, 'You cannot have web controller and FPV together'
     else:
         if fpv:
-            streamer = FrameStreamer()
+            streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)
             car.add(streamer, inputs=['cam/image_array'], threaded=True)
 
         # create the RC receiver with 3 channels
@@ -260,7 +260,7 @@ def stream(cfg):
     cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
                    image_d=cfg.IMAGE_DEPTH, framerate=hz)
     car.add(cam, outputs=['cam/image_array'], threaded=True)
-    streamer = FrameStreamer()
+    streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)
     car.add(streamer, inputs=['cam/image_array'])
     car.start(rate_hz=hz, max_loop_count=cfg.MAX_LOOPS)
 

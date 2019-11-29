@@ -317,7 +317,7 @@ class ImageListCamera(BaseCamera):
 
 
 class FrameStreamer:
-    def __init__(self, host="DirksMacBook.home", port=13000):
+    def __init__(self, host, port=13000):
         self.address = (host, port)
         self.socket = None
         print('Created FrameStreamer to host {}, port {}. Trying to '
@@ -330,7 +330,7 @@ class FrameStreamer:
                 print('.', end='')
                 time.sleep(1)
         print('failed!' if self.socket is None else 'done.')
-        self.bytes = bytes(196*144)
+        self.bytes = bytes(0)
         self.running = True
 
     def update(self):

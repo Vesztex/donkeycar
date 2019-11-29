@@ -335,7 +335,7 @@ class FrameStreamer:
 
     def update(self):
         # stream frames continuously to udp socket
-        while self.running and self.bytes is not None:
+        while self.running:
             try:
                 self.socket.sendto(self.bytes, self.address)
             except gaierror:

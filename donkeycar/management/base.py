@@ -672,6 +672,9 @@ class Monitor(BaseCommand):
         print('Donkey FPV monitor starting up on host {} port {}'
               .format(cfg.PC_HOSTNAME, cfg.PC_PORT))
         self.t.start()
+        count = 0
+        proc_time = 0.0
+        last_time = time.time()
 
         try:
             while True:
@@ -681,14 +684,20 @@ class Monitor(BaseCommand):
                 image = Image.open(b)
                 # img_res = image.resize((768, 576))
                 img = np.array(image) / 255.0
-                img_scaled = cv2.resize(img, (768, 576))
+                img_scaled = cv2.resize(img, (384, 288))
+                now = time.time()
+                proc_time += now - last_time
                 cv2.imshow('DonkeyFPV', img_scaled)
                 cv2.waitKey(1)
+                last_time = now
+                count += 1
         except KeyboardInterrupt:
             pass
 
         cv2.destroyAllWindows()
         self.my_socket.close()
+        print('Processed {0:} frames with average time {1:3.1f}ms'
+              .format(count, proc_time * 1000 / count))
 
 
 def execute_from_command_line():

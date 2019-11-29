@@ -341,7 +341,7 @@ class FrameStreamer:
             try:
                 self.socket.sendto(b, self.address)
             except gaierror:
-                print('Could not send frame through socket - skipped')
+                pass
 
     def shutdown(self):
         if self.socket is not None:

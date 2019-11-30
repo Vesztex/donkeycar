@@ -333,15 +333,18 @@ class FrameStreamer:
         self.bytes = bytes(0)
         self.running = True
 
+    def loop(self):
+        try:
+            self.socket.sendto(self.bytes, self.address)
+        except gaierror:
+            pass
+        except OSError:
+            pass
+
     def update(self):
         # stream frames continuously to udp socket
         while self.running:
-            try:
-                self.socket.sendto(self.bytes, self.address)
-            except gaierror:
-                pass
-            except OSError:
-                pass
+            self.loop()
 
     def run_threaded(self, image_array):
         if self.socket is None:
@@ -353,10 +356,7 @@ class FrameStreamer:
 
     def run(self, image_array):
         self.run_threaded(image_array)
-        try:
-            self.socket.sendto(self.bytes, self.address)
-        except gaierror:
-            pass
+        self.loop()
 
     def shutdown(self):
         self.running = False

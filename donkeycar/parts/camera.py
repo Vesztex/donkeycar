@@ -7,7 +7,7 @@ import base64
 from socket import socket, gaierror, AF_INET, SOCK_DGRAM
 import glob
 from donkeycar.utils import rgb2gray
-
+from donkeycar.utils import arr_to_binary
 
 class BaseCamera:
 
@@ -347,12 +347,13 @@ class FrameStreamer:
             self.loop()
 
     def run_threaded(self, image_array):
-        if self.socket is None:
-            return
-        img = Image.fromarray(np.uint8(image_array))
-        with io.BytesIO() as output:
-            img.save(output, format="JPEG")
-            self.bytes = output.getvalue()
+        # if self.socket is None:
+        #     return
+        # img = Image.fromarray(np.uint8(image_array))
+        # with io.BytesIO() as output:
+        #     img.save(output, format="JPEG")
+        #     self.bytes = output.getvalue()
+        self.bytes = arr_to_binary(image_array)
 
     def run(self, image_array):
         self.run_threaded(image_array)

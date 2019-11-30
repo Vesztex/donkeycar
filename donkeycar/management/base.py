@@ -21,6 +21,7 @@ TEMPLATES_PATH = os.path.join(PACKAGE_PATH, 'templates')
 
 ONE_BYTE_SCALE = 1.0 / 255.0
 
+
 def make_dir(path):
     real_path = os.path.expanduser(path)
     print('making dir ', real_path)
@@ -683,9 +684,9 @@ class Monitor(BaseCommand):
             while True:
                 if self.socket_data[0] is None:
                     continue
-                b = io.BytesIO(self.socket_data[0])
-                image = Image.open(b)
-                img_np = np.array(image) * ONE_BYTE_SCALE
+
+                img = binary_to_img(self.socket_data[0])
+                img_np = img_to_arr(img)
                 img_scaled = cv2.resize(img_np, None, fx=scale, fy=scale) \
                     if scale is not 1.0 else img_np
                 cv2.imshow('Donkey FPV', img_scaled)

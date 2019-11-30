@@ -80,8 +80,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     if web:
         car.add(LocalWebController(),
                 inputs=['cam/image_array'],
-                outputs=['user/angle', 'user/throttle', 'user/mode',
-                         'user/recording'],
+                outputs=['dummy/angle', 'dummy/throttle', 'dummy/mode',
+                         'dummy/recording'],
                 threaded=True)
         assert not fpv, 'You cannot have web controller and FPV together'
     else:
@@ -89,13 +89,13 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
             streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)
             car.add(streamer, inputs=['cam/image_array'], threaded=True)
 
-        # create the RC receiver with 3 channels
-        rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
-        rc_throttle = RCReceiver(cfg.THROTTLE_RC_GPIO)
-        rc_wiper = RCReceiver(cfg.DATA_WIPER_RC_GPIO, jitter=0.05, no_action=0)
-        car.add(rc_steering, outputs=['user/angle', 'user/steering_on'])
-        car.add(rc_throttle, outputs=['user/throttle', 'user/throttle_on'])
-        car.add(rc_wiper, outputs=['user/wiper', 'user/wiper_on'])
+    # create the RC receiver with 3 channels
+    rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
+    rc_throttle = RCReceiver(cfg.THROTTLE_RC_GPIO)
+    rc_wiper = RCReceiver(cfg.DATA_WIPER_RC_GPIO, jitter=0.05, no_action=0)
+    car.add(rc_steering, outputs=['user/angle', 'user/steering_on'])
+    car.add(rc_throttle, outputs=['user/throttle', 'user/throttle_on'])
+    car.add(rc_wiper, outputs=['user/wiper', 'user/wiper_on'])
 
     pilot_throttle_var = 'pilot/throttle'
     # if pid we want to convert throttle to speed

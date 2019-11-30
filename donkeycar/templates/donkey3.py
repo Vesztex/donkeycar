@@ -5,7 +5,7 @@ controller and to do a calibration of the RC throttle and steering triggers.
 
 Usage:
     manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web] \
-    [--fpv] [--verbose]
+    [--fpv] [--no_tub] [--verbose]
     manage.py (calibrate)
     manage.py (stream)
 
@@ -35,7 +35,7 @@ class TypePrinter:
 
 
 def drive(cfg, use_pid=False, no_cam=False, model_path=None,
-          web=False, fpv=False, verbose=False):
+          web=False, fpv=False, no_tub=False, verbose=False):
     """
     Construct a working robotic vehicle from many parts. Each part runs as a job
     in the Vehicle loop, calling either its run or run_threaded method depending
@@ -167,7 +167,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         else 'throttle'
     car.add(throttle, inputs=[input_field], threaded=True)
 
-    if not no_cam and (model_path is None or record_on_ai):
+    if not no_cam and (model_path is None or record_on_ai) and not no_tub:
         class RecordingCondition:
             def run(self, throttle_on, throttle_val):
                 if model_path is None:
@@ -275,6 +275,7 @@ if __name__ == '__main__':
               model_path=args['--model'],
               web=args['--web'],
               fpv=args['--fpv'],
+              no_tub=args['--no_tub'],
               verbose=args['--verbose'])
     elif args['calibrate']:
         calibrate(config)

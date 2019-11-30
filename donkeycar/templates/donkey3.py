@@ -83,11 +83,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
                 outputs=['dummy/angle', 'dummy/throttle', 'dummy/mode',
                          'dummy/recording'],
                 threaded=True)
-        assert not fpv, 'You cannot have web controller and FPV together'
-    else:
-        if fpv:
-            streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)
-            car.add(streamer, inputs=['cam/image_array'], threaded=True)
+
+    if fpv:
+        streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)
+        car.add(streamer, inputs=['cam/image_array'], threaded=True)
 
     # create the RC receiver with 3 channels
     rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)

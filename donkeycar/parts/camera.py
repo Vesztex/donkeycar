@@ -340,6 +340,8 @@ class FrameStreamer:
                 self.socket.sendto(self.bytes, self.address)
             except gaierror:
                 pass
+            except OSError:
+                pass
 
     def run_threaded(self, image_array):
         if self.socket is None:

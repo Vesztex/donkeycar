@@ -184,7 +184,7 @@ class VideoAPI(tornado.web.RequestHandler):
         my_boundary = "--boundarydonotcross\n"
         while True:
 
-            interval = .1
+            interval = .02
             if self.served_image_timestamp + interval < time.time() and \
                     hasattr(self.application, 'img_arr'):
 

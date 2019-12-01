@@ -687,10 +687,14 @@ class Monitor(BaseCommand):
 
                 img = binary_to_img(self.socket_data[0])
                 img_np = img_to_arr(img)
-                img_scaled = cv2.resize(img_np, None, fx=scale, fy=scale) \
-                    if scale is not 1.0 else img_np
-                cv2.imshow('Donkey FPV', img_scaled)
-                cv2.waitKey(1)
+                try:
+                    img_scaled = cv2.resize(img_np, None, fx=scale, fy=scale) \
+                        if scale is not 1.0 else img_np
+                    img_scaled = cv2.cvtColor(img_scaled, cv2.COLOR_BGR2RGB)
+                    cv2.imshow('Donkey FPV', img_scaled)
+                    cv2.waitKey(1)
+                except TypeError:  # from invalid numpy array
+                    pass
                 now = time.time()
                 proc_time += now - last_time
                 last_time = now

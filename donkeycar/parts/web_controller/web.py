@@ -204,11 +204,14 @@ class WebFpv(Application):
 
     def __init__(self, port=8890):
         self.port = port
-        # Construct the tornado application handlers
+        #self.img_arr = None
+
+        """Construct and serve the tornado application."""
         handlers = [
             (r"/", BaseHandler),
             (r"/video", MJPEGHandler),
         ]
+
         settings = {'debug': True}
         super().__init__(handlers, **settings)
         print("Started Web FPV server. You can now go to {}.local:{} to "
@@ -242,14 +245,22 @@ class MJPEGHandler(RequestHandler):
     async def get(self):
         self.set_header('Content-Type',
                         'multipart/x-mixed-replace;boundary=--boundarydonotcross')
+        served_image_timestamp = time.time()
         my_boundary = "--boundarydonotcross\n"
         while True:
-            img = utils.arr_to_binary(self.application.img_arr)
-            self.write(my_boundary)
-            self.write("Content-type: image/jpeg\r\n")
-            self.write("Content-length: %s\r\n\r\n" % len(img))
-            self.write(img)
-            try:
-                await self.flush()
-            except tornado.iostream.StreamClosedError:
-                pass
+
+            interval = .01
+            if served_image_timestamp + interval < time.time():
+                img = utils.arr_to_binary(self.application.img_arr)
+                self.write(my_boundary)
+                self.write("Content-type: image/jpeg\r\n")
+                self.write("Content-length: %s\r\n\r\n" % len(img))
+                self.write(img)
+                served_image_timestamp = time.time()
+                try:
+                    await self.flush()
+                except tornado.iostream.StreamClosedError:
+                    pass
+
+            else:
+                await tornado.gen.sleep(interval)

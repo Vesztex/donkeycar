@@ -249,7 +249,7 @@ class MJPEGHandler(RequestHandler):
         my_boundary = "--boundarydonotcross\n"
         while True:
 
-            interval = .005
+            interval = .01
             if served_image_timestamp + interval < time.time():
                 img = utils.arr_to_binary(self.application.img_arr)
                 self.write(my_boundary)

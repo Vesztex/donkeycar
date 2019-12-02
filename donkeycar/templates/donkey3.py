@@ -23,7 +23,7 @@ from donkeycar.parts.datastore import TubWiper, TubHandler
 from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.transform import SimplePidController, ImgPrecondition
 from donkeycar.parts.sensor import Odometer, LapTimer
-from donkeycar.parts.controller import LocalWebController
+from donkeycar.parts.controller import WebFpv
 
 
 class TypePrinter:
@@ -78,11 +78,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     car.add(lap, outputs=['car/lap'], threaded=True)
 
     if web:
-        car.add(LocalWebController(),
-                inputs=['cam/image_array'],
-                outputs=['dummy/angle', 'dummy/throttle', 'dummy/mode',
-                         'dummy/recording'],
-                threaded=True)
+        car.add(WebFpv(), inputs=['cam/image_array'], threaded=True)
 
     if fpv:
         streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)

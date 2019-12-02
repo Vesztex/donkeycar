@@ -207,10 +207,10 @@ class WebFpv(Application):
         #self.img_arr = None
 
         """Construct and serve the tornado application."""
-        handlers = Application([
+        handlers = [
             (r"/", BaseHandler),
             (r"/video", MJPEGHandler),
-        ])
+        ]
 
         settings = {'debug': True}
         super().__init__(handlers, **settings)

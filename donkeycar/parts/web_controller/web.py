@@ -204,7 +204,6 @@ class WebFpv(Application):
 
     def __init__(self, port=8890):
         self.port = port
-        #self.img_arr = None
 
         """Construct and serve the tornado application."""
         handlers = [

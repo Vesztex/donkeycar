@@ -209,7 +209,7 @@ class WebFpv(Application):
         """Construct and serve the tornado application."""
         handlers = [
             (r"/", BaseHandler),
-            (r"/video", MJPEGHandler),
+            (r"/video", VideoAPI),
         ]
 
         settings = {'debug': True}
@@ -239,28 +239,3 @@ class BaseHandler(RequestHandler):
         data = {}
         self.render("templates/base_fpv.html", **data)
 
-
-class MJPEGHandler(RequestHandler):
-
-    async def get(self):
-        self.set_header('Content-Type',
-                        'multipart/x-mixed-replace;boundary=--boundarydonotcross')
-        served_image_timestamp = time.time()
-        my_boundary = "--boundarydonotcross\n"
-        while True:
-
-            interval = .01
-            if served_image_timestamp + interval < time.time():
-                img = utils.arr_to_binary(self.application.img_arr)
-                self.write(my_boundary)
-                self.write("Content-type: image/jpeg\r\n")
-                self.write("Content-length: %s\r\n\r\n" % len(img))
-                self.write(img)
-                served_image_timestamp = time.time()
-                try:
-                    await self.flush()
-                except tornado.iostream.StreamClosedError:
-                    pass
-
-            else:
-                await tornado.gen.sleep(interval)

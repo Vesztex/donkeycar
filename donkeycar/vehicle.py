@@ -65,6 +65,7 @@ class Vehicle:
         self.profiler = PartProfiler()
         self.loop_count = 0
         self.loop_exceed = 0
+        self.excess_time = 0.0
 
     def add(self, part, inputs=[], outputs=[],
             threaded=False, run_condition=None):
@@ -133,6 +134,7 @@ class Vehicle:
         loop_time = 1.0 / rate_hz
         self.loop_count = 0
         self.loop_exceed = 0
+        self.excess_time = 0.0
         try:
 
             self.on = True
@@ -157,6 +159,7 @@ class Vehicle:
                     time.sleep(sleep_time)
                 else:
                     self.loop_exceed += 1
+                    self.excess_time -= sleep_time
                     # print a message when could not maintain loop rate.
                     if verbose:
                         print('WARN::Vehicle: jitter violation in vehicle loop '
@@ -210,6 +213,9 @@ class Vehicle:
                 pass
             except Exception as e:
                 print(e)
-        print('Ran {:} vehicle loops with {:.2f}% exceeding loop time.'
-              .format(self.loop_count, 100.0 * self.loop_exceed/self.loop_count))
+        print('Ran {:} vehicle loops with {:.2f}% exceeding loop time. '
+              'Average excess time {:.1f}ms.'
+              .format(self.loop_count,
+                      100.0 * self.loop_exceed / self.loop_count,
+                      1000.0 * self.excess_time / self.loop_count))
         self.profiler.report()

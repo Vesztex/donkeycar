@@ -211,5 +211,5 @@ class Vehicle:
             except Exception as e:
                 print(e)
         print('Ran {:} vehicle loops with {:.2f}% exceeding loop time.'
-              .format(self.loop_count, self.loop_exceed/float(self.loop_count)))
+              .format(self.loop_count, 100.0 * self.loop_exceed/self.loop_count))
         self.profiler.report()

@@ -63,6 +63,8 @@ class Vehicle:
         self.on = True
         self.threads = []
         self.profiler = PartProfiler()
+        self.loop_count = 0
+        self.loop_exceed = 0
 
     def add(self, part, inputs=[], outputs=[],
             threaded=False, run_condition=None):
@@ -129,6 +131,8 @@ class Vehicle:
             If debug output should be printed into shell
         """
         loop_time = 1.0 / rate_hz
+        self.loop_count = 0
+        self.loop_exceed = 0
         try:
 
             self.on = True
@@ -141,28 +145,26 @@ class Vehicle:
             # wait until the parts warm up.
             print('Starting vehicle at {} Hz'.format(rate_hz))
 
-            loop_count = 0
             while self.on:
                 start_time = time.time()
-                loop_count += 1
                 self.update_parts()
-
-                # stop drive loop if loop_count exceeds max_loopcount
-                if max_loop_count and loop_count > max_loop_count:
+                # stop drive loop if loop_count exceeds max_loop_count
+                if max_loop_count and self.loop_count > max_loop_count:
                     self.on = False
 
                 sleep_time = loop_time - (time.time() - start_time)
                 if sleep_time > 0.0:
                     time.sleep(sleep_time)
                 else:
+                    self.loop_exceed += 1
                     # print a message when could not maintain loop rate.
                     if verbose:
                         print('WARN::Vehicle: jitter violation in vehicle loop '
                               'with {0:4.0f}ms'.format(abs(1000 * sleep_time)))
 
-                if verbose and loop_count % 200 == 0:
+                if verbose and self.loop_count % 200 == 0:
                     self.profiler.report()
-
+                self.loop_count += 1
         except KeyboardInterrupt:
             pass
         finally:
@@ -208,5 +210,6 @@ class Vehicle:
                 pass
             except Exception as e:
                 print(e)
-
+        print('Ran {:} vehicle loops with {:5.2f}% exceeding'
+              .format(self.loop_count, self.loop_exceed/float(self.loop_count)))
         self.profiler.report()

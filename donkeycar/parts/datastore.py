@@ -251,7 +251,8 @@ class Tub(object):
                 json_data[key] = name
 
             else:
-                msg = 'Tub does not know what to do with this type {}'.format(typ)
+                msg = 'Tub does not know what to do with key {} of type {}'\
+                    .format(key, typ)
                 raise TypeError(msg)
         if MS not in json_data:
             json_data[MS] = int((time.time() - self.start_time) * 1000)
@@ -492,7 +493,7 @@ class TubWriter(Tub):
 
     def update(self):
         while self.running:
-            while self.cache:
+            if self.cache:
                 self.put_record(self.cache.pop())
 
     def run_threaded(self, *args):
@@ -501,6 +502,14 @@ class TubWriter(Tub):
         record[MS] = int((time.time() - self.start_time) * 1000)
         self.cache.append(record)
         return self.current_ix
+
+    def shutdown(self):
+        print('Shutting down Tubwriter, waiting for cache to clear', end='')
+        while self.cache:
+            time.sleep(0.25)
+            print('.', end='')
+        self.running = False
+        print('done.')
 
 
 class TubReader(Tub):

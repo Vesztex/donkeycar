@@ -6,7 +6,6 @@ Created on Sun Jun 25 10:44:24 2017
 """
 
 import time
-import asyncio
 import numpy as np
 from threading import Thread
 from .memory import Memory
@@ -113,9 +112,6 @@ class Vehicle:
         self.parts.remove(part)
 
     def start(self, rate_hz=10, max_loop_count=None, verbose=False):
-        asyncio.run(self.loop(rate_hz, max_loop_count, verbose))
-
-    async def loop(self, rate_hz=10, max_loop_count=None, verbose=False):
         """
         Start vehicle's main drive loop.
 

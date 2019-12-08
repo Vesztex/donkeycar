@@ -485,7 +485,7 @@ class TubWriter(Tub):
         '''
         assert len(self.inputs) == len(args)
         record = dict(zip(self.inputs, args))
-        await self.put_record(record)
+        self.put_record(record)
         return self.current_ix
 
 

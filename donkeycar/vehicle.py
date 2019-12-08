@@ -156,7 +156,7 @@ class Vehicle:
 
             while self.on:
                 start_time = time.time()
-                await self.update_parts()
+                self.update_parts()
                 # stop drive loop if loop_count exceeds max_loop_count
                 if max_loop_count and self.loop_count > max_loop_count:
                     self.on = False
@@ -180,7 +180,7 @@ class Vehicle:
         finally:
             self.stop()
 
-    async def update_parts(self):
+    def update_parts(self):
         '''
         loop over all parts
         '''
@@ -202,7 +202,7 @@ class Vehicle:
                 if entry.get('thread'):
                     outputs = p.run_threaded(*inputs)
                 else:
-                    outputs = await p.run(*inputs)
+                    outputs = p.run(*inputs)
 
                 # save the output to memory
                 if outputs is not None:

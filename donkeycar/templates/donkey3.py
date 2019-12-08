@@ -197,7 +197,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         car.add(tub,
                 inputs=inputs,
                 outputs=["tub/num_records"],
-                run_condition='user/recording')
+                run_condition='user/recording',
+                threaded=True)
 
         # add a tub wiper that is triggered by channel 3 on the RC, but only
         # if we don't use channel 3 for switching between ai & manual

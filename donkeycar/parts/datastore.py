@@ -499,7 +499,10 @@ class TubWriter(Tub):
     def run_threaded(self, *args):
         assert len(self.inputs) == len(args)
         record = dict(zip(self.inputs, args))
-        record[MS] = int((time.time() - self.start_time) * 1000)
+        millis = int((time.time() - self.start_time) * 1000)
+        assert millis is not None, "No valid millis at record {}"\
+            .format(self.current_ix)
+        record[MS] = millis
         self.cache.append(record)
         return self.current_ix
 

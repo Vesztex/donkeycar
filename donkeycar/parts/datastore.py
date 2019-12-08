@@ -517,7 +517,7 @@ class TubWriter(Tub):
         return self.current_ix
 
     def shutdown(self):
-        print('Shutting down Tubwriter, waiting for cache to clear', end='')
+        print('Shutting down TubWriter, waiting for cache to clear', end='')
         while self.cache:
             time.sleep(0.25)
             print('.', end='')

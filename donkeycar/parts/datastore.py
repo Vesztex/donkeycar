@@ -476,7 +476,7 @@ class TubWriter(Tub):
     def __init__(self, *args, **kwargs):
         super(TubWriter, self).__init__(*args, **kwargs)
 
-    async def run(self, *args):
+    def run(self, *args):
         '''
         API function needed to use as a Donkey part.
 

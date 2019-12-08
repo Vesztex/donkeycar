@@ -31,7 +31,7 @@ class Memory:
     def update(self, new_d):
         self.d.update(new_d)
         
-    async def put(self, keys, inputs):
+    def put(self, keys, inputs):
         if len(keys) > 1:
             for i, key in enumerate(keys):
                 try:

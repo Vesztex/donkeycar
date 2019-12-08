@@ -206,7 +206,7 @@ class Vehicle:
 
                 # save the output to memory
                 if outputs is not None:
-                    await self.mem.put(entry['outputs'], outputs)
+                    self.mem.put(entry['outputs'], outputs)
                 # finish timing part run
                 self.profiler.on_part_finished(p)
 

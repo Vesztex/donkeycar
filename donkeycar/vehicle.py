@@ -113,10 +113,7 @@ class Vehicle:
         self.parts.remove(part)
 
     def start(self, rate_hz=10, max_loop_count=None, verbose=False):
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(self.loop(rate_hz,
-                                                   max_loop_count,
-                                                   verbose))
+        asyncio.run(self.loop(rate_hz, max_loop_count, verbose))
 
     async def loop(self, rate_hz=10, max_loop_count=None, verbose=False):
         """

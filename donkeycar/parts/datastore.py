@@ -137,6 +137,9 @@ class Tub(object):
         return list(self.meta['types'])
 
     def get_input_type(self, key):
+        # milli seconds are added internally and are of type int
+        if key is MS:
+            return 'int'
         input_types = dict(zip(self.inputs, self.types))
         return input_types.get(key)
 

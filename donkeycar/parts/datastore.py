@@ -13,10 +13,8 @@ import datetime
 import random
 import glob
 from queue import Queue
-import base64
 import numpy as np
 import pandas as pd
-from ..utils import arr_to_binary, binary_to_img
 
 from PIL import Image
 
@@ -44,9 +42,6 @@ class Tub(object):
         self.df = None
         exists = os.path.exists(self.path)
         self.allow_reverse = allow_reverse
-        self.multi_threaded = False
-        self.queue = Queue(maxsize=1000)
-        self.queue_size = 0
 
         if exists:
             # load log and meta
@@ -260,26 +255,17 @@ class Tub(object):
             elif typ == 'image_array':
                 img = Image.fromarray(np.uint8(val))
                 name = self.make_file_name(key, ext='.jpg')
-                if self.multi_threaded:
-                    bin_img = arr_to_binary(val)
-                    json_data[key] = base64.standard_b64encode(bin_img)
-                else:
-                    img.save(os.path.join(self.path, name))
-                    json_data[key] = name
+                img.save(os.path.join(self.path, name))
+                json_data[key] = name
+
             else:
                 msg = 'Tub does not know what to do with key {} of type {}. ' \
                       'Current ix {}, input data: {}'\
                       .format(key, typ, self.current_ix, data)
                 raise TypeError(msg)
-
-        json_data[MS] = int((time.time() - self.start_time) * 1000)
-        json_data['ix'] = self.current_ix
-        if self.multi_threaded:
-            self.queue.put(json_data)
-            # record the maximum queue size
-            self.queue_size = max(self.queue_size, self.queue.qsize())
-        else:
-            self.write_json_record(json_data)
+        if MS not in json_data:
+            json_data[MS] = int((time.time() - self.start_time) * 1000)
+        self.write_json_record(json_data)
         return self.current_ix
 
     def erase_last_n_records(self, num_erase):
@@ -485,6 +471,8 @@ class Tub(object):
 class TubWriter(Tub):
     def __init__(self, *args, **kwargs):
         super(TubWriter, self).__init__(*args, **kwargs)
+        self.queue = Queue(maxsize=200)
+        self.queue_size = 0
 
     def run(self, *args):
         """
@@ -497,33 +485,20 @@ class TubWriter(Tub):
         return self.current_ix
 
     def update(self):
-        """
-        Multi-threaded donkey part interface to start / run thread in
-        background. Here we write the queued json data and decoded picture to
-        disk.
-        """
-        self.multi_threaded = True
         while True:
             if not self.queue.empty():
-                record = self.queue.get()
-                ix = record['ix']
-                for key, val in record.items():
-                    typ = self.get_input_type(key)
-                    if typ == 'image_array':
-                        # convert base encoded picture back and save to disk
-                        img_bin = base64.standard_b64decode(val)
-                        img = binary_to_img(img_bin)
-                        name = self.make_file_name(key, ix=ix, ext='.jpg')
-                        img.save(os.path.join(self.path, name))
-                        record[key] = name
-                self.write_json_record(record, ix=ix)
+                self.put_record(self.queue.get())
 
     def run_threaded(self, *args):
-        """
-        Threaded just patches through to non-threaded as the put_recorded is
-        called on the base class where the multi-threading is handled.
-        """
-        return self.run(*args)
+        assert len(self.inputs) == len(args)
+        record = dict(zip(self.inputs, args))
+        millis = int((time.time() - self.start_time) * 1000)
+        assert millis is not None, "No valid millis at record {}"\
+            .format(self.current_ix)
+        record[MS] = millis
+        self.queue.put(record)
+        self.queue_size = max(self.queue_size, self.queue.qsize())
+        return self.current_ix
 
     def shutdown(self):
         print('Shutting down TubWriter, maximum queue size was {}'.format(

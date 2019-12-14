@@ -471,7 +471,7 @@ class Tub(object):
 class TubWriter(Tub):
     def __init__(self, *args, **kwargs):
         super(TubWriter, self).__init__(*args, **kwargs)
-        self.queue = Queue(maxsize=200)
+        self.queue = Queue(maxsize=500)
         self.queue_size = 0
 
     def run(self, *args):

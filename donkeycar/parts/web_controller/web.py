@@ -234,7 +234,7 @@ class WebFpv(Application):
 
 class BaseHandler(RequestHandler):
 
-    def get(self):
+    async def get(self):
         data = {}
-        self.render("templates/base_fpv.html", **data)
+        await self.render("templates/base_fpv.html", **data)
 

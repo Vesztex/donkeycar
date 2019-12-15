@@ -2,13 +2,12 @@ import os
 import time
 import numpy as np
 from PIL import Image
-import asyncio
+import io
 import base64
 from socket import socket, gaierror, AF_INET, SOCK_DGRAM
 import glob
 from donkeycar.utils import rgb2gray
 from donkeycar.utils import arr_to_binary
-
 
 class BaseCamera:
 
@@ -334,23 +333,26 @@ class FrameStreamer:
         self.bytes = bytes(0)
         self.running = True
 
-    async def loop(self):
+    def loop(self):
         try:
-            await self.socket.sendto(self.bytes, self.address)
+            self.socket.sendto(self.bytes, self.address)
         except gaierror:
             pass
         except OSError:
             pass
 
     def update(self):
-        asyncio.run(self.run_loop())
-
-    async def run_loop(self):
         # stream frames continuously to udp socket
         while self.running:
-            await self.loop()
+            self.loop()
 
     def run_threaded(self, image_array):
+        # if self.socket is None:
+        #     return
+        # img = Image.fromarray(np.uint8(image_array))
+        # with io.BytesIO() as output:
+        #     img.save(output, format="JPEG")
+        #     self.bytes = output.getvalue()
         self.bytes = arr_to_binary(image_array)
 
     def run(self, image_array):

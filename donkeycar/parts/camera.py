@@ -338,7 +338,7 @@ class FrameStreamer:
 
     async def loop(self):
         try:
-            await self.socket.sendto(self.bytes, self.address)
+            self.socket.sendto(self.bytes, self.address)
         except gaierror:
             pass
         except OSError:

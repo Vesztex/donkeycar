@@ -490,6 +490,7 @@ class TubWriter(Tub):
         while True:
             if not self.queue.empty():
                 self.put_record(self.queue.get())
+                self.queue.task_done()
             this_q_size = self.queue.qsize()
             if this_q_size != last_q_size and this_q_size % 200 == 0:
                 print('TubWriter queue size: {} last size: {}'.format(
@@ -512,6 +513,8 @@ class TubWriter(Tub):
         return self.current_ix
 
     def shutdown(self):
+        # block until everything is written out
+        self.queue.join()
         print('Shutting down TubWriter, maximum queue size was {}'.format(
             self.queue_size))
 

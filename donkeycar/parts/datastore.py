@@ -471,7 +471,7 @@ class Tub(object):
 class TubWriter(Tub):
     def __init__(self, *args, **kwargs):
         super(TubWriter, self).__init__(*args, **kwargs)
-        self.queue = Queue(maxsize=1000)
+        self.queue = Queue(maxsize=2000)
         self.queue_size = 0
 
     def run(self, *args):
@@ -496,7 +496,7 @@ class TubWriter(Tub):
         # scale float to int for data size
         for key, val in record.items():
             if self.get_input_type(key) == 'image_array':
-                val = np.uint8(val)
+                record[key] = np.uint8(val)
 
         record[MS] = millis
         self.queue.put(record)

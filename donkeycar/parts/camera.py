@@ -332,7 +332,7 @@ class FrameStreamer:
         print('failed!' if self.socket is None else 'done.')
         self.bytes = bytes(0)
         self.running = True
-        self.max_time = 0.
+        self.max_time = [0.] * 5
 
     def loop(self):
         try:
@@ -351,7 +351,10 @@ class FrameStreamer:
         tic = time.time()
         self.bytes = arr_to_binary(image_array)
         toc = time.time()
-        self.max_time = max(self.max_time, (toc - tic) * 1000.0)
+        millis = (toc - tic) * 1000.0
+        if millis > self.max_time[0]:
+            self.max_time[0] = millis
+            self.max_time.sort()
 
     def run(self, image_array):
         self.run_threaded(image_array)

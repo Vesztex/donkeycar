@@ -473,6 +473,7 @@ class TubWriter(Tub):
         super(TubWriter, self).__init__(*args, **kwargs)
         self.queue = Queue(maxsize=2000)
         self.queue_size = 0
+        self.last_q_size = 0
 
     def run(self, *args):
         """
@@ -491,7 +492,8 @@ class TubWriter(Tub):
                 self.put_record(self.queue.get())
             this_q_size = self.queue.qsize()
             if this_q_size != last_q_size and this_q_size % 200 == 0:
-                print('TubWriter queue size: {}'.format(this_q_size))
+                print('TubWriter queue size: {} last size: {}'.format(
+                    this_q_size, last_q_size))
             last_q_size = this_q_size
 
     def run_threaded(self, *args):
@@ -505,8 +507,8 @@ class TubWriter(Tub):
 
         record[MS] = millis
         self.queue.put(record)
-        self.queue_size = max(self.queue_size, self.queue.qsize())
-
+        this_q_size = self.queue.qsize()
+        self.queue_size = max(self.queue_size, this_q_size)
         return self.current_ix
 
     def shutdown(self):

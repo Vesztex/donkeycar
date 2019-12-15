@@ -332,6 +332,7 @@ class FrameStreamer:
         print('failed!' if self.socket is None else 'done.')
         self.bytes = bytes(0)
         self.running = True
+        self.max_time = 0.
 
     def loop(self):
         try:
@@ -347,13 +348,10 @@ class FrameStreamer:
             self.loop()
 
     def run_threaded(self, image_array):
-        # if self.socket is None:
-        #     return
-        # img = Image.fromarray(np.uint8(image_array))
-        # with io.BytesIO() as output:
-        #     img.save(output, format="JPEG")
-        #     self.bytes = output.getvalue()
+        tic = time.time()
         self.bytes = arr_to_binary(image_array)
+        toc = time.time()
+        self.max_time = max(self.max_time, (toc - tic) * 1000.0)
 
     def run(self, image_array):
         self.run_threaded(image_array)
@@ -363,4 +361,5 @@ class FrameStreamer:
         self.running = False
         if self.socket is not None:
             self.socket.close()
+        print('FrameStreamer max run-time: {}ms'.format(self.max_time))
 

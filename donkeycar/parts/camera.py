@@ -316,9 +316,6 @@ class ImageListCamera(BaseCamera):
         pass
 
 
-loop = asyncio.get_event_loop()
-
-
 class FrameStreamer:
     def __init__(self, host, port=13000):
         self.address = (host, port)
@@ -335,6 +332,7 @@ class FrameStreamer:
         print('failed!' if self.socket is None else 'done.')
         self.bytes = bytes(0)
         self.running = True
+        self.loop = asyncio.get_event_loop()
 
     async def loop(self):
         try:
@@ -345,7 +343,7 @@ class FrameStreamer:
             pass
 
     def update(self):
-        loop.run_until_complete(self.run_loop())
+        self.loop.run_until_complete(self.run_loop())
 
     async def run_loop(self):
         # stream frames continuously to udp socket
@@ -366,7 +364,7 @@ class FrameStreamer:
 
     def shutdown(self):
         self.running = False
-        loop.close()
+        self.loop.close()
         if self.socket is not None:
             self.socket.close()
 

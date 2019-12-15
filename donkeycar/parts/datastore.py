@@ -485,11 +485,14 @@ class TubWriter(Tub):
         return self.current_ix
 
     def update(self):
+        last_q_size = 0
         while True:
             if not self.queue.empty():
                 self.put_record(self.queue.get())
-            if self.queue_size % 200 == 0:
-                print('TubWriter queue size: {}'.format(self.queue_size))
+            this_q_size = self.queue.qsize()
+            if this_q_size != last_q_size and this_q_size % 200 == 0:
+                print('TubWriter queue size: {}'.format(this_q_size))
+            last_q_size = this_q_size
 
     def run_threaded(self, *args):
         assert len(self.inputs) == len(args)

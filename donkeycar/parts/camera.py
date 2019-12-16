@@ -332,9 +332,10 @@ class FrameStreamer:
         print('failed!' if self.socket is None else 'done.')
         self.bytes = bytes(0)
         self.running = True
-        self.max_time = [0.] * 5
+        self.img_arr = None
 
     def loop(self):
+        self.bytes = arr_to_binary(self.img_arr)
         try:
             self.socket.sendto(self.bytes, self.address)
         except gaierror:
@@ -348,13 +349,7 @@ class FrameStreamer:
             self.loop()
 
     def run_threaded(self, image_array):
-        tic = time.time()
-        self.bytes = arr_to_binary(image_array)
-        toc = time.time()
-        millis = (toc - tic) * 1000.0
-        if millis > self.max_time[0]:
-            self.max_time[0] = millis
-            self.max_time.sort()
+        self.img_arr = image_array
 
     def run(self, image_array):
         self.run_threaded(image_array)

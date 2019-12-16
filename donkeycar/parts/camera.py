@@ -332,7 +332,7 @@ class FrameStreamer:
         print('failed!' if self.socket is None else 'done.')
         self.bytes = bytes(0)
         self.running = True
-        self.img_arr = None
+        self.img_arr = np.zeros((1,1,3))
 
     def loop(self):
         self.bytes = arr_to_binary(self.img_arr)

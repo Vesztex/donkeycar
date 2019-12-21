@@ -12,7 +12,6 @@ import json
 import datetime
 import random
 import glob
-from threading import Lock
 import numpy as np
 import pandas as pd
 
@@ -479,7 +478,6 @@ class TubWriter(Tub):
         super(TubWriter, self).__init__(*args, **kwargs)
         self.running = True
         self.cache = []
-        self.lock = Lock()
 
     def run(self, *args):
         '''
@@ -496,11 +494,7 @@ class TubWriter(Tub):
     def update(self):
         while self.running:
             if self.cache:
-                self.lock.acquire()
-                try:
-                    self.put_record(self.cache.pop())
-                finally:
-                    self.lock.release()
+                self.put_record(self.cache.pop())
 
     def run_threaded(self, *args):
         assert len(self.inputs) == len(args)
@@ -509,11 +503,7 @@ class TubWriter(Tub):
         assert millis is not None, "No valid millis at record {}"\
             .format(self.current_ix)
         record[MS] = millis
-        self.lock.acquire()
-        try:
-            self.cache.append(record)
-        finally:
-            self.lock.release()
+        self.cache.append(record)
         return self.current_ix
 
     def shutdown(self):

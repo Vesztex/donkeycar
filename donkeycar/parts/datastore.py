@@ -252,9 +252,8 @@ class Tub(object):
                 json_data[key] = name
 
             else:
-                msg = 'Tub does not know what to do with key {} of type {}. ' \
-                      'Current ix {}, input data: {}'\
-                      .format(key, typ, self.current_ix, data)
+                msg = 'Tub does not know what to do with key {} of type {}'\
+                    .format(key, typ)
                 raise TypeError(msg)
         if MS not in json_data:
             json_data[MS] = int((time.time() - self.start_time) * 1000)

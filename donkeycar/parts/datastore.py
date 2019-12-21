@@ -17,7 +17,6 @@ import pandas as pd
 
 from PIL import Image
 
-MS = 'milliseconds'
 
 class Tub(object):
     """
@@ -253,8 +252,8 @@ class Tub(object):
             else:
                 msg = 'Tub does not know what to do with this type {}'.format(typ)
                 raise TypeError(msg)
-        if MS not in json_data:
-            json_data[MS] = int((time.time() - self.start_time) * 1000)
+
+        json_data['milliseconds'] = int((time.time() - self.start_time) * 1000)
         self.write_json_record(json_data)
         return self.current_ix
 
@@ -475,8 +474,6 @@ class Tub(object):
 class TubWriter(Tub):
     def __init__(self, *args, **kwargs):
         super(TubWriter, self).__init__(*args, **kwargs)
-        self.running = True
-        self.cache = []
 
     def run(self, *args):
         '''
@@ -488,18 +485,6 @@ class TubWriter(Tub):
         assert len(self.inputs) == len(args)
         record = dict(zip(self.inputs, args))
         self.put_record(record)
-        return self.current_ix
-
-    def update(self):
-        while self.running:
-            while self.cache:
-                self.put_record(self.cache.pop())
-
-    def run_threaded(self, *args):
-        assert len(self.inputs) == len(args)
-        record = dict(zip(self.inputs, args))
-        record[MS] = int((time.time() - self.start_time) * 1000)
-        self.cache.append(record)
         return self.current_ix
 
 

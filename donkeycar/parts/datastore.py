@@ -12,7 +12,6 @@ import json
 import datetime
 import random
 import glob
-import asyncio
 import numpy as np
 import pandas as pd
 
@@ -220,7 +219,7 @@ class Tub(object):
         print('Removed records {} - {} from tub'
               .format(self.current_ix + 1, last_ix))
 
-    async def put_record(self, data):
+    def put_record(self, data):
         """
         Save values like images that can't be saved in the csv log and
         return a record with references to the saved values that can
@@ -241,13 +240,13 @@ class Tub(object):
 
             elif typ is 'image':
                 path = self.make_file_path(key)
-                await val.save(path)
+                val.save(path)
                 json_data[key] = path
 
             elif typ == 'image_array':
                 img = Image.fromarray(np.uint8(val))
                 name = self.make_file_name(key, ext='.jpg')
-                await img.save(os.path.join(self.path, name))
+                img.save(os.path.join(self.path, name))
                 json_data[key] = name
 
             else:

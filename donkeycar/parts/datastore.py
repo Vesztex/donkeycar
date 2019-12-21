@@ -501,7 +501,7 @@ class TubWriter(Tub):
         record[MS] = millis
         self.queue.put(record)
         self.queue_size = max(self.queue_size, self.queue.qsize())
-        if self.queue_size % 500 == 0:
+        if self.queue_size % 500 == 0 and self.queue_size > 0:
             print('TubWriter queue size: {}'. format(self.queue_size))
         return self.current_ix
 

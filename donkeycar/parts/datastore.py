@@ -488,8 +488,6 @@ class TubWriter(Tub):
         while True:
             if not self.queue.empty():
                 self.put_record(self.queue.get())
-            if self.queue_size % 200 == 0:
-                print('TubWriter queue size: {}'.format(self.queue_size))
 
     def run_threaded(self, *args):
         assert len(self.inputs) == len(args)
@@ -503,7 +501,8 @@ class TubWriter(Tub):
         record[MS] = millis
         self.queue.put(record)
         self.queue_size = max(self.queue_size, self.queue.qsize())
-
+        if self.queue_size % 500 == 0:
+            print('TubWriter queue size: {}'. format(self.queue_size))
         return self.current_ix
 
     def shutdown(self):

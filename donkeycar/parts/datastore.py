@@ -493,8 +493,7 @@ class TubWriter(Tub):
                 self.queue.task_done()
             this_q_size = self.queue.qsize()
             if this_q_size != last_q_size and this_q_size % 200 == 0:
-                print('TubWriter queue size: {} last size: {}'.format(
-                    this_q_size, last_q_size))
+                print('TubWriter queue size: {}'.format(this_q_size))
             last_q_size = this_q_size
 
     def run_threaded(self, *args):

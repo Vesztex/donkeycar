@@ -493,7 +493,6 @@ class TubWriter(Tub):
 
     def update(self):
         while not self.queue.empty():
-            print('Saving reord')
             self.put_record(self.queue.get())
 
     def run_threaded(self, *args):

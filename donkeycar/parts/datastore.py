@@ -12,7 +12,7 @@ import json
 import datetime
 import random
 import glob
-from queue import Queue
+from threading import Lock
 import numpy as np
 import pandas as pd
 
@@ -478,13 +478,16 @@ class Tub(object):
 class TubWriter(Tub):
     def __init__(self, *args, **kwargs):
         super(TubWriter, self).__init__(*args, **kwargs)
-        self.queue = Queue(maxsize=200)
-        self.queue_size = 0
+        self.running = True
+        self.cache = []
+        self.lock = Lock()
 
     def run(self, *args):
         '''
-        API function needed to use as a Donkey part. Accepts values,
-        pairs them with their inputs keys and saves them to disk.
+        API function needed to use as a Donkey part.
+
+        Accepts values, pairs them with their inputs keys and saves them
+        to disk.
         '''
         assert len(self.inputs) == len(args)
         record = dict(zip(self.inputs, args))
@@ -492,8 +495,13 @@ class TubWriter(Tub):
         return self.current_ix
 
     def update(self):
-        while not self.queue.empty():
-            self.put_record(self.queue.get())
+        while self.running:
+            if self.cache:
+                self.lock.acquire()
+                try:
+                    self.put_record(self.cache.pop())
+                finally:
+                    self.lock.release()
 
     def run_threaded(self, *args):
         assert len(self.inputs) == len(args)
@@ -502,13 +510,20 @@ class TubWriter(Tub):
         assert millis is not None, "No valid millis at record {}"\
             .format(self.current_ix)
         record[MS] = millis
-        self.queue.put(record)
-        self.queue_size = max(self.queue_size, self.queue.qsize())
+        self.lock.acquire()
+        try:
+            self.cache.append(record)
+        finally:
+            self.lock.release()
         return self.current_ix
 
     def shutdown(self):
-        print('Shutting down TubWriter, maximum queue size was {}'.format(
-            self.queue_size))
+        print('Shutting down TubWriter, waiting for cache to clear', end='')
+        while self.cache:
+            time.sleep(0.25)
+            print('.', end='')
+        self.running = False
+        print('done.')
 
 
 class TubReader(Tub):
@@ -531,7 +546,7 @@ class TubHandler():
     def __init__(self, path):
         self.path = os.path.expanduser(path)
 
-    def get_tub_list(self, path):
+    def get_tub_list(self,path):
         folders = next(os.walk(path))[1]
         return folders
 

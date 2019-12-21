@@ -13,15 +13,12 @@ import datetime
 import random
 import glob
 from queue import Queue
-import base64
 import numpy as np
 import pandas as pd
-from ..utils import arr_to_binary, binary_to_img
 
 from PIL import Image
 
 MS = 'milliseconds'
-
 
 class Tub(object):
     """
@@ -44,9 +41,6 @@ class Tub(object):
         self.df = None
         exists = os.path.exists(self.path)
         self.allow_reverse = allow_reverse
-        self.multi_threaded = False
-        self.queue = Queue(maxsize=1000)
-        self.queue_size = 0
 
         if exists:
             # load log and meta
@@ -149,9 +143,8 @@ class Tub(object):
         input_types = dict(zip(self.inputs, self.types))
         return input_types.get(key)
 
-    def write_json_record(self, json_data, ix=None):
-        this_ix = self.current_ix if ix is None else ix
-        path = self.get_json_record_path(this_ix)
+    def write_json_record(self, json_data):
+        path = self.get_json_record_path(self.current_ix)
         try:
             with open(path, 'w') as fp:
                 json.dump(json_data, fp)
@@ -233,9 +226,9 @@ class Tub(object):
 
     def put_record(self, data):
         """
-        Save values in a json record and converts image data into a path and
-        saves the image under that path. Allows to be run in multi-threaded mode
-        where no saving takes place but records are pushed into a queue.
+        Save values like images that can't be saved in the csv log and
+        return a record with references to the saved values that can
+        be saved in a csv.
         """
         json_data = {}
         self.current_ix += 1
@@ -258,32 +251,23 @@ class Tub(object):
             elif typ == 'image_array':
                 img = Image.fromarray(np.uint8(val))
                 name = self.make_file_name(key, ext='.jpg')
-                if self.multi_threaded:
-                    bin_img = arr_to_binary(val)
-                    json_data[key] = base64.standard_b64encode(bin_img)
-                else:
-                    img.save(os.path.join(self.path, name))
-                    json_data[key] = name
+                img.save(os.path.join(self.path, name))
+                json_data[key] = name
+
             else:
                 msg = 'Tub does not know what to do with key {} of type {}. ' \
                       'Current ix {}, input data: {}'\
                       .format(key, typ, self.current_ix, data)
                 raise TypeError(msg)
-
-        json_data[MS] = int((time.time() - self.start_time) * 1000)
-        json_data['ix'] = self.current_ix
-        if self.multi_threaded:
-            self.queue.put(json_data)
-            # record the maximum queue size
-            self.queue_size = max(self.queue_size, self.queue.qsize())
-        else:
-            self.write_json_record(json_data)
+        if MS not in json_data:
+            json_data[MS] = int((time.time() - self.start_time) * 1000)
+        self.write_json_record(json_data)
         return self.current_ix
 
     def erase_last_n_records(self, num_erase):
-        """
+        '''
         erase N records from the disc and move current back accordingly
-        """
+        '''
         last_erase = self.current_ix
         first_erase = last_erase - num_erase
         self.current_ix = first_erase - 1
@@ -376,6 +360,20 @@ class Tub(object):
         """ Delete the folder and files for this tub. """
         import shutil
         shutil.rmtree(self.path)
+
+    def shutdown(self, exit_info=None):
+        # if exit argument is passed in
+        if exit_info is not None:
+            assert type(exit_info) is dict, "Only dictionary arguments allowed"
+            file_path = os.path.join(self.path, "exit.json")
+            try:
+                with open(file_path, 'w') as fp:
+                    json.dump(exit_info, fp)
+            except FileNotFoundError:
+                raise
+            except:
+                print("Unexpected error:", sys.exc_info()[0])
+                raise
 
     def excluded(self, index):
         return index in self.exclude
@@ -497,33 +495,20 @@ class TubWriter(Tub):
         return self.current_ix
 
     def update(self):
-        """
-        Multi-threaded donkey part interface to start / run thread in
-        background. Here we write the queued json data and decoded picture to
-        disk.
-        """
-        self.multi_threaded = True
         while True:
             if not self.queue.empty():
-                record = self.queue().get()
-                ix = record['ix']
-                for key, val in record.items():
-                    typ = self.get_input_type(key)
-                    if typ == 'image_array':
-                        # convert base encoded picture back and save to disk
-                        img_bin = base64.standard_b64decode(val)
-                        img = binary_to_img(img_bin)
-                        name = self.make_file_name(key, ix=ix, ext='.jpg')
-                        img.save(os.path.join(self.path, name))
-                        record[key] = name
-                self.write_json_record(record, ix=ix)
+                self.put_record(self.queue.get())
 
     def run_threaded(self, *args):
-        """
-        Threaded just patches through to non-threaded as the put_recorded is
-        called on the base class where the multi-threading is handled.
-        """
-        return self.run(*args)
+        assert len(self.inputs) == len(args)
+        record = dict(zip(self.inputs, args))
+        millis = int((time.time() - self.start_time) * 1000)
+        assert millis is not None, "No valid millis at record {}"\
+            .format(self.current_ix)
+        record[MS] = millis
+        self.queue.put(record)
+        self.queue_size = max(self.queue_size, self.queue.qsize())
+        return self.current_ix
 
     def shutdown(self):
         print('Shutting down TubWriter, maximum queue size was {}'.format(
@@ -546,7 +531,7 @@ class TubReader(Tub):
         return record
 
 
-class TubHandler:
+class TubHandler():
     def __init__(self, path):
         self.path = os.path.expanduser(path)
 

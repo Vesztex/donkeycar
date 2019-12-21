@@ -492,9 +492,9 @@ class TubWriter(Tub):
         return self.current_ix
 
     def update(self):
-        while True:
-            if not self.queue.empty():
-                self.put_record(self.queue.get())
+        while not self.queue.empty():
+            print('Saving reord')
+            self.put_record(self.queue.get())
 
     def run_threaded(self, *args):
         assert len(self.inputs) == len(args)

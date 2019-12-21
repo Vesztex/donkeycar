@@ -471,7 +471,7 @@ class Tub(object):
 class TubWriter(Tub):
     def __init__(self, *args, **kwargs):
         super(TubWriter, self).__init__(*args, **kwargs)
-        self.queue = Queue(maxsize=1000)
+        self.queue = Queue(maxsize=500)
         self.queue_size = 0
 
     def run(self, *args):
@@ -493,11 +493,8 @@ class TubWriter(Tub):
         assert len(self.inputs) == len(args)
         record = dict(zip(self.inputs, args))
         millis = int((time.time() - self.start_time) * 1000)
-        # scale float to int for data size
-        for key, val in record.items():
-            if self.get_input_type(key) == 'image_array':
-                val = np.uint8(val)
-
+        assert millis is not None, "No valid millis at record {}"\
+            .format(self.current_ix)
         record[MS] = millis
         self.queue.put(record)
         self.queue_size = max(self.queue_size, self.queue.qsize())

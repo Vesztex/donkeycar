@@ -204,11 +204,15 @@ class WebFpv(Application):
 
     def __init__(self, port=8890):
         self.port = port
+        this_dir = os.path.dirname(os.path.realpath(__file__))
+        self.static_file_path = os.path.join(this_dir, 'templates', 'static')
 
         """Construct and serve the tornado application."""
         handlers = [
             (r"/", BaseHandler),
             (r"/video", VideoAPI),
+            (r"/static/(.*)", StaticFileHandler,
+             {"path": self.static_file_path})
         ]
 
         settings = {'debug': True}

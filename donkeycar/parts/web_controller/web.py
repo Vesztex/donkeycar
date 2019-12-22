@@ -105,7 +105,7 @@ class LocalWebController(Application):
         print('Starting Donkey Server...', end='')
 
         this_dir = os.path.dirname(os.path.realpath(__file__))
-        self.static_file_path = os.path.join(this_dir, 'templates', 'static')
+        self.static_file_path = os.path.join(this_dir, 'templates')
         self.angle = 0.0
         self.throttle = 0.0
         self.mode = 'user'

@@ -24,7 +24,8 @@ import donkeycar as dk
 #import parts
 from donkeycar.parts.transform import Lambda, TriggeredCallback, DelayedTrigger
 from donkeycar.parts.datastore import TubHandler
-from donkeycar.parts.controller import LocalWebController, JoystickController
+from donkeycar.parts.controller import LocalWebController, \
+    JoystickController, WebFpv
 from donkeycar.parts.throttle_filter import ThrottleFilter
 from donkeycar.parts.behavior import BehaviorPart
 from donkeycar.parts.file_watcher import FileWatcher
@@ -130,6 +131,9 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
             netwkJs = JoyStickSub(cfg.NETWORK_JS_SERVER_IP)
             V.add(netwkJs, threaded=True)
             ctr.js = netwkJs
+
+        if cfg.USE_FPV:
+            V.add(WebFpv(), inputs=['cam/image_array'], threaded=True)
 
     else:
         #This web controller will create a web server that is capable

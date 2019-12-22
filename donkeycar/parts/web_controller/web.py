@@ -193,6 +193,13 @@ class VideoAPI(RequestHandler):
                 await tornado.gen.sleep(interval)
 
 
+class BaseHandler(RequestHandler):
+    """ Serves the FPV web page"""
+    async def get(self):
+        data = {}
+        await self.render("templates/base_fpv.html", **data)
+
+
 class WebFpv(Application):
     """
     Class for running an FPV web server that only shows the camera in real-time.
@@ -221,7 +228,7 @@ class WebFpv(Application):
               "view the car camera".format(gethostname(), self.port))
 
     def update(self):
-        ''' Start the tornado webserver. '''
+        """ Start the tornado webserver. """
         asyncio.set_event_loop(asyncio.new_event_loop())
         self.listen(self.port)
         IOLoop.instance().start()
@@ -236,9 +243,4 @@ class WebFpv(Application):
         pass
 
 
-class BaseHandler(RequestHandler):
-
-    async def get(self):
-        data = {}
-        await self.render("templates/base_fpv.html", **data)
 

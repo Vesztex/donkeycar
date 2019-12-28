@@ -105,7 +105,11 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     # load model if present
     if model_path is not None:
         print("Using auto-pilot")
-        model_type = 'tflite_linear' if '.tflite' in model_path else 'linear'
+        if '3d' in model_path:
+            model_type = '3d'
+        else:
+            model_type = 'tflite_linear' if '.tflite' in model_path else 'linear'
+
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)
 

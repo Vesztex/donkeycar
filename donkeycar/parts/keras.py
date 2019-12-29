@@ -169,18 +169,46 @@ class KerasLinear(KerasPilot):
 
 
 class KerasSquarePlus(KerasLinear):
-    '''
-    The KerasLinear pilot uses one neuron to output a continous value via the
-    Keras Dense layer with linear activation. One each for steering and throttle.
-    The output is not bounded.
-    '''
+    """
+    Improved CNN over standard KerasLinear. The CNN translates into square
+    matrices from layer one on and uses batch normalisation, average pooling
+    & l2  regularisor instead of dropout in the perceptron layers. Because of
+    the square form the first layers stride need to be 3x4 (as this is the
+    input picture h x w ratio). With this the reduction in the first layer is
+    larger hence the whole model only has 5 CNN layers.
+    """
+
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
-        self.model = default_linear_plus(input_shape, roi_crop)
+        self.model = linear_square_plus(input_shape, roi_crop)
         self.compile()
 
     def compile(self):
         self.model.compile(optimizer='adam', loss='mse',
                            loss_weights={'angle_out': 0.9, 'throttle_out': 0.1})
+
+
+class KerasSquarePlusSpeed(KerasSquarePlus):
+    """
+    The model is a variation of the SquarePlus model which only outputs
+    steering as a function of input image and speed. This allows the car to
+    adapt the steering to the current drive speed. Higher speeds require
+    earlier, fewer and more aggressive steering commands whereas slower
+    speeds can also support turning into corners late, driving a more zig-zag
+    course and using paths that are not drivable at higher speeds.
+    """
+    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
+        self.model = linear_square_plus_speed(input_shape, roi_crop)
+        self.compile()
+
+    def compile(self):
+        self.model.compile(optimizer='adam', loss='mse')
+
+    def run(self, img_arr, speed):
+        img_arr = img_arr.reshape((1,) + img_arr.shape)
+        speed_arr = np.array([speed])
+        outputs = self.model.predict(img_arr, speed_arr)
+        steering = outputs[0]
+        return steering[0][0]
 
 
 class KerasIMU(KerasPilot):
@@ -327,7 +355,8 @@ def default_categorical(input_shape=(120, 160, 3), roi_crop=(0, 0)):
 def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
 
     drop = 0.1
-    # we now expect that cropping done elsewhere. we will adjust our expeected image size here:
+    # we now expect that cropping done elsewhere. we will adjust our expeected
+    # image size here:
     input_shape = adjust_input_shape(input_shape, roi_crop)
     
     img_in = Input(shape=input_shape, name='img_in')
@@ -359,12 +388,8 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
     return model
 
 
-def default_linear_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
+def linear_square_plus_cnn(x, l2):
     drop = 0.1
-    l2 = 0.01
-    input_shape = adjust_input_shape(input_shape, roi_crop)
-    img_in = Input(shape=input_shape, name='img_in')
-    x = img_in
     # This makes the picture square (assuming 3x4 input) in all following layers
     x = Conv2D(filters=16, kernel_size=(7, 7), strides=(3, 4), padding='same',
                activation='relu', name='conv1')(x)
@@ -388,12 +413,43 @@ def default_linear_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     x = Flatten(name='flattened')(x)
     x = Dense(units=96, activation='linear',
               kernel_regularizer=regularizers.l2(l2))(x)
+
+    return x
+
+
+def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
+    l2 = 0.01
+    input_shape = adjust_input_shape(input_shape, roi_crop)
+    img_in = Input(shape=input_shape, name='img_in')
+    x = img_in
+    x = linear_square_plus_cnn(x, l2)
     x = Dense(units=48, activation='linear',
               kernel_regularizer=regularizers.l2(l2))(x)
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
     model = Model(inputs=[img_in], outputs=[angle_out, throttle_out])
+    return model
+
+
+def linear_square_plus_speed(input_shape=(120, 160, 3), roi_crop=(0, 0)):
+    l2 = 0.01
+    input_shape = adjust_input_shape(input_shape, roi_crop)
+    img_in = Input(shape=input_shape, name='img_in')
+    speed_in = Input(shape=(1,), name="speed_in")
+    x = img_in
+    x = linear_square_plus_cnn(x, l2)
+
+    y = speed_in
+    y = Dense(units=48, activation='linear',
+              kernel_regularizer=regularizers.l2(l2))(y)
+
+    z = concatenate([x, y])
+    z = Dense(units=48, activation='linear',
+              kernel_regularizer=regularizers.l2(l2))(z)
+
+    angle_out = Dense(units=1, activation='linear', name='angle_out')(z)
+    model = Model(inputs=[img_in, speed_in], outputs=[angle_out])
     return model
 
 

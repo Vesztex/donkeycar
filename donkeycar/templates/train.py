@@ -29,14 +29,13 @@ from docopt import docopt
 
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
-from donkeycar.parts.keras import KerasLinear, KerasIMU,\
-     KerasCategorical, KerasBehavioral, Keras3D_CNN,\
-     KerasRNN_LSTM, KerasLatent, KerasLocalizer
+from donkeycar.parts.keras import KerasIMU, KerasCategorical, KerasBehavioral, \
+    KerasLatent, KerasLocalizer, KerasSquarePlusSpeed
 from donkeycar.parts.augment import augment_image
 from donkeycar.utils import *
 
 figure_format = 'png'
-
+DIV_ONE_BYTE = 1.0 / 255.0
 
 '''
 matplotlib can be a pain to setup on a Mac. So handle the case where it is
@@ -286,11 +285,12 @@ def on_best_model(cfg, model, model_filename):
             print("send failed")
     
 
-def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, aug):
-    '''
+def train(cfg, tub_names, model_name, transfer_model,
+          model_type, continuous, aug):
+    """
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
-    ''' 
+    """
     verbose = cfg.VERBOSE_TRAIN
 
     if model_type is None:
@@ -344,7 +344,9 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
                 kl.model.layers[i].trainable = False        
 
     if cfg.OPTIMIZER:
-        kl.set_optimizer(cfg.OPTIMIZER, cfg.LEARNING_RATE, cfg.LEARNING_RATE_DECAY)
+        kl.set_optimizer(cfg.OPTIMIZER,
+                         cfg.LEARNING_RATE,
+                         cfg.LEARNING_RATE_DECAY)
 
     kl.compile()
 
@@ -368,27 +370,26 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
         while True:
 
             if is_train_set and opts['continuous']:
-                '''
-                When continuous training, we look for new records after each epoch.
-                This will add new records to the train and validation set.
-                '''
+                # When continuous training, we look for new records after each
+                # epoch. This will add new records to the train and validation
+                # set.
                 records = gather_records(cfg, tub_names, opts)
                 if len(records) > num_records:
                     collate_records(records, gen_records, opts)
                     new_num_rec = len(data)
                     if new_num_rec > num_records:
-                        print('picked up', new_num_rec - num_records, 'new records!')
+                        new_rec = new_num_rec - num_records
+                        print('picked up', new_rec, 'new records!')
                         num_records = new_num_rec 
                         save_best.reset_best()
                 if num_records < min_records_to_train:
-                    print("not enough records to train. need %d, have %d. waiting..."
-                          % (min_records_to_train, num_records))
+                    print("not enough records to train. need %d, have %d. "
+                          "waiting..." % (min_records_to_train, num_records))
                     time.sleep(10)
                     continue
 
             batch_data = []
             keys = list(data.keys())
-
             random.shuffle(keys)
 
             kl = opts['keras_pilot']
@@ -397,29 +398,21 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
             else:
                 model_out_shape = kl.model.output.shape
 
-            if type(kl.model.input) is list:
-                model_in_shape = (2, 1)
-            else:    
-                model_in_shape = kl.model.input.shape
-
             has_imu = type(kl) is KerasIMU
             has_bvh = type(kl) is KerasBehavioral
             img_out = type(kl) is KerasLatent
             loc_out = type(kl) is KerasLocalizer
+            use_speed_input = type(kl) is KerasSquarePlusSpeed
 
             if img_out:
                 import cv2
 
             for key in keys:
-
                 if not key in data:
                     continue
-
                 _record = data[key]
-
                 if _record['train'] != is_train_set:
                     continue
-
                 if continuous:
                     # in continuous mode we need to handle files getting deleted
                     filename = _record['image_path']
@@ -428,11 +421,11 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
                         continue
 
                 batch_data.append(_record)
-
                 if len(batch_data) == batch_size:
                     inputs_img = []
                     inputs_imu = []
                     inputs_bvh = []
+                    inputs_speed = []
                     angles = []
                     throttles = []
                     out_img = []
@@ -444,7 +437,6 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
                         if record['img_data'] is None:
                             filename = record['image_path']
                             img_arr = load_scaled_image_arr(filename, cfg)
-
                             if img_arr is None:
                                 break
                             if aug:
@@ -455,17 +447,18 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
                             img_arr = record['img_data']
                             
                         if img_out:                            
-                            rz_img_arr = cv2.resize(img_arr, (127, 127)) / 255.0
-                            out_img.append(rz_img_arr[:,:,0].reshape((127, 127, 1)))
-
+                            rz_img_arr = cv2.resize(img_arr, (127, 127)) \
+                                         * DIV_ONE_BYTE
+                            out_img.append(rz_img_arr[:, :, 0]
+                                           .reshape((127, 127, 1)))
                         if loc_out:
                             out_loc.append(record['location'])
-
                         if has_imu:
                             inputs_imu.append(record['imu_array'])
-                        
                         if has_bvh:
                             inputs_bvh.append(record['behavior_arr'])
+                        if use_speed_input:
+                            inputs_speed.append(record['car/speed'])
 
                         inputs_img.append(img_arr)
                         angles.append(record['angle'])
@@ -475,20 +468,26 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
                     if img_arr is None:
                         continue
 
-                    img_arr = np.array(inputs_img).reshape(batch_size,\
-                        cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
+                    img_arr = np.array(inputs_img)\
+                        .reshape(batch_size, cfg.TARGET_H, cfg.TARGET_W,
+                                 cfg.TARGET_D)
 
                     if has_imu:
                         X = [img_arr, np.array(inputs_imu)]
                     elif has_bvh:
                         X = [img_arr, np.array(inputs_bvh)]
+                    elif use_speed_input:
+                        X = [img_arr, np.array(inputs_speed)]
                     else:
                         X = [img_arr]
 
                     if img_out:
                         y = [out_img, np.array(angles), np.array(throttles)]
                     elif out_loc:
-                        y = [ np.array(angles), np.array(throttles), np.array(out_loc)]
+                        y = [np.array(angles), np.array(throttles),
+                             np.array(out_loc)]
+                    elif use_speed_input:
+                        y = [np.array(angles)]
                     elif model_out_shape[1] == 2:
                         y = [np.array([out]).reshape(batch_size, 2) ]
                     else:
@@ -499,20 +498,18 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
                     batch_data = []
     
     model_path = os.path.expanduser(model_name)
-
     
-    #checkpoint to save model after each epoch and send best to the pi.
+    # checkpoint to save model after each epoch and send best to the pi.
     save_best = MyCPCallback(send_model_cb=on_best_model,
-                                    filepath=model_path,
-                                    monitor='val_loss', 
-                                    verbose=verbose, 
-                                    save_best_only=True, 
-                                    mode='min',
-                                    cfg=cfg)
+                             filepath=model_path,
+                             monitor='val_loss',
+                             verbose=verbose,
+                             save_best_only=True,
+                             mode='min',
+                             cfg=cfg)
 
     train_gen = generator(save_best, opts, gen_records, cfg.BATCH_SIZE, True)
     val_gen = generator(save_best, opts, gen_records, cfg.BATCH_SIZE, False)
-    
     total_records = len(gen_records)
 
     num_train = 0

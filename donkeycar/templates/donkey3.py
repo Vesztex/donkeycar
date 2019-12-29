@@ -116,8 +116,15 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         car.add(ImgPrecondition(cfg), inputs=['cam/image_array'],
                 outputs=['cam/normalized/cropped'])
 
-        outputs = ['pilot/angle', pilot_throttle_var]
-        car.add(kl, inputs=['cam/normalized/cropped'], outputs=outputs)
+        use_speed_input = 'throttle' in model_path
+        inputs = ['cam/normalized/cropped']
+        outputs = ['pilot/angle']
+        if use_speed_input:
+            inputs.append('car/speed')
+        else:
+            outputs.append(pilot_throttle_var)
+
+        car.add(kl, inputs=inputs, outputs=outputs)
         # if driving w/ ai switch between user throttle or pilot throttle by
         # pressing chanel 3 on the remote control
         mode_switch = ModeSwitch(num_modes=2)

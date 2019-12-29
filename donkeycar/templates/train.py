@@ -318,10 +318,12 @@ def train(cfg, tub_names, model_name, transfer_model,
         print("continuous training")
     
     gen_records = {}
-    opts = { 'cfg' : cfg}
+    opts = {'cfg': cfg}
 
     if "linear" in model_type:
         train_type = "linear"
+    elif "square_plus_steering" in model_type:
+        train_type = "square_plus_steering"
     elif "square_plus" in model_type:
         train_type = "square_plus"
     else:
@@ -458,7 +460,7 @@ def train(cfg, tub_names, model_name, transfer_model,
                         if has_bvh:
                             inputs_bvh.append(record['behavior_arr'])
                         if use_speed_input:
-                            inputs_speed.append(record['car/speed'])
+                            inputs_speed.append(record['json_data']['car/speed'])
 
                         inputs_img.append(img_arr)
                         angles.append(record['angle'])

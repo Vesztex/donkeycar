@@ -116,7 +116,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         car.add(ImgPrecondition(cfg), inputs=['cam/image_array'],
                 outputs=['cam/normalized/cropped'])
 
-        use_speed_input = 'throttle' in model_path
+        use_speed_input = 'steering' in model_path
         inputs = ['cam/normalized/cropped']
         outputs = ['pilot/angle']
         if use_speed_input:

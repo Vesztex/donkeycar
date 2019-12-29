@@ -187,7 +187,7 @@ class KerasSquarePlus(KerasLinear):
                            loss_weights={'angle_out': 0.9, 'throttle_out': 0.1})
 
 
-class KerasSquarePlusSpeed(KerasSquarePlus):
+class KerasSquarePlusSteering(KerasSquarePlus):
     """
     The model is a variation of the SquarePlus model which only outputs
     steering as a function of input image and speed. This allows the car to

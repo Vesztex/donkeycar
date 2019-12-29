@@ -30,7 +30,7 @@ from docopt import docopt
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
 from donkeycar.parts.keras import KerasIMU, KerasCategorical, KerasBehavioral, \
-    KerasLatent, KerasLocalizer, KerasSquarePlusSpeed
+    KerasLatent, KerasLocalizer, KerasSquarePlusSteering
 from donkeycar.parts.augment import augment_image
 from donkeycar.utils import *
 
@@ -402,7 +402,7 @@ def train(cfg, tub_names, model_name, transfer_model,
             has_bvh = type(kl) is KerasBehavioral
             img_out = type(kl) is KerasLatent
             loc_out = type(kl) is KerasLocalizer
-            use_speed_input = type(kl) is KerasSquarePlusSpeed
+            use_speed_input = type(kl) is KerasSquarePlusSteering
 
             if img_out:
                 import cv2

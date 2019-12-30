@@ -1,4 +1,6 @@
 import tensorflow as tf
+import numpy as np
+
 
 def keras_model_to_tflite(in_filename, out_filename, data_gen=None):
     converter = tf.lite.TFLiteConverter.from_keras_model_file(in_filename)
@@ -21,6 +23,7 @@ def keras_model_to_tflite(in_filename, out_filename, data_gen=None):
         print("----- using data generator to create int optimized weights for Coral TPU -----")
     tflite_model = converter.convert()
     open(out_filename, "wb").write(tflite_model)
+
 
 def keras_session_to_tflite(model, out_filename):
     inputs = model.inputs
@@ -54,10 +57,13 @@ class TFLitePilot(object):
         # Get Input shape
         self.input_shape = self.input_details[0]['shape']
 
-    def run(self, image):
+    def run(self, image, speed=None):
         input_data = image.reshape(self.input_shape).astype('float32') 
 
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
+        if speed is not None:
+            self.interpreter.set_tensor(self.input_details[1]['index'],
+                                        np.array([speed]))
         self.interpreter.invoke()
 
         steering = 0.0
@@ -71,6 +77,9 @@ class TFLitePilot(object):
         if len(outputs) > 1:
             steering = outputs[0]
             throttle = outputs[1]
+
+        elif len(outputs) > 0:
+            steering = outputs[0]
 
         return steering, throttle
 

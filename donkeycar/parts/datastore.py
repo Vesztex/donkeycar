@@ -182,11 +182,10 @@ class Tub(object):
             except Exception as e:
                 problems = True
                 if fix is False:
-                    print('Problem with record {} at {}: {}'
-                          .format(ix, self.path, str(e)))
+                    print('Problem at {}: {}'.format(self.path, str(e)))
                 else:
-                    print('Problem with record {} at {}, removing because: {}'
-                          .format(ix, self.path, str(e)))
+                    print('Removing record at {}, because: {}'
+                          .format(self.path, str(e)))
                     self.remove_record(ix)
         if not problems:
             print("No problems found.")
@@ -290,33 +289,28 @@ class Tub(object):
 
     def get_json_record(self, ix):
         path = self.get_json_record_path(ix)
+        err_add = 'You may want to run `donkey tubcheck --fix`'
         try:
             with open(path, 'r') as fp:
                 json_data = json.load(fp)
         except UnicodeDecodeError:
-            raise Exception('bad record: %d. You may want to run '
-                            '`donkey tubcheck --fix`' % ix)
+            raise Exception('bad record: %d. ' + err_add %ix)
         except FileNotFoundError:
             raise
-        except:
-            print("Unexpected error:", sys.exc_info()[0])
-            raise
+
         # if record has user/mode but is not type user
         if "user/mode" in json_data and json_data["user/mode"] != "user":
             raise Exception('Bad record: %d. "user/mode" should be "user" for '
-                            'recorded data. '
-                            'You may want to run `donkey tubcheck --fix`' % ix)
+                            'recorded data. ' + err_add % ix)
         # if negative throttle values are recorded
         if self.allow_reverse is False and json_data["user/throttle"] < 0.0:
             raise Exception('Bad record: %d. "user/throttle" should be >0 for '
-                            'recorded data. '
-                            'You may want to run `donkey tubcheck --fix`' % ix)
+                            'recorded data. ' + err_add % ix)
 
         # if negative or zero car speed values are recorded
         if "car/speed" in json_data and json_data["car/speed"] <= 0.0:
             raise Exception('Bad record: %d. "car/speed" should be >0 for '
-                            'recorded data. '
-                            'You may want to run `donkey tubcheck --fix`' % ix)
+                            'recorded data. '+ err_add % ix)
 
         record_dict = self.make_record_paths_absolute(json_data)
         return record_dict

@@ -56,6 +56,9 @@ class TFLitePilot(object):
 
         # Get Input shape
         self.input_shape = self.input_details[0]['shape']
+        print('---- tflite input tensor details ----')
+        for l in self.input_details:
+            print(l)
 
     def run(self, image, speed=None):
         input_data = image.reshape(self.input_shape).astype('float32') 

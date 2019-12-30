@@ -62,8 +62,9 @@ class TFLitePilot(object):
 
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
         if speed is not None:
+            in_speed = np.array([speed]).astype('float32')
             self.interpreter.set_tensor(self.input_details[1]['index'],
-                                        np.array([speed]))
+                                        in_speed)
         self.interpreter.invoke()
 
         steering = 0.0

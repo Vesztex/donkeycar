@@ -59,7 +59,7 @@ CACHE_IMAGES = False
 #NUM_LAST_LAYERS_TO_TRAIN = 5  # flat, dense, dense, angle, throttle
 
 # AUTOPILOT
-AI_THROTTLE_MULT = 1.1
+AI_THROTTLE_MULT = 1.0
 
 # FPV MONITOR
 PC_HOSTNAME = "DirksMacBook.home"

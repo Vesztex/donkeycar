@@ -56,6 +56,7 @@ MAX_EPOCHS = 200
 USE_SPEED_FOR_MODEL = True
 BATCH_SIZE = 32
 CACHE_IMAGES = False
+#NUM_LAST_LAYERS_TO_TRAIN = 5  # flat, dense, dense, angle, throttle
 
 # AUTOPILOT
 AI_THROTTLE_MULT = 1.1

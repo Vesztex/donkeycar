@@ -294,23 +294,23 @@ class Tub(object):
             with open(path, 'r') as fp:
                 json_data = json.load(fp)
         except UnicodeDecodeError:
-            raise Exception('bad record: %d. ' + err_add %ix)
+            raise Exception(('Bad record: %d. ' + err_add) % ix)
         except FileNotFoundError:
             raise
 
         # if record has user/mode but is not type user
         if "user/mode" in json_data and json_data["user/mode"] != "user":
-            raise Exception('Bad record: %d. "user/mode" should be "user" for '
-                            'recorded data. ' + err_add % ix)
+            raise Exception(('Bad record: %d. "user/mode" should be "user" for '
+                            'recorded data. ' + err_add) % ix)
         # if negative throttle values are recorded
         if self.allow_reverse is False and json_data["user/throttle"] < 0.0:
-            raise Exception('Bad record: %d. "user/throttle" should be >0 for '
-                            'recorded data. ' + err_add % ix)
+            raise Exception(('Bad record: %d. "user/throttle" should be >0 for '
+                            'recorded data. ' + err_add) % ix)
 
         # if negative or zero car speed values are recorded
         if "car/speed" in json_data and json_data["car/speed"] <= 0.0:
-            raise Exception('Bad record: %d. "car/speed" should be >0 for '
-                            'recorded data. '+ err_add % ix)
+            raise Exception(('Bad record: %d. "car/speed" should be >0 for '
+                            'recorded data. ' + err_add) % ix)
 
         record_dict = self.make_record_paths_absolute(json_data)
         return record_dict

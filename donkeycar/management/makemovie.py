@@ -114,7 +114,7 @@ class MakeMovie(object):
 
         import cv2
          
-        expected = self.keras_part.model.inputs[0].shape[1:]
+        expected = self.keras_part.get_input_shape()[1:]
         actual = img.shape
 
         # normalize image before prediction

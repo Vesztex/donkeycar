@@ -187,7 +187,7 @@ class KerasSquarePlus(KerasLinear):
                            loss_weights={'angle_out': 0.9, 'throttle_out': 0.1})
 
 
-class KerasSquarePlusSteering(KerasSquarePlus):
+class KerasSquarePlusSpeed(KerasSquarePlus):
     """
     The model is a variation of the SquarePlus model which only outputs
     steering as a function of input image and speed. This allows the car to
@@ -208,7 +208,8 @@ class KerasSquarePlusSteering(KerasSquarePlus):
         speed_arr = np.array([speed])
         outputs = self.model.predict(img_arr, speed_arr)
         steering = outputs[0]
-        return steering[0][0]
+        throttle = outputs[1]
+        return steering[0][0], throttle[0][0]
 
 
 class KerasIMU(KerasPilot):
@@ -303,6 +304,7 @@ class KerasLocalizer(KerasPilot):
         loc = np.argmax(track_loc[0])
 
         return angle, throttle, loc
+
 
 def adjust_input_shape(input_shape, roi_crop):
     height = input_shape[0]
@@ -449,7 +451,8 @@ def linear_square_plus_speed(input_shape=(120, 160, 3), roi_crop=(0, 0)):
               kernel_regularizer=regularizers.l2(l2))(z)
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(z)
-    model = Model(inputs=[img_in, speed_in], outputs=[angle_out])
+    throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
+    model = Model(inputs=[img_in, speed_in], outputs=[angle_out, throttle_out])
     return model
 
 

@@ -30,7 +30,7 @@ from docopt import docopt
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
 from donkeycar.parts.keras import KerasIMU, KerasCategorical, KerasBehavioral, \
-    KerasLatent, KerasLocalizer, KerasSquarePlusSteering
+    KerasLatent, KerasLocalizer, KerasSquarePlusSpeed
 from donkeycar.parts.augment import augment_image
 from donkeycar.utils import *
 
@@ -322,8 +322,8 @@ def train(cfg, tub_names, model_name, transfer_model,
 
     if "linear" in model_type:
         train_type = "linear"
-    elif "square_plus_steering" in model_type:
-        train_type = "square_plus_steering"
+    elif "square_plus_speed" in model_type:
+        train_type = "square_plus_speed"
     elif "square_plus" in model_type:
         train_type = "square_plus"
     else:
@@ -404,7 +404,7 @@ def train(cfg, tub_names, model_name, transfer_model,
             has_bvh = type(kl) is KerasBehavioral
             img_out = type(kl) is KerasLatent
             loc_out = type(kl) is KerasLocalizer
-            use_speed_input = type(kl) is KerasSquarePlusSteering
+            use_speed_input = type(kl) is KerasSquarePlusSpeed
 
             if img_out:
                 import cv2
@@ -488,8 +488,6 @@ def train(cfg, tub_names, model_name, transfer_model,
                     elif out_loc:
                         y = [np.array(angles), np.array(throttles),
                              np.array(out_loc)]
-                    elif use_speed_input:
-                        y = [np.array(angles)]
                     elif model_out_shape[1] == 2:
                         y = [np.array([out]).reshape(batch_size, 2) ]
                     else:

@@ -58,6 +58,7 @@ BATCH_SIZE = 32
 CACHE_IMAGES = False
 FREEZE_LAYERS = False
 NUM_LAST_LAYERS_TO_TRAIN = 5  # flat, dense, dense, angle, throttle
+PACK_PATH = r'/Users/dirk/GoogleDrive/mycar/data'
 
 # AUTOPILOT
 AI_THROTTLE_MULT = 1.0

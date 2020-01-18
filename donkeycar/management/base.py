@@ -4,7 +4,7 @@ import argparse
 import json
 
 from socket import *
-import io
+import os
 from threading import Thread
 
 import donkeycar as dk
@@ -708,6 +708,44 @@ class Monitor(BaseCommand):
               .format(count, count / proc_time))
 
 
+class PackTubs(BaseCommand):
+
+    def pack_tubs(self, cfg, tub_paths):
+        '''
+        Create tar.gz of tubs at directory specified in config (like google
+        drive)
+        '''
+        tub_ids = [int(t.split('_')[1]) for t in tub_paths]
+        tub_ids.sort()
+
+        id = str(tub_ids[0]) if len(tub_ids) == 1 else \
+            str(tub_ids[0]) + '-' + str(tub_ids[-1])
+
+        pack_path = cfg.PACK_PATH
+        tub_arg = ' '.join(tub_paths)
+        print('Packing tubs ' + tub_arg + ' into directory ' + pack_path +
+              ' with id ' + id)
+        # create a tar.gz of input tubs
+        os.system("tar cfz " + pack_path + '/tub_' + id + '.tar.gz ' + tub_arg)
+
+    def parse_args(self, args):
+        parser = argparse.ArgumentParser(prog='pack',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('--tub', nargs='+',
+                            help='paths to tubs')
+        parser.add_argument('--config', default='./config.py',
+                            help='location of config file to use.'
+                                 'Default: ./config.py')
+        parsed_args = parser.parse_args(args)
+        return parsed_args
+
+    def run(self, args):
+        args = self.parse_args(args)
+        cfg = load_config(args.config)
+        assert hasattr(cfg, 'PACK_PATH'), 'Need to set PACK_PATH in config'
+        self.pack_tubs(cfg, args.tub)
+
+
 def execute_from_command_line():
     """
     This is the function linked to the "donkey" terminal command.
@@ -728,6 +766,7 @@ def execute_from_command_line():
                 'update': UpdateCar,
                 'laps': ShowLapTimes,
                 'monitor': Monitor,
+                'pack': PackTubs
                 }
 
     args = sys.argv[:]

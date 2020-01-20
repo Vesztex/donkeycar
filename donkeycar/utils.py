@@ -397,6 +397,7 @@ def gather_tubs(cfg, tub_names):
 Training helpers
 """
 
+
 def get_image_index(fnm):
     sl = os.path.basename(fnm).split('_')
     return int(sl[0])

@@ -50,7 +50,7 @@ class Tub(object):
                 self.meta = {'inputs': [], 'types': []}
 
             try:
-                with open(self.exclude_path,'r') as f:
+                with open(self.exclude_path, 'r') as f:
                     excl = json.load(f)  # stored as a list
                     self.exclude = set(excl)
             except FileNotFoundError:
@@ -85,6 +85,7 @@ class Tub(object):
             self.current_ix = 0
             self.exclude = set()
             print('New tub created at: {}'.format(self.path))
+
         else:
             msg = "The tub path " + path + " you provided doesn't exist and " \
                 "you didnt pass any meta info (inputs & types) to create a " \
@@ -374,14 +375,14 @@ class Tub(object):
         laps = df['car/lap'].unique()
         times = []
         last_start = None
-        for l in laps:
+        for l in laps[1:]:
             mask = df['car/lap'] == l
             lap_df = df[mask]
-            [start, this_end] = lap_df['milliseconds'].iloc[[0, -1]]
+            start = lap_df['milliseconds'].iloc[0]
             if last_start is not None:
                 times.append((start - last_start) * 1.0e-3)
             last_start = start
-        return pd.DataFrame(dict(lap=laps[:-1], lap_times=times))
+        return pd.DataFrame(dict(lap=laps[1:-1], lap_times=times), index=laps[1:-1])
 
     def write_exclude(self):
         if 0 == len(self.exclude):

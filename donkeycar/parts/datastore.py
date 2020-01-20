@@ -370,15 +370,18 @@ class Tub(object):
         :return: dataframe
         """
         df = self.get_df()
-        assert 'car/lap' in df.columns, 'No lap data found in tub' + self.path
+        assert 'car/lap' in df.columns, 'No lap data found in tub ' + self.path
         laps = df['car/lap'].unique()
         times = []
+        last_start = None
         for l in laps:
             mask = df['car/lap'] == l
             lap_df = df[mask]
-            [start, end] = lap_df['milliseconds'].iloc[[0, -1]]
-            times.append((end - start) * 1.0e-3)
-        return pd.DataFrame(dict(lap=laps, lap_times=times))
+            [start, this_end] = lap_df['milliseconds'].iloc[[0, -1]]
+            if last_start is not None:
+                times.append((start - last_start) * 1.0e-3)
+            last_start = start
+        return pd.DataFrame(dict(lap=laps[:-1], lap_times=times))
 
     def write_exclude(self):
         if 0 == len(self.exclude):

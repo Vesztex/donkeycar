@@ -402,17 +402,23 @@ class Tub(object):
         if self.exclude:
             self.exclude.clear()
         df = self.make_lap_times()
+
         if keep_frac_or_seconds <= 1:
             df_sorted = df.sort_values(by=['lap_times'])
             slowest_index = int(len(df) * keep_frac_or_seconds)
             laps_to_keep = df_sorted['lap'].iloc[:slowest_index]
+            text = 'the slowest {:.1f}% of laps'\
+                .format((1.0 - keep_frac_or_seconds) * 100.0)
         else:
             laps_to_keep \
                 = df.loc[df['lap_times'] <= keep_frac_or_seconds]['lap']
+            text = 'all laps slower than {:.2f}s'.format(keep_frac_or_seconds)
 
         df_records = self.get_df()
         df_to_remove = df_records[~df_records['car/lap'].isin(laps_to_keep)]
         self.exclude = set(df_to_remove.index)
+        print('Excluding {:.2f}% of records which are {}'
+              .format(len(self.exclude) / len(df_records) * 100.0, text))
         return laps_to_keep
 
     def write_exclude(self):

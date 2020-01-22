@@ -415,6 +415,8 @@ def gather_records(cfg, tub_names, opts=None, verbose=False):
     for tub in tubs:
         if verbose:
             print(tub.path)
+        if hasattr(cfg, 'EXCLUDE_SLOW_LAPS'):
+            tub.exclude_slow_laps(cfg.EXCLUDE_SLOW_LAPS)
         record_paths = tub.gather_records()
         records += record_paths
 

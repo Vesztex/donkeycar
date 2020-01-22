@@ -99,8 +99,9 @@ class Tub(object):
         return max(index)
 
     def update_df(self):
-        df = pd.DataFrame([self.get_json_record(i)
-                           for i in self.get_index(shuffled=False)])
+        index = self.get_index(shuffled=False)
+        df = pd.DataFrame([self.get_json_record(i) for i in index])
+        df = df.set_index(pd.Index(index))
         self.df = df
 
     def get_df(self):
@@ -382,7 +383,37 @@ class Tub(object):
             if last_start is not None:
                 times.append((start - last_start) * 1.0e-3)
             last_start = start
-        return pd.DataFrame(dict(lap=laps[1:-1], lap_times=times), index=laps[1:-1])
+        return pd.DataFrame(dict(lap=laps[1:-1], lap_times=times),
+                            index=laps[1: -1])
+
+    def exclude_slow_laps(self, keep_frac_or_seconds=None):
+        """
+        Removes records of slower laps
+        :param keep_frac_or_seconds:    either fraction of the laps to keep or
+                                        laps with are faster than the  argument
+                                        as seconds. Interpreted as fraction if
+                                        <= 1  and as seconds if > 1
+        :return:                        laps to keep array
+        """
+        # if None do nothing
+        if keep_frac_or_seconds is None:
+            return None
+        # if exclude set is non-empty, empty it first
+        if self.exclude:
+            self.exclude.clear()
+        df = self.make_lap_times()
+        if keep_frac_or_seconds <= 1:
+            df_sorted = df.sort_values(by=['lap_times'])
+            slowest_index = int(len(df) * keep_frac_or_seconds)
+            laps_to_keep = df_sorted['lap'].iloc[:slowest_index]
+        else:
+            laps_to_keep \
+                = df.loc[df['lap_times'] <= keep_frac_or_seconds]['lap']
+
+        df_records = self.get_df()
+        df_to_remove = df_records[~df_records['car/lap'].isin(laps_to_keep)]
+        self.exclude = set(df_to_remove.index)
+        return laps_to_keep
 
     def write_exclude(self):
         if 0 == len(self.exclude):

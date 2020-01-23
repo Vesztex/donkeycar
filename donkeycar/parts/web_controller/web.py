@@ -175,7 +175,7 @@ class VideoAPI(RequestHandler):
         my_boundary = "--boundarydonotcross\n"
         while True:
 
-            interval = .01
+            interval = .005
             if served_image_timestamp + interval < time.time() and \
                     hasattr(self.application, 'img_arr'):
 

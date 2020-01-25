@@ -413,7 +413,9 @@ def linear_square_plus_cnn(x, l2):
     x = BatchNormalization(name='batch_norm4')(x)
     x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool4')(x)
     x = Flatten(name='flattened')(x)
-    x = Dense(units=96, activation='linear',
+    x = Dense(units=96, activation='relu',
+              kernel_regularizer=regularizers.l2(l2))(x)
+    x = Dense(units=96, activation='relu',
               kernel_regularizer=regularizers.l2(l2))(x)
 
     return x

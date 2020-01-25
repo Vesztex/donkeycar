@@ -417,6 +417,10 @@ def linear_square_plus_cnn(x, l2):
               kernel_regularizer=regularizers.l2(l2))(x)
     x = Dense(units=96, activation='relu',
               kernel_regularizer=regularizers.l2(l2))(x)
+    x = Dense(units=96, activation='relu',
+              kernel_regularizer=regularizers.l2(l2))(x)
+    x = Dense(units=96, activation='relu',
+              kernel_regularizer=regularizers.l2(l2))(x)
 
     return x
 

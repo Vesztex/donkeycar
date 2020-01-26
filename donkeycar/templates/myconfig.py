@@ -60,7 +60,7 @@ FREEZE_LAYERS = False
 NUM_LAST_LAYERS_TO_TRAIN = 5  # flat, dense, dense, angle, throttle
 PACK_PATH = r'/Users/dirk/GoogleDrive/mycar/data'
 #EXCLUDE_SLOW_LAPS = 0.5
-ROI_CROP_TOP = 36
+# ROI_CROP_TOP = 36
 
 # AUTOPILOT
 AI_THROTTLE_MULT = 1.0

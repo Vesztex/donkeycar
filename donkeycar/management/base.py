@@ -731,8 +731,7 @@ class PackTubs(BaseCommand):
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='pack',
                                          usage='%(prog)s [options]')
-        parser.add_argument('--tub', nargs='+',
-                            help='paths to tubs')
+        parser.add_argument('tub', nargs='+', help='paths to tubs')
         parser.add_argument('--config', default='./config.py',
                             help='location of config file to use.'
                                  'Default: ./config.py')

@@ -1,4 +1,8 @@
 import time
+import board
+import busio
+import adafruit_mpu6050
+import numpy as np
 
 
 class Mpu6050:
@@ -37,7 +41,7 @@ class Mpu6050:
         while self.on:
             self.poll()
             time.sleep(self.poll_delay)
-                
+
     def poll(self):
         try:
             self.accel, self.gyro, self.temp = self.sensor.get_all_data()
@@ -62,13 +66,28 @@ class Mpu6050:
         d = d1.copy()
         for k in d1.keys():
             d[k] -= d2[k]
-            d[k] = '{: 4.2f}'.format(d[k])
         return d
+
+
+class Mpu6050Ada:
+    def __init__(self, poll_delay=0.02):
+        i2c = busio.I2C(board.SCL, board.SDA)
+        self.mpu = adafruit_mpu6050.MPU6050(i2c)
+        self.mpu.accelerometer_range = adafruit_mpu6050.Range.RANGE_2_G
+        self.mpu.gyro_range = adafruit_mpu6050.GyroRange.RANGE_250_DPS
+        self.accel_zero = np.array(self.mpu.acceleration)
+        self.gyro_zero = np.array(self.mpu.gyro)
+        self.accel = np.zeros((3,))
+        self.gyro = np.zeros((3,))
+
+    def run(self):
+        return np.array(self.mpu.acceleration) - self.accel_zero, \
+               np.array(self.mpu.gyro) - self.gyro_zero
 
 
 if __name__ == "__main__":
     count = 0
-    p = Mpu6050()
+    p = Mpu6050Ada()
     while True:
         try:
             data = p.run()

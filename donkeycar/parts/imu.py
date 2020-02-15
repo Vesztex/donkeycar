@@ -1,5 +1,6 @@
 import time
 
+
 class Mpu6050:
     '''
     Installation:
@@ -17,11 +18,20 @@ class Mpu6050:
     def __init__(self, addr=0x68, poll_delay=0.0166):
         from mpu6050 import mpu6050
         self.sensor = mpu6050(addr)
-        self.accel = { 'x' : 0., 'y' : 0., 'z' : 0. }
-        self.gyro = { 'x' : 0., 'y' : 0., 'z' : 0. }
-        self.temp = 0.
+        self.accel = None
+        self.gyro = None
+        self.temp = None
         self.poll_delay = poll_delay
         self.on = True
+        # initial call, first values seem rubbish
+        self.poll()
+        # now wait...
+        time.sleep(self.poll_delay)
+        # ... and poll again
+        self.poll()
+        # use these values as zero
+        self.accel_zero = self.accel
+        self.gyro_zero = self.gyro
 
     def update(self):
         while self.on:
@@ -35,22 +45,31 @@ class Mpu6050:
             print('failed to read imu!!')
             
     def run_threaded(self):
-        return self.accel['x'], self.accel['y'], self.accel['z'], self.gyro['x'], self.gyro['y'], self.gyro['z'], self.temp
+        return self._diff(self.accel, self.accel_zero), \
+               self._diff(self.gyro, self.gyro_zero), \
+               self.temp
 
     def run(self):
         self.poll()
-        return self.accel['x'], self.accel['y'], self.accel['z'], self.gyro['x'], self.gyro['y'], self.gyro['z'], self.temp
+        return self.run_threaded()
 
     def shutdown(self):
         self.on = False
 
+    @staticmethod
+    def _subtract(d1, d2):
+        """ requires equal keys in d1, d2 which is not checked """
+        d = d1
+        for k, v in d1.iteritems():
+            v -= d2[k]
+        return d
+
 
 if __name__ == "__main__":
-    iter = 0
+    count = 0
     p = Mpu6050()
-    while iter < 100:
+    while count < 100:
         data = p.run()
         print(data)
         time.sleep(0.1)
-        iter += 1
-     
+        count += 1

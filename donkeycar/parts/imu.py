@@ -62,7 +62,7 @@ class Mpu6050:
         d = d1.copy()
         for k in d1.keys():
             d[k] -= d2[k]
-            d[k] = '4.2f'.format(d[k])
+            d[k] = '{4.2f}'.format(d[k])
         return d
 
 

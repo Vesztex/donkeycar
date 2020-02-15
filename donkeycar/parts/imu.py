@@ -41,8 +41,8 @@ class Mpu6050:
     def poll(self):
         try:
             self.accel, self.gyro, self.temp = self.sensor.get_all_data()
-        except:
-            print('failed to read imu!!')
+        except OSError as e:
+            print('Failed to read imu: ', e)
             
     def run_threaded(self):
         return self._diff(self.accel, self.accel_zero), \

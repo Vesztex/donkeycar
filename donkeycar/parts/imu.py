@@ -70,7 +70,7 @@ class Mpu6050:
 
 
 class Mpu6050Ada:
-    def __init__(self, poll_delay=0.02):
+    def __init__(self):
         i2c = busio.I2C(board.SCL, board.SDA)
         self.mpu = adafruit_mpu6050.MPU6050(i2c)
         self.mpu.accelerometer_range = adafruit_mpu6050.Range.RANGE_2_G

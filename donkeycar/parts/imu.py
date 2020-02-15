@@ -45,8 +45,8 @@ class Mpu6050:
             print('Failed to read imu: ', e)
             
     def run_threaded(self):
-        return self._diff(self.accel, self.accel_zero), \
-               self._diff(self.gyro, self.gyro_zero), \
+        return self._subtract(self.accel, self.accel_zero), \
+               self._subtract(self.gyro, self.gyro_zero), \
                self.temp
 
     def run(self):

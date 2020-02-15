@@ -69,8 +69,13 @@ class Mpu6050:
 if __name__ == "__main__":
     count = 0
     p = Mpu6050()
-    while count < 100:
-        data = p.run()
-        print(data)
-        time.sleep(0.1)
-        count += 1
+    while True:
+        try:
+            data = p.run()
+            print(data)
+            time.sleep(0.05)
+            count += 1
+        except KeyboardInterrupt:
+            break
+
+

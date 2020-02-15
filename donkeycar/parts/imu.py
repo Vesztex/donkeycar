@@ -59,9 +59,9 @@ class Mpu6050:
     @staticmethod
     def _subtract(d1, d2):
         """ requires equal keys in d1, d2 which is not checked """
-        d = d1
-        for k, v in d1.items():
-            v -= d2[k]
+        d = d1.copy()
+        for k in d1.keys():
+            d[k] -= d2[k]
         return d
 
 

@@ -60,7 +60,7 @@ class Mpu6050:
     def _subtract(d1, d2):
         """ requires equal keys in d1, d2 which is not checked """
         d = d1
-        for k, v in d1.iteritems():
+        for k, v in d1.items():
             v -= d2[k]
         return d
 

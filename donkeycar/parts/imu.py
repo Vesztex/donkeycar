@@ -34,8 +34,8 @@ class Mpu6050:
         # ... and poll again
         self.poll()
         # use these values as zero
-        self.accel_zero = self.accel
-        self.gyro_zero = self.gyro
+        self.accel_zero = np.array(list(self.accel.values()))
+        self.gyro_zero = np.array(list(self.gyro.values()))
 
     def update(self):
         while self.on:
@@ -49,9 +49,8 @@ class Mpu6050:
             print('Failed to read imu: ', e)
             
     def run_threaded(self):
-        return self._subtract(self.accel, self.accel_zero), \
-               self._subtract(self.gyro, self.gyro_zero), \
-               self.temp
+        return np.array(list(self.accel.values())) - self.accel_zero, \
+               np.array(list(self.gyro.values())) - self.gyro_zero
 
     def run(self):
         self.poll()
@@ -59,14 +58,6 @@ class Mpu6050:
 
     def shutdown(self):
         self.on = False
-
-    @staticmethod
-    def _subtract(d1, d2):
-        """ requires equal keys in d1, d2 which is not checked """
-        d = d1.copy()
-        for k in d1.keys():
-            d[k] -= d2[k]
-        return d
 
 
 class Mpu6050Ada:

@@ -24,6 +24,7 @@ from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.transform import SimplePidController, ImgPrecondition
 from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
+from donkeycar.parts.imu import Mpu6050Ada
 
 
 class TypePrinter:
@@ -76,6 +77,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     car.add(odo, outputs=['car/speed', 'car/inst_speed'])
     lap = LapTimer(gpio=cfg.LAP_TIMER_GPIO, trigger=4)
     car.add(lap, outputs=['car/lap'], threaded=True)
+    mpu = Mpu6050Ada()
+    car.add(mpu, outputs=['car/accel', 'car/gyro'])
 
     if web:
         car.add(WebFpv(), inputs=['cam/image_array'], threaded=True)

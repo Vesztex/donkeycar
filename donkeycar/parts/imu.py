@@ -2,20 +2,16 @@ import time
 import board
 import busio
 import adafruit_mpu6050
-import numpy as np
 
 
 class Mpu6050:
     '''
-    Installation:
-    sudo apt install python3-smbus
-    or
-    sudo apt-get install i2c-tools libi2c-dev python-dev python3-dev
+    Installation: sudo apt install python3-smbus or
+    sudo apt-get install  i2c-tools libi2c-dev python-dev python3-dev
     git clone https://github.com/pimoroni/py-smbus.git
     cd py-smbus/library
     python setup.py build
     sudo python setup.py install
-
     pip install mpu6050-raspberrypi
     '''
 
@@ -34,8 +30,8 @@ class Mpu6050:
         # ... and poll again
         self.poll()
         # use these values as zero
-        self.accel_zero = np.array(list(self.accel.values()))
-        self.gyro_zero = np.array(list(self.gyro.values()))
+        self.accel_zero = list(self.accel.values())
+        self.gyro_zero = list(self.gyro.values())
 
     def update(self):
         while self.on:
@@ -49,8 +45,9 @@ class Mpu6050:
             print('Failed to read imu: ', e)
             
     def run_threaded(self):
-        return np.array(list(self.accel.values())) - self.accel_zero, \
-               np.array(list(self.gyro.values())) - self.gyro_zero
+        return \
+            [a-z for a, z in zip(list(self.accel.values()), self.accel_zero)], \
+            [g-z for g, z in zip(list(self.gyro.values()), self.gyro_zero)]
 
     def run(self):
         self.poll()
@@ -66,14 +63,13 @@ class Mpu6050Ada:
         self.mpu = adafruit_mpu6050.MPU6050(i2c)
         self.mpu.accelerometer_range = adafruit_mpu6050.Range.RANGE_2_G
         self.mpu.gyro_range = adafruit_mpu6050.GyroRange.RANGE_250_DPS
-        self.accel_zero = np.array(self.mpu.acceleration)
-        self.gyro_zero = np.array(self.mpu.gyro)
-        self.accel = np.zeros((3,))
-        self.gyro = np.zeros((3,))
+        self.accel_zero = self.mpu.acceleration
+        self.gyro_zero = self.mpu.gyro
 
     def run(self):
-        return np.array(self.mpu.acceleration) - self.accel_zero, \
-               np.array(self.mpu.gyro) - self.gyro_zero
+        return \
+            [a - z for a, z in zip(self.mpu.acceleration, self.accel_zero)], \
+            [g - z for g, z in zip(self.gyro.acceleration, self.gyro_zero)]
 
 
 if __name__ == "__main__":

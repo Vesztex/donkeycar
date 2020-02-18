@@ -65,11 +65,29 @@ class Mpu6050Ada:
         self.mpu.gyro_range = adafruit_mpu6050.GyroRange.RANGE_250_DPS
         self.accel_zero = self.mpu.acceleration
         self.gyro_zero = self.mpu.gyro
+        self.accel = self.accel_zero
+        self.gyro = self.gyro_zero
+        self.on = True
+        print("Created Adafruit Mpu6050.")
+
+    def update(self):
+        while self.on:
+            self.poll()
+
+    def poll(self):
+        for i in range(3):
+            self.accel[i] = self.mpu.acceleration[i] - self.accel_zero[i]
+            self.gyro[i] = self.mpu.gyro[i] - self.gyro_zero[i]
 
     def run(self):
-        return \
-            [a - z for a, z in zip(self.mpu.acceleration, self.accel_zero)], \
-            [g - z for g, z in zip(self.mpu.gyro, self.gyro_zero)]
+        self.poll()
+        return self.accel, self.gyro
+
+    def run_threaded(self):
+        return self.accel, self.gyro
+
+    def shutdown(self):
+        self.on = False
 
 
 if __name__ == "__main__":

@@ -78,7 +78,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     lap = LapTimer(gpio=cfg.LAP_TIMER_GPIO, trigger=4)
     car.add(lap, outputs=['car/lap'], threaded=True)
     mpu = Mpu6050Ada()
-    car.add(mpu, outputs=['car/accel', 'car/gyro'])
+    car.add(mpu, outputs=['car/accel', 'car/gyro'], threaded=True)
 
     if web:
         car.add(WebFpv(), inputs=['cam/image_array'], threaded=True)

@@ -63,10 +63,10 @@ class Mpu6050Ada:
         self.mpu = adafruit_mpu6050.MPU6050(i2c)
         self.mpu.accelerometer_range = adafruit_mpu6050.Range.RANGE_2_G
         self.mpu.gyro_range = adafruit_mpu6050.GyroRange.RANGE_250_DPS
-        self.accel_zero = self.mpu.acceleration
-        self.gyro_zero = self.mpu.gyro
-        self.accel = self.accel_zero
-        self.gyro = self.gyro_zero
+        self.accel_zero = list(self.mpu.acceleration)
+        self.gyro_zero = list(self.mpu.gyro)
+        self.accel = list(self.accel_zero)
+        self.gyro = list(self.gyro_zero)
         self.on = True
         print("Created Adafruit Mpu6050.")
 

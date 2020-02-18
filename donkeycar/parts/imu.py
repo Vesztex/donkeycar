@@ -69,7 +69,7 @@ class Mpu6050Ada:
     def run(self):
         return \
             [a - z for a, z in zip(self.mpu.acceleration, self.accel_zero)], \
-            [g - z for g, z in zip(self.mpy.gyro, self.gyro_zero)]
+            [g - z for g, z in zip(self.mpu.gyro, self.gyro_zero)]
 
 
 if __name__ == "__main__":

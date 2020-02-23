@@ -302,7 +302,6 @@ def merge_two_dicts(x, y):
     return z
 
 
-
 def param_gen(params):
     '''
     Accepts a dictionary of parameter options and returns 
@@ -430,7 +429,7 @@ def get_model_by_type(model_type, cfg):
     '''
     from donkeycar.parts.keras import KerasRNN_LSTM, KerasBehavioral, \
         KerasCategorical, KerasIMU, KerasLinear, KerasSquarePlus, \
-        KerasSquarePlusSpeed, Keras3D_CNN, KerasLocalizer, KerasLatent
+        KerasSquarePlusImu, Keras3D_CNN, KerasLocalizer, KerasLatent
     from donkeycar.parts.tflite import TFLitePilot
  
     if model_type is None:
@@ -452,8 +451,8 @@ def get_model_by_type(model_type, cfg):
         kl = KerasLinear(input_shape=input_shape, roi_crop=roi_crop)
     elif model_type == "square_plus":
         kl = KerasSquarePlus(input_shape=input_shape, roi_crop=roi_crop)
-    elif model_type == "square_plus_speed":
-        kl = KerasSquarePlusSpeed(input_shape=input_shape, roi_crop=roi_crop)
+    elif model_type == "square_plus_imu":
+        kl = KerasSquarePlusImu(input_shape=input_shape, roi_crop=roi_crop)
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit which causes a lot of unexpected things
         # to happen when using TF-GPU for training.

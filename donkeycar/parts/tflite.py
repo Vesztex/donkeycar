@@ -60,14 +60,14 @@ class TFLitePilot(object):
         for l in self.input_details:
             print(l)
 
-    def run(self, image, speed=None):
+    def run(self, image, imu_in=None):
         input_data = image.reshape(self.input_shape).astype('float32') 
 
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
-        if speed is not None:
-            in_speed = np.array([speed]).reshape((1,1)).astype('float32')
+        if imu_in is not None:
+            in_imu = np.array(imu_in).reshape((6, 1)).astype('float32')
             self.interpreter.set_tensor(self.input_details[1]['index'],
-                                        in_speed)
+                                        in_imu)
         self.interpreter.invoke()
 
         steering = 0.0

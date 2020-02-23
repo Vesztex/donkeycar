@@ -30,7 +30,7 @@ from docopt import docopt
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
 from donkeycar.parts.keras import KerasIMU, KerasCategorical, KerasBehavioral, \
-    KerasLatent, KerasLocalizer, KerasSquarePlusSpeed
+    KerasLatent, KerasLocalizer, KerasSquarePlusImu
 from donkeycar.parts.augment import augment_image
 from donkeycar.utils import *
 
@@ -127,37 +127,45 @@ def collate_records(records, gen_records, opts):
 
             sample['imu_array'] = np.array([accl_x, accl_y, accl_z,
                                             gyro_x, gyro_y, gyro_z])
-        except:
+        except KeyError:
+            pass
+
+        try:
+            accel = json_data['car/accel']
+            gyro = json_data['car/gyro']
+            sample['imu_array'] = np.array(accel + gyro)
+        except KeyError:
             pass
 
         try:
             behavior_arr = np.array(json_data['behavior/one_hot_state_array'])
             sample["behavior_arr"] = behavior_arr
-        except:
+        except KeyError:
             pass
 
         try:
             location_arr = np.array(json_data['location/one_hot_state_array'])
             sample["location"] = location_arr
-        except:
+        except KeyError:
             pass
-
 
         sample['img_data'] = None
 
         # Initialise 'train' to False
         sample['train'] = False
         
-        # We need to maintain the correct train - validate ratio across the dataset, even if continous training
-        # so don't add this sample to the main records list (gen_records) yet.
+        # We need to maintain the correct train - validate ratio across the
+        # dataset, even if continous training so don't add this sample to the
+        # main records list (gen_records) yet.
         new_records[key] = sample
         
-    # new_records now contains all our NEW samples
-    # - set a random selection to be the training samples based on the ratio in CFG file
+    # new_records now contains all our NEW samples - set a random selection
+    # to be the training samples based on the ratio in CFG file
     shufKeys = list(new_records.keys())
     random.shuffle(shufKeys)
     trainCount = 0
-    #  Ratio of samples to use as training data, the remaining are used for evaluation
+    # Ratio of samples to use as training data, the remaining are used for
+    # evaluation
     targetTrainCount = int(opts['cfg'].TRAIN_TEST_SPLIT * len(shufKeys))
     for key in shufKeys:
         new_records[key]['train'] = True
@@ -166,6 +174,7 @@ def collate_records(records, gen_records, opts):
             break
     # Finally add all the new records to the existing list
     gen_records.update(new_records)
+
 
 def save_json_and_weights(model, filename):
     '''
@@ -322,8 +331,8 @@ def train(cfg, tub_names, model_name, transfer_model,
 
     if "linear" in model_type:
         train_type = "linear"
-    elif "square_plus_speed" in model_type:
-        train_type = "square_plus_speed"
+    elif "square_plus_imu" in model_type:
+        train_type = "square_plus_imu"
     elif "square_plus" in model_type:
         train_type = "square_plus"
     else:
@@ -400,11 +409,10 @@ def train(cfg, tub_names, model_name, transfer_model,
             else:
                 model_out_shape = kl.model.output.shape
 
-            has_imu = type(kl) is KerasIMU
+            has_imu = type(kl) is KerasIMU or type(kl) is KerasSquarePlusImu
             has_bvh = type(kl) is KerasBehavioral
             img_out = type(kl) is KerasLatent
             loc_out = type(kl) is KerasLocalizer
-            use_speed_input = type(kl) is KerasSquarePlusSpeed
 
             if img_out:
                 import cv2
@@ -427,7 +435,6 @@ def train(cfg, tub_names, model_name, transfer_model,
                     inputs_img = []
                     inputs_imu = []
                     inputs_bvh = []
-                    inputs_speed = []
                     angles = []
                     throttles = []
                     out_img = []
@@ -459,8 +466,6 @@ def train(cfg, tub_names, model_name, transfer_model,
                             inputs_imu.append(record['imu_array'])
                         if has_bvh:
                             inputs_bvh.append(record['behavior_arr'])
-                        if use_speed_input:
-                            inputs_speed.append(record['json_data']['car/speed'])
 
                         inputs_img.append(img_arr)
                         angles.append(record['angle'])
@@ -478,8 +483,6 @@ def train(cfg, tub_names, model_name, transfer_model,
                         X = [img_arr, np.array(inputs_imu)]
                     elif has_bvh:
                         X = [img_arr, np.array(inputs_bvh)]
-                    elif use_speed_input:
-                        X = [img_arr, np.array(inputs_speed)]
                     else:
                         X = [img_arr]
 

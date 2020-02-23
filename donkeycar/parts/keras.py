@@ -187,26 +187,18 @@ class KerasSquarePlus(KerasLinear):
                            loss_weights={'angle_out': 0.9, 'throttle_out': 0.1})
 
 
-class KerasSquarePlusSpeed(KerasSquarePlus):
+class KerasSquarePlusImu(KerasSquarePlus):
     """
-    The model is a variation of the SquarePlus model which only outputs
-    steering as a function of input image and speed. This allows the car to
-    adapt the steering to the current drive speed. Higher speeds require
-    earlier, fewer and more aggressive steering commands whereas slower
-    speeds can also support turning into corners late, driving a more zig-zag
-    course and using paths that are not drivable at higher speeds.
+    The model is a variation of the SquarePlus model that also uses imu data
     """
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
-        self.model = linear_square_plus_speed(input_shape, roi_crop)
+        self.model = linear_square_plus_imu(input_shape, roi_crop)
         self.compile()
 
-    def compile(self):
-        self.model.compile(optimizer='adam', loss='mse')
-
-    def run(self, img_arr, speed):
+    def run(self, img_arr, accel, gyro):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        speed_arr = np.array([speed])
-        outputs = self.model.predict(img_arr, speed_arr)
+        imu_arr = np.array(accel + gyro)
+        outputs = self.model.predict(img_arr, imu_arr)
         steering = outputs[0]
         throttle = outputs[1]
         return steering[0][0], throttle[0][0]
@@ -413,15 +405,6 @@ def linear_square_plus_cnn(x, l2):
     x = BatchNormalization(name='batch_norm4')(x)
     x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool4')(x)
     x = Flatten(name='flattened')(x)
-    x = Dense(units=96, activation='relu',
-              kernel_regularizer=regularizers.l2(l2))(x)
-    x = Dense(units=96, activation='relu',
-              kernel_regularizer=regularizers.l2(l2))(x)
-    x = Dense(units=96, activation='relu',
-              kernel_regularizer=regularizers.l2(l2))(x)
-    x = Dense(units=96, activation='relu',
-              kernel_regularizer=regularizers.l2(l2))(x)
-
     return x
 
 
@@ -431,8 +414,10 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
     x = linear_square_plus_cnn(x, l2)
-    x = Dense(units=48, activation='linear',
-              kernel_regularizer=regularizers.l2(l2))(x)
+    layers = [96] * 4 + [48]
+    for l in layers:
+        x = Dense(units=l, activation='relu',
+                  kernel_regularizer=regularizers.l2(l2))(x)
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
@@ -440,32 +425,32 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     return model
 
 
-def linear_square_plus_speed(input_shape=(120, 160, 3), roi_crop=(0, 0)):
+def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     l2 = 0.01
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
-    speed_in = Input(shape=(1,), name="speed_in")
+    imu_in = Input(shape=(6,), name="imu_in")
     x = img_in
     x = linear_square_plus_cnn(x, l2)
 
-    y = speed_in
-    y = Dense(units=48, activation='linear',
+    y = imu_in
+    y = Dense(units=48, activation='relu',
               kernel_regularizer=regularizers.l2(l2))(y)
-
     z = concatenate([x, y])
-    z = Dense(units=48, activation='linear',
-              kernel_regularizer=regularizers.l2(l2))(z)
+    layers = [96] * 4 + [48]
+    for l in layers:
+        z = Dense(units=l, activation='relu',
+                  kernel_regularizer=regularizers.l2(l2))(z)
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(z)
-    throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
-    model = Model(inputs=[img_in, speed_in], outputs=[angle_out, throttle_out])
+    throttle_out = Dense(units=1, activation='linear', name='throttle_out')(z)
+    model = Model(inputs=[img_in, imu_in], outputs=[angle_out, throttle_out])
     return model
 
 
 def default_imu(num_outputs, num_imu_inputs, input_shape):
-
-    #we now expect that cropping done elsewhere. we will adjust our expeected image size here:
-    #input_shape = adjust_input_shape(input_shape, roi_crop)
+    # We now expect that cropping done elsewhere. we will adjust our expected
+    # image size here: input_shape = adjust_input_shape(input_shape, roi_crop)
 
     img_in = Input(shape=input_shape, name='img_in')
     imu_in = Input(shape=(num_imu_inputs,), name="imu_in")

@@ -54,7 +54,8 @@ setup(name='donkeycar',
           'pi': [
               'picamera',
               'Adafruit_PCA9685',
-              'RPi.GPIO'
+              'RPi.GPIO',
+              'adafruit-circuitpython-mpu6050'
           ],
           'nano': [
               'Adafruit_PCA9685',

@@ -384,14 +384,14 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
 
 def linear_square_plus_cnn(x, l2):
     drop = 0.1
-    # This makes the picture square in 2 steps (assuming 3x4 input) in all
+    # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
-    x = Conv2D(filters=16, kernel_size=(7, 7), strides=(3, 2), padding='same',
+    x = Conv2D(filters=16, kernel_size=(9, 9), strides=(3, 4), padding='same',
                activation='relu', name='conv1')(x)
     x = BatchNormalization(name='batch_norm1')(x)
     x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool1')(x)
     x = Dropout(drop)(x)
-    x = Conv2D(filters=32, kernel_size=(7, 7), strides=(1, 2), padding='same',
+    x = Conv2D(filters=32, kernel_size=(7, 7), strides=(1, 1), padding='same',
                activation='relu', name='conv2')(x)
     x = BatchNormalization(name='batch_norm2')(x)
     x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool2')(x)
@@ -401,15 +401,15 @@ def linear_square_plus_cnn(x, l2):
     x = BatchNormalization(name='batch_norm3')(x)
     x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool3')(x)
     x = Dropout(drop)(x)
-    # x = Conv2D(filters=64, kernel_size=(3, 3), strides=(2, 2), padding='same',
-    #            activation='relu', name='conv4')(x)
-    # x = BatchNormalization(name='batch_norm4')(x)
-    # x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool4')(x)
-    # x = Dropout(drop)(x)
     x = Conv2D(filters=96, kernel_size=(3, 3), strides=(1, 1), padding='same',
                activation='relu', name='conv4')(x)
     x = BatchNormalization(name='batch_norm4')(x)
     x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool4')(x)
+    x = Dropout(drop)(x)
+    x = Conv2D(filters=144, kernel_size=(2, 2), strides=(1, 1), padding='same',
+               activation='relu', name='conv5')(x)
+    x = BatchNormalization(name='batch_norm5')(x)
+    x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool5')(x)
     x = Dropout(drop)(x)
     x = Flatten(name='flattened')(x)
     return x
@@ -441,10 +441,10 @@ def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     x = linear_square_plus_cnn(x, l2)
 
     y = imu_in
-    y = Dense(units=48, activation='relu',
+    y = Dense(units=24, activation='relu',
               kernel_regularizer=regularizers.l2(l2))(y)
     z = concatenate([x, y])
-    layers = [96] * 4 + [48]
+    layers = [144] * 4 + [72]
     for l in layers:
         z = Dense(units=l, activation='relu',
                   kernel_regularizer=regularizers.l2(l2))(z)

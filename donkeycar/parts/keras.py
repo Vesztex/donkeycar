@@ -416,7 +416,7 @@ def linear_square_plus_cnn(x, l2):
 
 
 def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
-    l2 = 0.001
+    l2 = 0.0001
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
@@ -433,7 +433,7 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
 
 
 def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0)):
-    l2 = 0.001
+    l2 = 0.0001
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
     imu_in = Input(shape=(6,), name="imu_in")

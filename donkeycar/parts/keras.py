@@ -384,7 +384,8 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
 
 def linear_square_plus_cnn(x, l2):
     drop = 0.1
-    # This makes the picture square (assuming 3x4 input) in all following layers
+    # This makes the picture square in 2 steps (assuming 3x4 input) in all
+    # following layers
     x = Conv2D(filters=16, kernel_size=(7, 7), strides=(3, 2), padding='same',
                activation='relu', name='conv1')(x)
     x = BatchNormalization(name='batch_norm1')(x)

@@ -382,35 +382,22 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
     return model
 
 
-def linear_square_plus_cnn(x, l2):
+def linear_square_plus_cnn(x):
     drop = 0.02
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
-    x = Conv2D(filters=16, kernel_size=(9, 9), strides=(3, 4), padding='same',
-               activation='relu', name='conv1')(x)
-    x = BatchNormalization(name='batch_norm1')(x)
-    x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool1')(x)
-    x = Dropout(drop)(x)
-    x = Conv2D(filters=32, kernel_size=(7, 7), strides=(1, 1), padding='same',
-               activation='relu', name='conv2')(x)
-    x = BatchNormalization(name='batch_norm2')(x)
-    x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool2')(x)
-    x = Dropout(drop)(x)
-    x = Conv2D(filters=64, kernel_size=(5, 5), strides=(1, 1), padding='same',
-               activation='relu', name='conv3')(x)
-    x = BatchNormalization(name='batch_norm3')(x)
-    x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool3')(x)
-    x = Dropout(drop)(x)
-    x = Conv2D(filters=96, kernel_size=(3, 3), strides=(1, 1), padding='same',
-               activation='relu', name='conv4')(x)
-    x = BatchNormalization(name='batch_norm4')(x)
-    x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool4')(x)
-    x = Dropout(drop)(x)
-    x = Conv2D(filters=144, kernel_size=(2, 2), strides=(1, 1), padding='same',
-               activation='relu', name='conv5')(x)
-    x = BatchNormalization(name='batch_norm5')(x)
-    x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool5')(x)
-    x = Dropout(drop)(x)
+    filters = [16, 32, 64, 96, 144]
+    kernels = [(9, 9), (7, 7), (5, 5), (3, 3), (2, 2)]
+    strides = [(3, 4)] + [(1, 1)] * 4
+    # build 5 CNN layers with data as above and batch norm, pooling & dropout
+    for i, f, k, s in zip(range(5), filters, kernels, strides):
+        x = Conv2D(filters=f, kernel_size=k, strides=s, padding='same',
+                   activation='relu', name='conv' + str(i))(x)
+        x = BatchNormalization(name='batch_norm' + str(i))(x)
+        x = AveragePooling2D(pool_size=(2, 2), padding='same',
+                             name='pool' + str(i))(x)
+        x = Dropout(rate=drop, name='drop' + str(i))(x)
+
     x = Flatten(name='flattened')(x)
     return x
 
@@ -420,11 +407,12 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
-    x = linear_square_plus_cnn(x, l2)
+    x = linear_square_plus_cnn(x)
     layers = [96] * 4 + [48]
-    for l in layers:
+    for i, l in zip(range(len(layers)), layers):
         x = Dense(units=l, activation='relu',
-                  kernel_regularizer=regularizers.l2(l2))(x)
+                  kernel_regularizer=regularizers.l2(l2),
+                  name='dense' + str(i))(x)
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
@@ -438,16 +426,18 @@ def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     img_in = Input(shape=input_shape, name='img_in')
     imu_in = Input(shape=(6,), name="imu_in")
     x = img_in
-    x = linear_square_plus_cnn(x, l2)
+    x = linear_square_plus_cnn(x)
 
     y = imu_in
     y = Dense(units=24, activation='relu',
-              kernel_regularizer=regularizers.l2(l2))(y)
+              kernel_regularizer=regularizers.l2(l2),
+              name='dense_imu')(y)
     z = concatenate([x, y])
     layers = [144] * 4 + [72]
-    for l in layers:
+    for i, l in zip(range(len(layers)), layers):
         z = Dense(units=l, activation='relu',
-                  kernel_regularizer=regularizers.l2(l2))(z)
+                  kernel_regularizer=regularizers.l2(l2),
+                  name='dense' + str(i))(z)
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(z)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(z)

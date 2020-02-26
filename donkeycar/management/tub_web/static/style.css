@@ -4,9 +4,17 @@
 	}
 }
 
+body {
+    background-color: rgb(48, 49, 51)
+}
+
+h2 {
+    color: grey
+}
+
 .train-img {
-    width: 320px;
-	height: 240px;
+    width: 480px;
+	height: 360px;
 }
 
 #cur-frame {
@@ -42,12 +50,13 @@ tbody#clips td {
 
 .preview {
 	width: 100%;
+	background-color: rgb(48, 49, 51);
 }
 
 .preview-centered {
-  width: 460px;
+  width: 500px;
   margin: 0 auto;
-  padding-bottom: 12px;
+  padding-bottom: 6px;
 }
 
 .preview-wrapper {
@@ -56,21 +65,23 @@ tbody#clips td {
 
 .preview-img {
     flex: 0 0 65%;
+    color: grey;
 }
 
 .preview-toolbar {
     flex: 1;
-    background-color: white;
+    color: grey;
+    background-color: rgb(48, 49, 51);
 }
 
 .preview-toolbar button {
     margin: 5px;
-    width: 140px;
+    width: 160px;
 }
 
 .preview-toolbar select {
     margin: 5px;
-    width: 140px;
+    width: 160px;
 }
 
 tbody#clips .progress {
@@ -87,9 +98,9 @@ tbody#clips .progress {
 }
 
 .steering-bar .progress {
-    width: 48%;
+    width: 50%;
     margin-bottom: 0px;
-    border-radius: 0px;
+    border-radius: 2px;
     float: left;
 }
 

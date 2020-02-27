@@ -34,6 +34,7 @@ tr.active td:last-child  {
 tbody#clips td {
     vertical-align: middle;
 }
+
 .affix {
   top: 0;
   width: 100%;
@@ -55,7 +56,7 @@ tbody#clips td {
 
 .preview-centered {
   width: 500px;
-  margin: 0 auto;
+  margin: 0 100px;
   padding-bottom: 6px;
 }
 
@@ -63,13 +64,18 @@ tbody#clips td {
     display: flex;
 }
 
+.preview-imu {
+    flex: 0 0 40%;
+    color: grey;
+}
+
 .preview-img {
-    flex: 0 0 65%;
+    flex: 0 0 30%;
     color: grey;
 }
 
 .preview-toolbar {
-    flex: 1;
+    flex: 0;
     color: grey;
     background-color: rgb(48, 49, 51);
 }
@@ -111,6 +117,44 @@ tbody#clips .progress {
 }
 
 .steering-bar .progress.positive {
+    border-left-style: solid;
+    border-left-width: thin;
+    border-left-color: red;
+}
+
+.accel-x-bar .progress {
+    width: 50%;
+    margin-bottom: 0px;
+    border-radius: 2px;
+    float: left;
+}
+
+.accel-x-bar .progress.negative {
+    border-right-style: solid;
+    border-right-width: thin;
+    border-right-color: red;
+}
+
+.accel-x-bar .progress.positive {
+    border-left-style: solid;
+    border-left-width: thin;
+    border-left-color: red;
+}
+
+.accel-y-bar .progress {
+    width: 50%;
+    margin-bottom: 0px;
+    border-radius: 2px;
+    float: left;
+}
+
+.accel-y-bar .progress.negative {
+    border-right-style: solid;
+    border-right-width: thin;
+    border-right-color: red;
+}
+
+.accel-y-bar .progress.positive {
     border-left-style: solid;
     border-left-width: thin;
     border-left-color: red;

@@ -124,8 +124,12 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         outputs = ['pilot/angle', pilot_throttle_var]
         if use_imu:
             print('Use imu in pilot')
-            inputs.append('car/accel')
-            inputs.append('car/gyro')
+            class ImuCombiner:
+                def run(self, accel, gyro):
+                    return accel + gyro
+            car.add(ImuCombiner, inputs=['car/accel', 'car/gyro'],
+                    outputs=['car/imu'])
+            inputs.append('car/imu')
 
         car.add(kl, inputs=inputs, outputs=outputs)
         # if driving w/ ai switch between user throttle or pilot throttle by

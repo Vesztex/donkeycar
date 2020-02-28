@@ -195,9 +195,9 @@ class KerasSquarePlusImu(KerasSquarePlus):
         self.model = linear_square_plus_imu(input_shape, roi_crop)
         self.compile()
 
-    def run(self, img_arr, accel, gyro):
+    def run(self, img_arr, imu):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        imu_arr = np.array(accel + gyro)
+        imu_arr = np.array(imu)
         outputs = self.model.predict(img_arr, imu_arr)
         steering = outputs[0]
         throttle = outputs[1]

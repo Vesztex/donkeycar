@@ -64,7 +64,7 @@ class Mpu6050Ada:
         self.mpu.accelerometer_range = adafruit_mpu6050.Range.RANGE_2_G
         self.mpu.gyro_range = adafruit_mpu6050.GyroRange.RANGE_250_DPS
         # set filter to 44Hz data smoothing
-        self.mpu.filter_bandwidth(3)
+        self.mpu.filter_bandwidth = 3
         self.accel_zero = list(self.mpu.acceleration)
         self.gyro_zero = list(self.mpu.gyro)
         self.accel = list(self.accel_zero)

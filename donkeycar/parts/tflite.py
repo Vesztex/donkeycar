@@ -66,7 +66,8 @@ class TFLitePilot(object):
         input_data = image.reshape(self.input_shape_0).astype('float32')
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
         if imu_in is not None:
-            imu_data = imu_in.reshape(self.input_shape_1).astype('float32')
+            imu_arr = np.array(imu_in)
+            imu_data = imu_arr.reshape(self.input_shape_1).astype('float32')
             self.interpreter.set_tensor(self.input_details[1]['index'],
                                         imu_data)
         self.interpreter.invoke()

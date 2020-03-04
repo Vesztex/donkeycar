@@ -194,6 +194,7 @@ class KerasSquarePlusImu(KerasSquarePlus):
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
         self.model = linear_square_plus_imu(input_shape, roi_crop)
         self.compile()
+        print('created', self.__class__.__name__)
 
     def run(self, img_arr, imu):
         img_arr = img_arr.reshape((1,) + img_arr.shape)

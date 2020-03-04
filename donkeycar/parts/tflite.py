@@ -65,6 +65,7 @@ class TFLitePilot(object):
 
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
         if imu_in is not None:
+            print('Imu data received in TFlitePilot')
             in_imu = np.array(imu_in).reshape((6, 1)).astype('float32')
             self.interpreter.set_tensor(self.input_details[1]['index'],
                                         in_imu)

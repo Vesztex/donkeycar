@@ -127,7 +127,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
 
             class ImuCombiner:
                 def run(self, accel, gyro):
-                    return accel + gyro
+                    print('ImuCombiner.run accel', accel, 'gyro', gyro)
+                    combined =  accel + gyro
+                    print('combined', combined)
+                    return combined
             car.add(ImuCombiner, inputs=['car/accel', 'car/gyro'],
                     outputs=['car/imu'])
             inputs.append('car/imu')

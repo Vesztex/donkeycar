@@ -90,7 +90,8 @@ class Vehicle:
         assert type(threaded) is bool, "threaded is not a boolean: %r" % threaded
 
         p = part
-        print('Adding part {}.'.format(p.__class__.__name__))
+        print('Adding part {} with inputs {} and outputs {}'.format(
+            p.__class__.__name__, inputs, outputs))
         entry = {}
         entry['part'] = p
         entry['inputs'] = inputs
@@ -192,6 +193,7 @@ class Vehicle:
                 # get inputs from memory
                 inputs = self.mem.get(entry['inputs'])
                 # run the part
+                print('Running part', p, 'with inputs', inputs)
                 if entry.get('thread'):
                     outputs = p.run_threaded(*inputs)
                 else:

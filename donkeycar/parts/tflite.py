@@ -43,7 +43,8 @@ class TFLitePilot(object):
         self.interpreter = None
         self.input_details = None
         self.output_details = None
-        self.input_shape = None
+        self.input_shape_0 = None
+        self.input_shape_1 = None
 
     def load(self, model_path):
         # Load TFLite model and allocate tensors.
@@ -55,20 +56,19 @@ class TFLitePilot(object):
         self.output_details = self.interpreter.get_output_details()
 
         # Get Input shape
-        self.input_shape = self.input_details[0]['shape']
+        self.input_shape_0 = self.input_details[0]['shape']
+        self.input_shape_1 = self.input_details[1]['shape']
         print('---- tflite input tensor details ----')
         for l in self.input_details:
             print(l)
 
     def run(self, image, imu_in=None):
-        input_data = image.reshape(self.input_shape).astype('float32') 
-
+        input_data = image.reshape(self.input_shape_0).astype('float32')
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
         if imu_in is not None:
-            print('Imu data received in TFlitePilot')
-            in_imu = np.array(imu_in).reshape((6, 1)).astype('float32')
+            imu_data = imu_in.reshape(self.input_shape_1).astype('float32')
             self.interpreter.set_tensor(self.input_details[1]['index'],
-                                        in_imu)
+                                        imu_data)
         self.interpreter.invoke()
 
         steering = 0.0

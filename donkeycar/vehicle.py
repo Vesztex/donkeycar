@@ -197,7 +197,6 @@ class Vehicle:
                     outputs = p.run_threaded(*inputs)
                 else:
                     outputs = p.run(*inputs)
-                print('Running part', p, 'with inputs', inputs, 'outputs', outputs)
                 # save the output to memory
                 if outputs is not None:
                     self.mem.put(entry['outputs'], outputs)

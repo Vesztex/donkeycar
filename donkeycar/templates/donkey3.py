@@ -124,6 +124,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         outputs = ['pilot/angle', pilot_throttle_var]
         if use_imu:
             print('Use IMU in pilot')
+
             class ImuCombiner:
                 def run(self, accel, gyro):
                     return accel + gyro

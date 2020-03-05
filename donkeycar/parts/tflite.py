@@ -57,7 +57,9 @@ class TFLitePilot(object):
 
         # Get Input shape
         self.input_shape_0 = self.input_details[0]['shape']
-        self.input_shape_1 = self.input_details[1]['shape']
+        self.input_shape_1 = None
+        if len(self.input_details) > 1:
+            self.input_shape_1 = self.input_details[1]['shape']
         print('---- tflite input tensor details ----')
         for l in self.input_details:
             print(l)

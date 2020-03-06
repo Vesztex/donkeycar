@@ -387,8 +387,8 @@ def linear_square_plus_cnn(x):
     drop = 0.02
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
-    filters = [16, 32, 64, 96, 144]
-    kernels = [(9, 9), (7, 7), (5, 5), (3, 3), (2, 2)]
+    filters = [16, 32, 48, 64, 72]
+    kernels = [(7, 7), (5, 5), (3, 3), (3, 3), (2, 2)]
     strides = [(3, 4)] + [(1, 1)] * 4
     # build 5 CNN layers with data as above and batch norm, pooling & dropout
     for i, f, k, s in zip(range(5), filters, kernels, strides):
@@ -434,7 +434,7 @@ def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0)):
               kernel_regularizer=regularizers.l2(l2),
               name='dense_imu')(y)
     z = concatenate([x, y])
-    layers = [144] * 4 + [72]
+    layers = [96] * 4 + [48]
     for i, l in zip(range(len(layers)), layers):
         z = Dense(units=l, activation='relu',
                   kernel_regularizer=regularizers.l2(l2),

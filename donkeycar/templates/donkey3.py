@@ -115,8 +115,6 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
 
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)
-        if cfg.PRINT_MODEL_SUMMARY:
-            print(kl.model.summary())
 
         car.add(ImgPrecondition(cfg), inputs=['cam/image_array'],
                 outputs=['cam/normalized/cropped'])

@@ -389,7 +389,7 @@ def linear_square_plus_cnn(x):
     # following layers
     filters = [16, 32, 48, 64, 72]
     kernels = [(7, 7), (5, 5), (3, 3), (3, 3), (2, 2)]
-    strides = [(3, 4)] + [(1, 1)] * 4
+    strides = [(3, 4), (2, 2)] + [(1, 1)] * 3
     # build 5 CNN layers with data as above and batch norm, pooling & dropout
     for i, f, k, s in zip(range(5), filters, kernels, strides):
         x = Conv2D(filters=f, kernel_size=k, strides=s, padding='same',
@@ -409,7 +409,7 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
     x = linear_square_plus_cnn(x)
-    layers = [96] * 4 + [48]
+    layers = [96] * 3 + [48]
     for i, l in zip(range(len(layers)), layers):
         x = Dense(units=l, activation='relu',
                   kernel_regularizer=regularizers.l2(l2),

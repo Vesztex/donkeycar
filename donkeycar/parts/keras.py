@@ -387,7 +387,7 @@ def linear_square_plus_cnn(x):
     drop = 0.02
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
-    filters = [16, 32, 48, 64, 72]
+    filters = [16, 32, 64, 64, 96]
     kernels = [(7, 7), (5, 5), (3, 3), (3, 3), (2, 2)]
     strides = [(3, 4), (2, 2)] + [(1, 1)] * 3
     # build 5 CNN layers with data as above and batch norm, pooling & dropout

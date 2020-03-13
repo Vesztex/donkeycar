@@ -59,18 +59,34 @@ class Mpu6050:
 
 class Mpu6050Ada:
     def __init__(self):
+        print("Creating Adafruit Mpu6050", end='')
         i2c = busio.I2C(board.SCL, board.SDA)
         self.mpu = adafruit_mpu6050.MPU6050(i2c)
         self.mpu.accelerometer_range = adafruit_mpu6050.Range.RANGE_2_G
         self.mpu.gyro_range = adafruit_mpu6050.GyroRange.RANGE_250_DPS
         # set filter to 44Hz data smoothing
         self.mpu.filter_bandwidth = 3
-        self.accel_zero = list(self.mpu.acceleration)
-        self.gyro_zero = list(self.mpu.gyro)
-        self.accel = list(self.accel_zero)
-        self.gyro = list(self.gyro_zero)
+        self.accel_zero = None
+        self.gyro_zero = None
+        self.calibrate()
+        self.accel = [0] * 3
+        self.gyro = [0] * 3
         self.on = True
-        print("Created Adafruit Mpu6050.")
+
+    def calibrate(self):
+        num_loops = 20
+        accel = [0, 0, 0]
+        gyro = [0, 0, 0]
+        for _ in range(num_loops):
+            for i in range(3):
+                accel[i] += self.mpu.acceleration[i]
+                gyro[i] = self.mpu.gyro[i]
+            # wait for 25ms
+            time.sleep(0.025)
+            print('.', end='')
+        self.accel_zero = [a / num_loops for a in accel]
+        self.gyro_zero = [g / num_loops for g in gyro]
+        print('calibrated')
 
     def update(self):
         while self.on:

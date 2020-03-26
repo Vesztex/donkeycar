@@ -127,7 +127,12 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
 
             class ImuCombiner:
                 def run(self, accel, gyro):
-                    return accel + gyro
+                    combined = accel + gyro
+                    # crop to number of imu degrees to be used in model
+                    if hasattr(cfg, 'IMU_DIM'):
+                        combined = combined[:cfg.IMU_DIM]
+                    return combined
+
             car.add(ImuCombiner(), inputs=['car/accel', 'car/gyro'],
                     outputs=['car/imu'])
             inputs.append('car/imu')

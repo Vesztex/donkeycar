@@ -192,7 +192,8 @@ class KerasSquarePlusImu(KerasSquarePlus):
     The model is a variation of the SquarePlus model that also uses imu data
     """
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
-        self.model = linear_square_plus_imu(input_shape, roi_crop)
+        self.model = linear_square_plus_imu(input_shape, roi_crop,
+                                            imu_dim=kwargs.get('imu_dim', 6))
         self.compile()
         print('created', self.__class__.__name__)
 
@@ -421,11 +422,13 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     return model
 
 
-def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0)):
+def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
+                           imu_dim=6):
+    assert 0 < imu_dim <= 6, 'imu_dim must be number in [1,..,6]'
     l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
-    imu_in = Input(shape=(6,), name="imu_in")
+    imu_in = Input(shape=(imu_dim,), name="imu_in")
     x = img_in
     x = linear_square_plus_cnn(x)
 

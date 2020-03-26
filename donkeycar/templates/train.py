@@ -413,6 +413,7 @@ def train(cfg, tub_names, model_name, transfer_model,
             has_bvh = type(kl) is KerasBehavioral
             img_out = type(kl) is KerasLatent
             loc_out = type(kl) is KerasLocalizer
+            imu_dim = cfg.IMU_DIM if hasattr(cfg, 'IMU_DIM') else 6
 
             if img_out:
                 import cv2
@@ -463,7 +464,7 @@ def train(cfg, tub_names, model_name, transfer_model,
                         if loc_out:
                             out_loc.append(record['location'])
                         if has_imu:
-                            inputs_imu.append(record['imu_array'])
+                            inputs_imu.append(record['imu_array'][:imu_dim])
                         if has_bvh:
                             inputs_bvh.append(record['behavior_arr'])
 

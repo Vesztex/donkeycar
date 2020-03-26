@@ -452,7 +452,9 @@ def get_model_by_type(model_type, cfg):
     elif model_type == "square_plus":
         kl = KerasSquarePlus(input_shape=input_shape, roi_crop=roi_crop)
     elif model_type == "square_plus_imu":
-        kl = KerasSquarePlusImu(input_shape=input_shape, roi_crop=roi_crop)
+        imu_dim = cfg.IMU_DIM if hasattr(cfg, 'IMU_DIM') else 6
+        kl = KerasSquarePlusImu(input_shape=input_shape, roi_crop=roi_crop,
+                                imu_dim=imu_dim)
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit which causes a lot of unexpected things
         # to happen when using TF-GPU for training.

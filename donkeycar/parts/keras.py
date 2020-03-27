@@ -179,8 +179,10 @@ class KerasSquarePlus(KerasLinear):
     """
 
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
-        self.model = linear_square_plus(input_shape, roi_crop)
+        large = kwargs.get('large', False)
+        self.model = linear_square_plus(input_shape, roi_crop, large=large)
         self.compile()
+        print('Created', self.__class__.__name__, 'large:', large)
 
     def compile(self):
         self.model.compile(optimizer='adam', loss='mse',
@@ -192,10 +194,14 @@ class KerasSquarePlusImu(KerasSquarePlus):
     The model is a variation of the SquarePlus model that also uses imu data
     """
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
+        imu_dim = kwargs.get('imu_dim', 6)
+        large = kwargs.get('large', False)
         self.model = linear_square_plus_imu(input_shape, roi_crop,
-                                            imu_dim=kwargs.get('imu_dim', 6))
+                                            imu_dim=imu_dim,
+                                            large=large)
         self.compile()
-        print('created', self.__class__.__name__)
+        print('Created', self.__class__.__name__, 'imu_dim:', imu_dim,
+              'large:', large)
 
     def run(self, img_arr, imu):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
@@ -384,15 +390,19 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
     return model
 
 
-def linear_square_plus_cnn(x):
+def linear_square_plus_cnn(x, large=False):
     drop = 0.02
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
     filters = [16, 32, 64, 96]
     kernels = [(7, 7), (5, 5), (3, 3), (2, 2)]
     strides = [(3, 4), (2, 2)] + [(1, 1)] * 2
-    # build 5 CNN layers with data as above and batch norm, pooling & dropout
-    for i, f, k, s in zip(range(5), filters, kernels, strides):
+    if large:
+        filters += [128]
+        kernels += [(2, 2)]
+        strides = [(3, 4)] + [(1, 1)] * 4
+    # build CNN layers with data as above and batch norm, pooling & dropout
+    for i, f, k, s in zip(range(len(filters)), filters, kernels, strides):
         x = Conv2D(filters=f, kernel_size=k, strides=s, padding='same',
                    activation='relu', name='conv' + str(i))(x)
         x = BatchNormalization(name='batch_norm' + str(i))(x)
@@ -404,13 +414,13 @@ def linear_square_plus_cnn(x):
     return x
 
 
-def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
+def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0), large=False):
     l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
     x = linear_square_plus_cnn(x)
-    layers = [96] * 3 + [48]
+    layers = [128] * 5 + [64] if large else [96] * 4 + [48]
     for i, l in zip(range(len(layers)), layers):
         x = Dense(units=l, activation='relu',
                   kernel_regularizer=regularizers.l2(l2),
@@ -423,21 +433,21 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
 
 
 def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
-                           imu_dim=6):
+                           imu_dim=6, large=False):
     assert 0 < imu_dim <= 6, 'imu_dim must be number in [1,..,6]'
     l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
     imu_in = Input(shape=(imu_dim,), name="imu_in")
     x = img_in
-    x = linear_square_plus_cnn(x)
+    x = linear_square_plus_cnn(x, large)
 
     y = imu_in
-    y = Dense(units=24, activation='relu',
+    y = Dense(units=36 if large else 24, activation='relu',
               kernel_regularizer=regularizers.l2(l2),
               name='dense_imu')(y)
     z = concatenate([x, y])
-    layers = [96] * 4 + [48]
+    layers = [128] * 5 + [64] if large else [96] * 4 + [48]
     for i, l in zip(range(len(layers)), layers):
         z = Dense(units=l, activation='relu',
                   kernel_regularizer=regularizers.l2(l2),

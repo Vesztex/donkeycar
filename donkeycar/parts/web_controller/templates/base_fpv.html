@@ -46,22 +46,32 @@
           height: 61px;
         }
 
+         .logo {
+             height: 70px
+         }
+
+         body {
+             margin: 0px
+         }
+
+         #mpeg-image {
+             width: auto;
+             height: calc(100vh - 80px);
+         }
+
     </style>
 </head>
 
 <div class="row" style="background-color:rgb(226, 110, 57);">
-    <div class="column">
-        <img src="/static/donkeycar-logo-sideways.png" alt="Donkeycar Logo">
-    </div>
-    <div class="column">
-        <h1>Donkey FPV</h1>
-    </div>
+    <img class="logo" src="/static/donkeycar-logo-sideways.png" alt="Donkeycar Logo">
 </div>
 
 <body style="background-color:rgb(48, 49, 51);">
 
 <div class="gap"></div>
-<img id='mpeg-image', class='img-responsive' src="/video"/> </img>
+<div>
+     <img id='mpeg-image' class='img-responsive' src="/video"/> </img>
+ </div>
 
 </body>
 </html>

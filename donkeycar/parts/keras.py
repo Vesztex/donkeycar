@@ -26,6 +26,7 @@ from tensorflow.python.keras.layers import Conv3D, MaxPooling3D, Cropping3D, Con
 
 import donkeycar as dk
 
+
 if tf.__version__ == '1.13.1':
     from tensorflow import ConfigProto, Session
 
@@ -179,10 +180,10 @@ class KerasSquarePlus(KerasLinear):
     """
 
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
-        large = kwargs.get('large', False)
-        self.model = linear_square_plus(input_shape, roi_crop, large=large)
+        size = kwargs.get('size', 'S')
+        self.model = linear_square_plus(input_shape, roi_crop, size=size)
         self.compile()
-        print('Created', self.__class__.__name__, 'large:', large)
+        print('Created', self.__class__.__name__, 'NN size:', size)
 
     def compile(self):
         self.model.compile(optimizer='adam', loss='mse',
@@ -195,13 +196,13 @@ class KerasSquarePlusImu(KerasSquarePlus):
     """
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
         imu_dim = kwargs.get('imu_dim', 6)
-        large = kwargs.get('large', False)
+        size = kwargs.get('size', 'S')
         self.model = linear_square_plus_imu(input_shape, roi_crop,
                                             imu_dim=imu_dim,
-                                            large=large)
+                                            size=size)
         self.compile()
         print('Created', self.__class__.__name__, 'imu_dim:', imu_dim,
-              'large:', large)
+              'NN size:', size)
 
     def run(self, img_arr, imu):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
@@ -390,17 +391,24 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
     return model
 
 
-def linear_square_plus_cnn(x, large=False):
+def linear_square_plus_cnn(x, size='S'):
     drop = 0.02
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
-    filters = [16, 32, 64, 96]
-    kernels = [(7, 7), (5, 5), (3, 3), (2, 2)]
-    strides = [(3, 4), (2, 2)] + [(1, 1)] * 2
-    if large:
-        filters += [128]
-        kernels += [(2, 2)]
+    if size.upper() in ['S', 'M']:
+        filters = [16, 32, 64, 96]
+        kernels = [(7, 7), (5, 5), (3, 3), (2, 2)]
+        if size.upper() == 'M':
+            filters += [128]
+            kernels += [(2, 2)]
+    if size.upper() == 'L':
+        filters = [20, 40, 80, 120, 160]
+        kernels = [(9, 9), (7, 7), (5, 5), (3, 3), (2, 2)]
+    if size.upper() == 'S':
+        strides = [(3, 4), (2, 2)] + [(1, 1)] * 2
+    else:  # M or L
         strides = [(3, 4)] + [(1, 1)] * 4
+
     # build CNN layers with data as above and batch norm, pooling & dropout
     for i, f, k, s in zip(range(len(filters)), filters, kernels, strides):
         x = Conv2D(filters=f, kernel_size=k, strides=s, padding='same',
@@ -414,13 +422,26 @@ def linear_square_plus_cnn(x, large=False):
     return x
 
 
-def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0), large=False):
+def square_plus_dense(size='S'):
+    if size.upper == 'S':
+        layers = [96] * 4 + [48]
+    elif size.upper() == 'M':
+        layers = [128] * 5 + [64]
+    elif size.upper() == 'L':
+        layers = [144] * 8
+    else:
+        raise ValueError('size must be S, M or L')
+    return layers
+
+
+def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
+                       size='S'):
     l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
-    x = linear_square_plus_cnn(x)
-    layers = [128] * 5 + [64] if large else [96] * 4 + [48]
+    x = linear_square_plus_cnn(x, size)
+    layers = square_plus_dense(size)
     for i, l in zip(range(len(layers)), layers):
         x = Dense(units=l, activation='relu',
                   kernel_regularizer=regularizers.l2(l2),
@@ -433,21 +454,26 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0), large=False):
 
 
 def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
-                           imu_dim=6, large=False):
+                           imu_dim=6, size='S'):
     assert 0 < imu_dim <= 6, 'imu_dim must be number in [1,..,6]'
     l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
     imu_in = Input(shape=(imu_dim,), name="imu_in")
     x = img_in
-    x = linear_square_plus_cnn(x, large)
+    x = linear_square_plus_cnn(x, size)
 
     y = imu_in
-    y = Dense(units=36 if large else 24, activation='relu',
+    units = 24
+    if size.upper() == 'M':
+        units = 36
+    elif size.upper() == 'L':
+        units = 48
+    y = Dense(units=units, activation='relu',
               kernel_regularizer=regularizers.l2(l2),
               name='dense_imu')(y)
     z = concatenate([x, y])
-    layers = [128] * 5 + [64] if large else [96] * 4 + [48]
+    layers = square_plus_dense(size)
     for i, l in zip(range(len(layers)), layers):
         z = Dense(units=l, activation='relu',
                   kernel_regularizer=regularizers.l2(l2),

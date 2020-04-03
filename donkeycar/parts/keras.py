@@ -423,7 +423,7 @@ def linear_square_plus_cnn(x, size='S'):
 
 
 def square_plus_dense(size='S'):
-    if size.upper == 'S':
+    if size.upper() == 'S':
         layers = [96] * 4 + [48]
     elif size.upper() == 'M':
         layers = [128] * 5 + [64]

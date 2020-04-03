@@ -430,7 +430,7 @@ def square_plus_dense(size='S'):
     elif size.upper() == 'L':
         layers = [144] * 8
     else:
-        raise ValueError('size must be S, M or L')
+        raise ValueError('size must be S, M or L but was', size)
     return layers
 
 

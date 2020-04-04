@@ -325,6 +325,9 @@ def train(cfg, tub_names, model_name, transfer_model,
     
     if continuous:
         print("continuous training")
+
+    if aug:
+        print("Using data augmentation")
     
     gen_records = {}
     opts = {'cfg': cfg}

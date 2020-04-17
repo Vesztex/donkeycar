@@ -169,18 +169,47 @@ class KerasLinear(KerasPilot):
 
 
 class KerasSquarePlus(KerasLinear):
-    '''
-    The KerasLinear pilot uses one neuron to output a continous value via the
-    Keras Dense layer with linear activation. One each for steering and throttle.
-    The output is not bounded.
-    '''
+    """
+    Improved CNN over standard KerasLinear. The CNN translates into square
+    matrices from layer one on and uses batch normalisation, average pooling
+    & l2  regularisor instead of dropout in the perceptron layers. Because of
+    the square form the first layers stride need to be 3x4 (as this is the
+    input picture h x w ratio). With this the reduction in the first layer is
+    larger hence the whole model only has 5 CNN layers.
+    """
+
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
-        self.model = default_linear_plus(input_shape, roi_crop)
+        size = kwargs.get('size', 'S')
+        self.model = linear_square_plus(input_shape, roi_crop, size=size)
         self.compile()
+        print('Created', self.__class__.__name__, 'NN size:', size)
 
     def compile(self):
         self.model.compile(optimizer='adam', loss='mse',
                            loss_weights={'angle_out': 0.9, 'throttle_out': 0.1})
+
+
+class KerasSquarePlusImu(KerasSquarePlus):
+    """
+    The model is a variation of the SquarePlus model that also uses imu data
+    """
+    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
+        imu_dim = kwargs.get('imu_dim', 6)
+        size = kwargs.get('size', 'S')
+        self.model = linear_square_plus_imu(input_shape, roi_crop,
+                                            imu_dim=imu_dim,
+                                            size=size)
+        self.compile()
+        print('Created', self.__class__.__name__, 'imu_dim:', imu_dim,
+              'NN size:', size)
+
+    def run(self, img_arr, imu):
+        img_arr = img_arr.reshape((1,) + img_arr.shape)
+        imu_arr = np.array(imu)
+        outputs = self.model.predict(img_arr, imu_arr)
+        steering = outputs[0]
+        throttle = outputs[1]
+        return steering[0][0], throttle[0][0]
 
 
 class KerasIMU(KerasPilot):
@@ -328,7 +357,8 @@ def default_categorical(input_shape=(120, 160, 3), roi_crop=(0, 0)):
 def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
 
     drop = 0.1
-    # we now expect that cropping done elsewhere. we will adjust our expeected image size here:
+    # we now expect that cropping done elsewhere. we will adjust our expeected
+    # image size here:
     input_shape = adjust_input_shape(input_shape, roi_crop)
 
     img_in = Input(shape=input_shape, name='img_in')
@@ -360,37 +390,61 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
     return model
 
 
-def default_linear_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
-    drop = 0.1
-    l2 = 0.01
+def linear_square_plus_cnn(x, size='S'):
+    drop = 0.02
+    # This makes the picture square in 1 steps (assuming 3x4 input) in all
+    # following layers
+    if size.upper() in ['S', 'M']:
+        filters = [16, 32, 64, 96]
+        kernels = [(7, 7), (5, 5), (3, 3), (2, 2)]
+        if size.upper() == 'M':
+            filters += [128]
+            kernels += [(2, 2)]
+    if size.upper() == 'L':
+        filters = [20, 40, 80, 120, 160]
+        kernels = [(9, 9), (7, 7), (5, 5), (3, 3), (2, 2)]
+    if size.upper() == 'S':
+        strides = [(3, 4), (2, 2)] + [(1, 1)] * 2
+    else:  # M or L
+        strides = [(3, 4)] + [(1, 1)] * 4
+
+    # build CNN layers with data as above and batch norm, pooling & dropout
+    for i, f, k, s in zip(range(len(filters)), filters, kernels, strides):
+        x = Conv2D(filters=f, kernel_size=k, strides=s, padding='same',
+                   activation='relu', name='conv' + str(i))(x)
+        x = BatchNormalization(name='batch_norm' + str(i))(x)
+        x = AveragePooling2D(pool_size=(2, 2), padding='same',
+                             name='pool' + str(i))(x)
+        x = Dropout(rate=drop, name='drop' + str(i))(x)
+
+    x = Flatten(name='flattened')(x)
+    return x
+
+
+def square_plus_dense(size='S'):
+    if size.upper() == 'S':
+        layers = [96] * 4 + [48]
+    elif size.upper() == 'M':
+        layers = [128] * 5 + [64]
+    elif size.upper() == 'L':
+        layers = [144] * 8
+    else:
+        raise ValueError('size must be S, M or L but was', size)
+    return layers
+
+
+def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
+                       size='S'):
+    l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
-    # This makes the picture square (assuming 3x4 input) in all following layers
-    x = Conv2D(filters=16, kernel_size=(7, 7), strides=(3, 4), padding='same',
-               activation='relu', name='conv1')(x)
-    x = BatchNormalization(name='batch_norm1')(x)
-    x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool1')(x)
-    x = Dropout(drop)(x)
-    x = Conv2D(filters=32, kernel_size=(5, 5), strides=(2, 2), padding='same',
-               activation='relu', name='conv2')(x)
-    x = BatchNormalization(name='batch_norm2')(x)
-    x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool2')(x)
-    x = Dropout(drop)(x)
-    x = Conv2D(filters=64, kernel_size=(3, 3), strides=(2, 2), padding='same',
-               activation='relu', name='conv3')(x)
-    x = BatchNormalization(name='batch_norm3')(x)
-    # x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool3')(x)
-    x = Dropout(drop)(x)
-    x = Conv2D(filters=96, kernel_size=(3, 3), strides=(1, 1), padding='same',
-               activation='relu', name='conv4')(x)
-    x = BatchNormalization(name='batch_norm4')(x)
-    x = AveragePooling2D(pool_size=(2, 2), padding='same', name='pool4')(x)
-    x = Flatten(name='flattened')(x)
-    x = Dense(units=96, activation='linear',
-              kernel_regularizer=regularizers.l2(l2))(x)
-    x = Dense(units=48, activation='linear',
-              kernel_regularizer=regularizers.l2(l2))(x)
+    x = linear_square_plus_cnn(x, size)
+    layers = square_plus_dense(size)
+    for i, l in zip(range(len(layers)), layers):
+        x = Dense(units=l, activation='relu',
+                  kernel_regularizer=regularizers.l2(l2),
+                  name='dense' + str(i))(x)
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
@@ -398,10 +452,41 @@ def default_linear_plus(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     return model
 
 
-def default_imu(num_outputs, num_imu_inputs, input_shape):
+def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
+                           imu_dim=6, size='S'):
+    assert 0 < imu_dim <= 6, 'imu_dim must be number in [1,..,6]'
+    l2 = 0.001
+    input_shape = adjust_input_shape(input_shape, roi_crop)
+    img_in = Input(shape=input_shape, name='img_in')
+    imu_in = Input(shape=(imu_dim,), name="imu_in")
+    x = img_in
+    x = linear_square_plus_cnn(x, size)
 
-    #we now expect that cropping done elsewhere. we will adjust our expeected image size here:
-    #input_shape = adjust_input_shape(input_shape, roi_crop)
+    y = imu_in
+    units = 24
+    if size.upper() == 'M':
+        units = 36
+    elif size.upper() == 'L':
+        units = 48
+    y = Dense(units=units, activation='relu',
+              kernel_regularizer=regularizers.l2(l2),
+              name='dense_imu')(y)
+    z = concatenate([x, y])
+    layers = square_plus_dense(size)
+    for i, l in zip(range(len(layers)), layers):
+        z = Dense(units=l, activation='relu',
+                  kernel_regularizer=regularizers.l2(l2),
+                  name='dense' + str(i))(z)
+
+    angle_out = Dense(units=1, activation='linear', name='angle_out')(z)
+    throttle_out = Dense(units=1, activation='linear', name='throttle_out')(z)
+    model = Model(inputs=[img_in, imu_in], outputs=[angle_out, throttle_out])
+    return model
+
+
+def default_imu(num_outputs, num_imu_inputs, input_shape):
+    # We now expect that cropping done elsewhere. we will adjust our expected
+    # image size here: input_shape = adjust_input_shape(input_shape, roi_crop)
 
     img_in = Input(shape=input_shape, name='img_in')
     imu_in = Input(shape=(num_imu_inputs,), name="imu_in")
@@ -512,7 +597,7 @@ def default_loc(num_locations, input_shape):
     loc_out = Dense(num_locations, activation='softmax', name='loc')(z)
 
     model = Model(inputs=[img_in], outputs=[angle_out, throttle_out, loc_out])
-    
+
     return model
 
 
@@ -730,7 +815,7 @@ def default_latent(num_outputs, input_shape):
     x = Convolution2D(64, (3,3), strides=(2,2), activation='relu', name="conv2d_7")(x)
     x = Dropout(drop)(x)
     x = Convolution2D(64, (1,1), strides=(2,2), activation='relu', name="latent")(x)
-    
+
     y = Conv2DTranspose(filters=64, kernel_size=(3,3), strides=2, name="deconv2d_1")(x)
     y = Conv2DTranspose(filters=64, kernel_size=(3,3), strides=2, name="deconv2d_2")(y)
     y = Conv2DTranspose(filters=32, kernel_size=(3,3), strides=2, name="deconv2d_3")(y)

@@ -1,11 +1,11 @@
 
-import sys
-import os
-import socket
 import shutil
 import argparse
 import json
-import time
+
+from socket import *
+import os
+from threading import Thread
 
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
@@ -15,8 +15,11 @@ from donkeycar.management.joystick_creator import CreateJoystick
 import numpy as np
 from prettytable import PrettyTable
 
+
 PACKAGE_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 TEMPLATES_PATH = os.path.join(PACKAGE_PATH, 'templates')
+
+ONE_BYTE_SCALE = 1.0 / 255.0
 
 
 def make_dir(path):
@@ -624,6 +627,140 @@ class ShowPredictionMetric(BaseCommand):
         self.evaluate_predictions(cfg, args.tub, args.model, args.limit, args.type)
 
 
+class ShowLapTimes(BaseCommand):
+
+    def print_laps(self, cfg, tub_paths):
+        '''
+        Plot model predictions for angle and throttle against data from tubs.
+        '''
+        for tub_path in tub_paths.split(','):
+            tub = Tub(tub_path)
+            df = tub.make_lap_times()
+            print(df, '\n')
+
+    def parse_args(self, args):
+        parser = argparse.ArgumentParser(prog='laps',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('--tub', nargs='+',
+                            help='paths to tubs')
+        parser.add_argument('--config', default='./config.py',
+                            help='location of config file to use. default: ./config.py')
+        parsed_args = parser.parse_args(args)
+        return parsed_args
+
+    def run(self, args):
+        args = self.parse_args(args)
+        args.tub = ','.join(args.tub)
+        cfg = load_config(args.config)
+        self.print_laps(cfg, args.tub)
+
+
+class Monitor(BaseCommand):
+    def __init__(self):
+        self.t = Thread(target=self.update, args=())
+        self.t.daemon = True
+        self.my_socket = None
+        self.buf = 16000
+        self.count = 0
+        self.socket_data = (None, None)
+
+    def update(self):
+        while True:
+            self.socket_data = self.my_socket.recvfrom(self.buf)
+
+    def parse_args(self, args):
+        parser = argparse.ArgumentParser(prog='monitor',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('--scale', help='scale frame size', default=1.0)
+        parser.add_argument('--config', default='./config.py',
+                            help='location of config file to use. default: '
+                                 './config.py')
+        parsed_args = parser.parse_args(args)
+        return parsed_args
+
+    def run(self, args):
+        from PIL import Image
+        import cv2
+        args = self.parse_args(args)
+        cfg = load_config(args.config)
+        address = (cfg.PC_HOSTNAME, cfg.FPV_PORT)
+        self.my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.my_socket.bind(address)
+        cv2.namedWindow('Donkey FPV', cv2.WINDOW_NORMAL)
+        scale = float(args.scale)
+        self.t.start()
+        print('Donkey FPV monitor starting up on host {} port {}. Receiving '
+              'data from {}. Frame scaling by {}'
+              .format(*address, self.socket_data[1], scale))
+        count = 0
+        proc_time = 0.0
+        last_time = time.time()
+
+        try:
+            while True:
+                if self.socket_data[0] is None:
+                    continue
+
+                img = binary_to_img(self.socket_data[0])
+                img_np = img_to_arr(img)
+                try:
+                    img_scaled = cv2.resize(img_np, None, fx=scale, fy=scale) \
+                        if scale is not 1.0 else img_np
+                    img_scaled = cv2.cvtColor(img_scaled, cv2.COLOR_BGR2RGB)
+                    cv2.imshow('Donkey FPV', img_scaled)
+                    cv2.waitKey(1)
+                except TypeError:  # from invalid numpy array
+                    pass
+                now = time.time()
+                proc_time += now - last_time
+                last_time = now
+                count += 1
+        except KeyboardInterrupt:
+            pass
+
+        cv2.destroyAllWindows()
+        self.my_socket.close()
+        print('Processed {0:} frames with average rate {1:3.1f}fps'
+              .format(count, count / proc_time))
+
+
+class PackTubs(BaseCommand):
+
+    def pack_tubs(self, cfg, tub_paths):
+        '''
+        Create tar.gz of tubs at directory specified in config (like google
+        drive)
+        '''
+        tub_ids = [int(t.split('_')[1]) for t in tub_paths]
+        tub_ids.sort()
+
+        id = str(tub_ids[0]) if len(tub_ids) == 1 else \
+            str(tub_ids[0]) + '-' + str(tub_ids[-1])
+
+        pack_path = cfg.PACK_PATH
+        tub_arg = ' '.join(tub_paths)
+        print('Packing tubs ' + tub_arg + ' into directory ' + pack_path +
+              ' with id ' + id)
+        # create a tar.gz of input tubs
+        os.system("tar cfz " + pack_path + '/tub_' + id + '.tar.gz ' + tub_arg)
+
+    def parse_args(self, args):
+        parser = argparse.ArgumentParser(prog='pack',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('tub', nargs='+', help='paths to tubs')
+        parser.add_argument('--config', default='./config.py',
+                            help='location of config file to use.'
+                                 'Default: ./config.py')
+        parsed_args = parser.parse_args(args)
+        return parsed_args
+
+    def run(self, args):
+        args = self.parse_args(args)
+        cfg = load_config(args.config)
+        assert hasattr(cfg, 'PACK_PATH'), 'Need to set PACK_PATH in config'
+        self.pack_tubs(cfg, args.tub)
+
+
 def execute_from_command_line():
     """
     This is the function linked to the "donkey" terminal command.
@@ -642,6 +779,9 @@ def execute_from_command_line():
                 'contrain': ConTrain,
                 'cnnactivations': ShowCnnActivations,
                 'update': UpdateCar,
+                'laps': ShowLapTimes,
+                'monitor': Monitor,
+                'pack': PackTubs
                 }
 
     args = sys.argv[:]

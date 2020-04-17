@@ -3,12 +3,40 @@
 
 <div class="affix-wrapper">
     <div>
-        <h2>Edit your donkey tub</h2>
+        <h2>Edit your donkey tub: {{ escape(tub) }}</h2>
     </div>
     <div data-spy="affix" data-offset-top="72">
         <div class="preview">
             <div class="preview-centered">
                 <div class="preview-wrapper">
+                    <div class="preview-imu">
+                        Acceleration X:
+                        <div class="accel-x-bar">
+                            <div class="progress negative">
+                                <div id="accel-x-bar-backward" class="progress-bar progress-bar-warning pull-right"
+                                     role="progressbar" style="width: 0%;">
+                                </div>
+                            </div>
+                            <div class="progress positive">
+                                <div id="accel-x-bar-forward" class="progress-bar progress-bar-info" role="progressbar"
+                                     style="width: 0%;">
+                                </div>
+                            </div>
+                        </div>
+                        Acceleration Y:
+                        <div class="accel-y-bar">
+                            <div class="progress negative">
+                                <div id="accel-y-bar-backward" class="progress-bar progress-bar-warning pull-right"
+                                     role="progressbar" style="width: 0%;">
+                                </div>
+                            </div>
+                            <div class="progress positive">
+                                <div id="accel-y-bar-forward" class="progress-bar progress-bar-info" role="progressbar"
+                                     style="width: 0%;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="preview-img">
                         Steering:
                         <div class="steering-bar">
@@ -35,7 +63,7 @@
                     </div>
                     <div class="preview-toolbar">
                         Current Frame:
-                        <h3 id="cur-frame">0</h3>
+                        <h4 id="cur-frame">0</h4>
                         <select id="preview-speed" class="form-control">
                             <option value='7'>0.5x playback</option>
                             <option value='15' selected>1x playback</option>

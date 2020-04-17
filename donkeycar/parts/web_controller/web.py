@@ -5,8 +5,6 @@ Created on Sat Jun 24 20:10:44 2017
 
 @author: wroscoe
 
-remotes.py
-
 The client and web server needed to control a car remotely.
 """
 
@@ -46,8 +44,8 @@ class RemoteWebServer():
 
     def update(self):
         '''
-        Loop to run in separate thread the updates angle, throttle and 
-        drive mode. 
+        Loop to run in separate thread the updates angle, throttle and
+        drive mode.
         '''
 
         while True:
@@ -55,7 +53,7 @@ class RemoteWebServer():
             self.angle, self.throttle, self.mode, self.recording = self.run()
 
     def run_threaded(self):
-        ''' 
+        '''
         Return the last state given from the remote server.
         '''
         return self.angle, self.throttle, self.mode, self.recording
@@ -63,9 +61,8 @@ class RemoteWebServer():
     def run(self):
         '''
         Posts current car sensor data to webserver and returns
-        angle and throttle recommendations. 
+        angle and throttle recommendations.
         '''
-        
         data = {}
         response = None
         while response is None:
@@ -95,13 +92,13 @@ class RemoteWebServer():
 
     def shutdown(self):
         pass
-    
-    
-class LocalWebController(tornado.web.Application):
+
+
+class LocalWebController(Application):
 
     def __init__(self, port=8887, mode='user'):
-        ''' 
-        Create and publish variables needed on many of 
+        '''
+        Create and publish variables needed on many of
         the web handlers.
         '''
 
@@ -137,7 +134,7 @@ class LocalWebController(tornado.web.Application):
     def run_threaded(self, img_arr=None):
         self.img_arr = img_arr
         return self.angle, self.throttle, self.mode, self.recording
-        
+
     def run(self, img_arr=None):
         self.img_arr = img_arr
         return self.angle, self.throttle, self.mode, self.recording
@@ -178,7 +175,7 @@ class VideoAPI(RequestHandler):
         my_boundary = "--boundarydonotcross\n"
         while True:
 
-            interval = .01
+            interval = .005
             if served_image_timestamp + interval < time.time() and \
                     hasattr(self.application, 'img_arr'):
 

@@ -1,4 +1,6 @@
 import tensorflow as tf
+import numpy as np
+
 
 def keras_model_to_tflite(in_filename, out_filename, data_gen=None):
     verStr = tf.__version__
@@ -27,6 +29,7 @@ def keras_model_to_tflite(in_filename, out_filename, data_gen=None):
     tflite_model = converter.convert()
     open(out_filename, "wb").write(tflite_model)
 
+
 def keras_session_to_tflite(model, out_filename):
     inputs = model.inputs
     outputs = model.outputs
@@ -45,7 +48,8 @@ class TFLitePilot(object):
         self.interpreter = None
         self.input_details = None
         self.output_details = None
-        self.input_shape = None
+        self.input_shape_0 = None
+        self.input_shape_1 = None
 
     def load(self, model_path):
         # Load TFLite model and allocate tensors.
@@ -57,12 +61,22 @@ class TFLitePilot(object):
         self.output_details = self.interpreter.get_output_details()
 
         # Get Input shape
-        self.input_shape = self.input_details[0]['shape']
+        self.input_shape_0 = self.input_details[0]['shape']
+        self.input_shape_1 = None
+        if len(self.input_details) > 1:
+            self.input_shape_1 = self.input_details[1]['shape']
+        print('---- tflite input tensor details ----')
+        for l in self.input_details:
+            print(l)
 
-    def run(self, image):
-        input_data = image.reshape(self.input_shape).astype('float32') 
-
+    def run(self, image, imu_in=None):
+        input_data = image.reshape(self.input_shape_0).astype('float32')
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
+        if imu_in is not None:
+            imu_arr = np.array(imu_in)
+            imu_data = imu_arr.reshape(self.input_shape_1).astype('float32')
+            self.interpreter.set_tensor(self.input_details[1]['index'],
+                                        imu_data)
         self.interpreter.invoke()
 
         steering = 0.0
@@ -76,6 +90,9 @@ class TFLitePilot(object):
         if len(outputs) > 1:
             steering = outputs[0]
             throttle = outputs[1]
+
+        elif len(outputs) > 0:
+            steering = outputs[0]
 
         return steering, throttle
 

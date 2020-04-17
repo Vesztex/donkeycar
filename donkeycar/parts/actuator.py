@@ -5,7 +5,6 @@ are wrapped in a mixer class before being used in the drive loop.
 """
 
 import time
-
 import donkeycar as dk
 
 
@@ -34,7 +33,10 @@ class PCA9685:
         time.sleep(init_delay) # "Tamiya TBLE-02" makes a little leap otherwise
 
     def set_pulse(self, pulse):
-        self.pwm.set_pwm(self.channel, 0, int(pulse * self.pwm_scale))
+        try:
+            self.pwm.set_pwm(self.channel, 0, int(pulse * self.pwm_scale))
+        except OSError as e:
+            print(e)
 
     def run(self, pulse):
         self.set_pulse(pulse)
@@ -101,7 +103,7 @@ class JHat:
     def set_pwm(self, channel, on, off):
         # sets a single PWM channel
         self.pwm._device.writeList(self.register, [off & 0xFF, off >> 8])
-        
+
     def run(self, pulse):
         self.set_pulse(pulse)
 
@@ -144,11 +146,9 @@ class JHatReader:
         val_d = self.pwm._device.readU8(self.register)
         self.throttle = (val_d << 8) + val_c
 
-        #scale the values from -1 to 1
-        self.steering = (((float)(self.steering)) - 1500.0) / 500.0  + 0.158
-        self.throttle = (((float)(self.throttle)) - 1500.0) / 500.0  + 0.136
-        
-        #print(self.steering, self.throttle)
+        # scale the values from -1 to 1
+        self.steering = (((float)(self.steering)) - 1500.0) / 500.0 + 0.158
+        self.throttle = (((float)(self.throttle)) - 1500.0) / 500.0 + 0.136
 
     def update(self):
         while(self.running):
@@ -178,21 +178,30 @@ class PWMSteering:
         self.controller = controller
         self.left_pulse = left_pulse
         self.right_pulse = right_pulse
+        self.pulse = dk.utils.map_range(0, self.LEFT_ANGLE, self.RIGHT_ANGLE,
+                                        self.left_pulse, self.right_pulse)
+        self.running = True
+        print('PWM Steering created')
 
+    def update(self):
+        while self.running:
+            self.controller.set_pulse(self.pulse)
 
-    def run(self, angle):
-        #map absolute angle to angle that vehicle can implement.
-        pulse = dk.utils.map_range(angle,
-                                self.LEFT_ANGLE, self.RIGHT_ANGLE,
-                                self.left_pulse, self.right_pulse)
+    def run_threaded(self, angle):
+        # map absolute angle to angle that vehicle can implement.
+        self.pulse = dk.utils.map_range(angle,
+                                        self.LEFT_ANGLE, self.RIGHT_ANGLE,
+                                        self.left_pulse, self.right_pulse)
 
     def run(self, angle):
         self.run_threaded(angle)
         self.controller.set_pulse(self.pulse)
 
     def shutdown(self):
-        self.run(0) #set steering straight
-
+        # set steering straight
+        self.pulse = 0
+        time.sleep(0.3)
+        self.running = False
 
 
 class PWMThrottle:
@@ -217,10 +226,6 @@ class PWMThrottle:
 
         # send zero pulse to calibrate ESC
         print("Init ESC")
-        self.controller.set_pulse(self.max_pulse)
-        time.sleep(0.01)
-        self.controller.set_pulse(self.min_pulse)
-        time.sleep(0.01)
         self.controller.set_pulse(self.zero_pulse)
         time.sleep(1)
         self.running = True
@@ -249,26 +254,25 @@ class PWMThrottle:
 
 
 class Adafruit_DCMotor_Hat:
-    ''' 
-    Adafruit DC Motor Controller 
+    '''
+    Adafruit DC Motor Controller
     Used for each motor on a differential drive car.
     '''
     def __init__(self, motor_num):
         from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor
         import atexit
-        
+
         self.FORWARD = Adafruit_MotorHAT.FORWARD
         self.BACKWARD = Adafruit_MotorHAT.BACKWARD
-        self.mh = Adafruit_MotorHAT(addr=0x60) 
-        
+        self.mh = Adafruit_MotorHAT(addr=0x60)
+
         self.motor = self.mh.getMotor(motor_num)
         self.motor_num = motor_num
-        
+
         atexit.register(self.turn_off_motors)
         self.speed = 0
         self.throttle = 0
-    
-        
+
     def run(self, speed):
         '''
         Update the speed of the motor where 1 is full forward and
@@ -276,20 +280,20 @@ class Adafruit_DCMotor_Hat:
         '''
         if speed > 1 or speed < -1:
             raise ValueError( "Speed must be between 1(forward) and -1(reverse)")
-        
+
         self.speed = speed
         self.throttle = int(dk.utils.map_range(abs(speed), -1, 1, -255, 255))
-        
-        if speed > 0:            
+
+        if speed > 0:
             self.motor.run(self.FORWARD)
         else:
             self.motor.run(self.BACKWARD)
-            
-        self.motor.setSpeed(self.throttle)
 
+        self.motor.setSpeed(self.throttle)
 
     def shutdown(self):
         self.mh.getMotor(self.motor_num).run(Adafruit_MotorHAT.RELEASE)
+
 
 class Maestro:
     '''
@@ -368,10 +372,11 @@ class Maestro:
             if Maestro.astar_device.inWaiting() > 8:
                 ret = Maestro.astar_device.readline()
 
-        if ret != None:
+        if ret is not None:
             ret = ret.rstrip()
 
         return ret
+
 
 class Teensy:
     '''
@@ -681,11 +686,11 @@ class Mini_HBridge_DC_Motor_PWM(object):
         self.pin_forward = pin_forward
         self.pin_backward = pin_backward
         self.max_duty = max_duty
-        
+
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.pin_forward, GPIO.OUT)
         GPIO.setup(self.pin_backward, GPIO.OUT)
-        
+
         self.pwm_f = GPIO.PWM(self.pin_forward, freq)
         self.pwm_f.start(0)
         self.pwm_b = GPIO.PWM(self.pin_backward, freq)
@@ -699,13 +704,13 @@ class Mini_HBridge_DC_Motor_PWM(object):
         '''
         if speed is None:
             return
-        
+
         if speed > 1 or speed < -1:
             raise ValueError( "Speed must be between 1(forward) and -1(reverse)")
-        
+
         self.speed = speed
         self.throttle = int(dk.utils.map_range(speed, -1, 1, -self.max_duty, self.max_duty))
-        
+
         if self.throttle > 0:
             self.pwm_f.ChangeDutyCycle(self.throttle)
             self.pwm_b.ChangeDutyCycle(0)
@@ -715,7 +720,6 @@ class Mini_HBridge_DC_Motor_PWM(object):
         else:
             self.pwm_f.ChangeDutyCycle(0)
             self.pwm_b.ChangeDutyCycle(0)
-
 
     def shutdown(self):
         import RPi.GPIO as GPIO
@@ -759,7 +763,7 @@ class RPi_GPIO_Servo(object):
         -1 is full backwards.
         '''
         #I've read 90 is a good max
-        self.throttle = dk.map_frange(pulse, -1.0, 1.0, self.min, self.max)
+        self.throttle = map_frange(pulse, -1.0, 1.0, self.min, self.max)
         #print(pulse, self.throttle)
         self.pwm.ChangeDutyCycle(self.throttle)
 

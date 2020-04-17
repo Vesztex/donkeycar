@@ -50,8 +50,8 @@ class Tub(object):
                 self.meta = {'inputs': [], 'types': []}
 
             try:
-                with open(self.exclude_path,'r') as f:
-                    excl = json.load(f) # stored as a list
+                with open(self.exclude_path, 'r') as f:
+                    excl = json.load(f)  # stored as a list
                     self.exclude = set(excl)
             except FileNotFoundError:
                 self.exclude = set()
@@ -72,7 +72,9 @@ class Tub(object):
             self.start_time = time.time()
             # create log and save meta
             os.makedirs(self.path)
-            self.meta = {'inputs': inputs, 'types': types, 'start': self.start_time}
+            self.meta = {'inputs': inputs,
+                         'types': types,
+                         'start': self.start_time}
             for kv in user_meta:
                 kvs = kv.split(":")
                 if len(kvs) == 2:
@@ -83,10 +85,12 @@ class Tub(object):
             self.current_ix = 0
             self.exclude = set()
             print('New tub created at: {}'.format(self.path))
+
         else:
-            msg = "The tub path " + path + " you provided doesn't exist and you"
-            " didnt pass any meta info (inputs & types) to create a new tub. "
-            " Please check your tub path or provide meta info to create a new tub."
+            msg = "The tub path " + path + " you provided doesn't exist and " \
+                "you didnt pass any meta info (inputs & types) to create a " \
+                "new tub. Please check your tub path or provide meta info to " \
+                "create a new tub."
 
             raise AttributeError(msg)
 
@@ -95,8 +99,9 @@ class Tub(object):
         return max(index)
 
     def update_df(self):
-        df = pd.DataFrame([self.get_json_record(i)
-                           for i in self.get_index(shuffled=False)])
+        index = self.get_index(shuffled=False)
+        df = pd.DataFrame([self.get_json_record(i) for i in index])
+        df = df.set_index(pd.Index(index))
         self.df = df
 
     def get_df(self):
@@ -124,7 +129,6 @@ class Tub(object):
             nums = sorted(nums)
 
         return nums
-
 
     @property
     def inputs(self):
@@ -161,16 +165,16 @@ class Tub(object):
         # make paths absolute
         d = {}
         for k, v in record_dict.items():
-            if self.get_input_type(k) == 'image_array': # path to jpg file
+            if self.get_input_type(k) == 'image_array':  # path to jpg file
                 v = os.path.join(self.path, v)
             d[k] = v
         return d
 
     def check(self, fix=False):
-        '''
+        """
         Iterate over all records and make sure we can load them.
         Optionally remove records that cause a problem.
-        '''
+        """
         print('Checking tub:%s.' % self.path)
         print('Found: %d records.' % self.get_num_records())
         problems = False
@@ -180,11 +184,10 @@ class Tub(object):
             except Exception as e:
                 problems = True
                 if fix is False:
-                    print('Problem with record {} at {}: {}'
-                          .format(ix, self.path, str(e)))
+                    print('Problem at {}: {}'.format(self.path, str(e)))
                 else:
-                    print('Problem with record {} at {}, removing because: {}'
-                          .format(ix, self.path, str(e)))
+                    print('Removing record at {}, because: {}'
+                          .format(self.path, str(e)))
                     self.remove_record(ix)
         if not problems:
             print("No problems found.")
@@ -247,7 +250,7 @@ class Tub(object):
                 img = Image.fromarray(np.uint8(val))
                 name = self.make_file_name(key, ext='.jpg')
                 img.save(os.path.join(self.path, name))
-                json_data[key]=name
+                json_data[key] = name
 
             elif typ == 'gray16_array':
                 # save np.uint16 as a 16bit png
@@ -257,7 +260,9 @@ class Tub(object):
                 json_data[key]=name
 
             else:
-                msg = 'Tub does not know what to do with this type {}'.format(typ)
+                msg = 'Tub does not know what to do with key {} of type {}. ' \
+                      'Current ix {}, input data: {}'\
+                      .format(key, typ, self.current_ix, data)
                 raise TypeError(msg)
 
         json_data['milliseconds'] = int((time.time() - self.start_time) * 1000)
@@ -265,9 +270,9 @@ class Tub(object):
         return self.current_ix
 
     def erase_last_n_records(self, num_erase):
-        '''
+        """
         erase N records from the disc and move current back accordingly
-        '''
+        """
         last_erase = self.current_ix
         first_erase = last_erase - num_erase
         self.current_ix = first_erase - 1
@@ -283,7 +288,7 @@ class Tub(object):
         json_path = self.get_json_record_path(i)
         if os.path.exists(json_path):
             os.unlink(json_path)
-        img_filename = '%d_cam-image_array_.jpg' % (i)
+        img_filename = '%d_cam-image_array_.jpg' % i
         img_path = os.path.join(self.path, img_filename)
         if os.path.exists(img_path):
             os.unlink(img_path)
@@ -293,33 +298,28 @@ class Tub(object):
 
     def get_json_record(self, ix):
         path = self.get_json_record_path(ix)
+        err_add = 'You may want to run `donkey tubcheck --fix`'
         try:
             with open(path, 'r') as fp:
                 json_data = json.load(fp)
         except UnicodeDecodeError:
-            raise Exception('bad record: %d. You may want to run '
-                            '`donkey tubcheck --fix`' % ix)
+            raise Exception(('Bad record: %d. ' + err_add) % ix)
         except FileNotFoundError:
             raise
-        except:
-            print("Unexpected error:", sys.exc_info()[0])
-            raise
+
         # if record has user/mode but is not type user
         if "user/mode" in json_data and json_data["user/mode"] != "user":
-            raise Exception('Bad record: %d. "user/mode" should be "user" for '
-                            'recorded data. '
-                            'You may want to run `donkey tubcheck --fix`' % ix)
+            raise Exception(('Bad record: %d. "user/mode" should be "user" for '
+                            'recorded data. ' + err_add) % ix)
         # if negative throttle values are recorded
         if self.allow_reverse is False and json_data["user/throttle"] < 0.0:
-            raise Exception('Bad record: %d. "user/throttle" should be >0 for '
-                            'recorded data. '
-                            'You may want to run `donkey tubcheck --fix`' % ix)
+            raise Exception(('Bad record: %d. "user/throttle" should be >0 for '
+                            'recorded data. ' + err_add) % ix)
 
         # if negative or zero car speed values are recorded
         if "car/speed" in json_data and json_data["car/speed"] <= 0.0:
-            raise Exception('Bad record: %d. "car/speed" should be >0 for '
-                            'recorded data. '
-                            'You may want to run `donkey tubcheck --fix`' % ix)
+            raise Exception(('Bad record: %d. "car/speed" should be >0 for '
+                            'recorded data. ' + err_add) % ix)
 
         record_dict = self.make_record_paths_absolute(json_data)
         return record_dict
@@ -335,13 +335,13 @@ class Tub(object):
             typ = self.get_input_type(key)
             # load objects that were saved as separate files
             if typ == 'image_array':
-                img = Image.open((val))
+                img = Image.open(val)
                 val = np.array(img)
             data[key] = val
         return data
 
     def gather_records(self):
-        ri = lambda fnm : int( os.path.basename(fnm).split('_')[1].split('.')[0])
+        ri = lambda fnm: int(os.path.basename(fnm).split('_')[1].split('.')[0])
         record_paths = glob.glob(os.path.join(self.path, 'record_*.json'))
         if len(self.exclude) > 0:
             record_paths = [f for f in record_paths if ri(f) not in self.exclude]
@@ -361,9 +361,6 @@ class Tub(object):
         import shutil
         shutil.rmtree(self.path)
 
-    def shutdown(self):
-        pass
-
     def excluded(self, index):
         return index in self.exclude
 
@@ -376,13 +373,68 @@ class Tub(object):
         except:
             pass
 
+    def make_lap_times(self):
+        """
+        Method returns a dataframe with lap numbers and times
+        :return: dataframe
+        """
+        df = self.get_df()
+        assert 'car/lap' in df.columns, 'No lap data found in tub ' + self.path
+        laps = df['car/lap'].unique()
+        times = []
+        last_start = None
+        for l in laps[1:]:
+            mask = df['car/lap'] == l
+            lap_df = df[mask]
+            start = lap_df['milliseconds'].iloc[0]
+            if last_start is not None:
+                times.append((start - last_start) * 1.0e-3)
+            last_start = start
+        return pd.DataFrame(dict(lap=laps[1:-1], lap_times=times),
+                            index=laps[1: -1])
+
+    def exclude_slow_laps(self, keep_frac_or_seconds=None):
+        """
+        Removes records of slower laps
+        :param keep_frac_or_seconds:    either fraction of the laps to keep or
+                                        laps with are faster than the  argument
+                                        as seconds. Interpreted as fraction if
+                                        <= 1  and as seconds if > 1
+        :return:                        laps to keep array
+        """
+        # if None do nothing
+        if keep_frac_or_seconds is None:
+            return None
+        # if exclude set is non-empty, empty it first
+        if self.exclude:
+            self.exclude.clear()
+        df = self.make_lap_times()
+
+        if keep_frac_or_seconds <= 1:
+            df_sorted = df.sort_values(by=['lap_times'])
+            slowest_index = int(len(df) * keep_frac_or_seconds)
+            laps_to_keep = df_sorted['lap'].iloc[:slowest_index]
+            text = 'the slowest {:.1f}% of laps'\
+                .format((1.0 - keep_frac_or_seconds) * 100.0)
+        else:
+            laps_to_keep \
+                = df.loc[df['lap_times'] <= keep_frac_or_seconds]['lap']
+            text = 'all laps slower than {:.2f}s'.format(keep_frac_or_seconds)
+
+        df_records = self.get_df()
+        df_to_remove = df_records[~df_records['car/lap'].isin(laps_to_keep)]
+        self.exclude = set(df_to_remove.index)
+        print('Excluding {:.2f}% of records which are {}'
+              .format(len(self.exclude) / len(df_records) * 100.0, text))
+        return laps_to_keep
+
     def write_exclude(self):
         if 0 == len(self.exclude):
             # If the exclude set is empty don't leave an empty file around.
             if os.path.exists(self.exclude_path):
                 os.unlink(self.exclude_path)
         else:
-            with open(self.exclude_path,'w') as f:
+            with open(self.exclude_path, 'w') as f:
                 json.dump(list(self.exclude), f)
 
     def get_record_gen(self, record_transform=None, shuffle=True, df=None):
@@ -422,28 +474,28 @@ class Tub(object):
                 batch_arrays[k] = arr
             yield batch_arrays
 
-    def get_train_gen(self, X_keys, Y_keys, batch_size=128,
+    def get_train_gen(self, x_keys, y_keys, batch_size=128,
                       record_transform=None, df=None):
-        batch_gen = self.get_batch_gen(X_keys + Y_keys,
+        batch_gen = self.get_batch_gen(x_keys + y_keys,
                                        batch_size=batch_size,
                                        record_transform=record_transform, df=df)
         while True:
             batch = next(batch_gen)
-            X = [batch[k] for k in X_keys]
-            Y = [batch[k] for k in Y_keys]
-            yield X, Y
+            x = [batch[k] for k in x_keys]
+            y = [batch[k] for k in y_keys]
+            yield x, y
 
-    def get_train_val_gen(self, X_keys, Y_keys, batch_size=128,
+    def get_train_val_gen(self, x_keys, y_keys, batch_size=128,
                           record_transform=None, train_frac=.8):
-        train_df = self.df.sample(frac=train_frac,random_state=200)
+        train_df = self.df.sample(frac=train_frac, random_state=200)
         val_df = self.df.drop(train_df.index)
 
-        train_gen = self.get_train_gen(X_keys=X_keys, Y_keys=Y_keys,
+        train_gen = self.get_train_gen(x_keys=x_keys, y_keys=y_keys,
                                        batch_size=batch_size,
                                        record_transform=record_transform,
                                        df=train_df)
 
-        val_gen = self.get_train_gen(X_keys=X_keys, Y_keys=Y_keys,
+        val_gen = self.get_train_gen(x_keys=x_keys, y_keys=y_keys,
                                      batch_size=batch_size,
                                      record_transform=record_transform,
                                      df=val_df)
@@ -456,14 +508,11 @@ class TubWriter(Tub):
         super(TubWriter, self).__init__(*args, **kwargs)
 
     def run(self, *args):
-        '''
-        API function needed to use as a Donkey part.
-
-        Accepts values, pairs them with their inputs keys and saves them
-        to disk.
-        '''
+        """
+        API function needed to use as a Donkey part. Accepts values,
+        pairs them with their inputs keys and saves them to disk.
+        """
         assert len(self.inputs) == len(args)
-        self.record_time = int(time.time() - self.start_time)
         record = dict(zip(self.inputs, args))
         self.put_record(record)
         return self.current_ix
@@ -474,22 +523,21 @@ class TubReader(Tub):
         super(TubReader, self).__init__(*args, **kwargs)
 
     def run(self, *args):
-        '''
+        """
         API function needed to use as a Donkey part.
         Accepts keys to read from the tub and retrieves them sequentially.
-        '''
-
+        """
         record_dict = self.get_record(self.read_ix)
         self.read_ix += 1
         record = [record_dict[key] for key in args]
         return record
 
 
-class TubHandler():
+class TubHandler:
     def __init__(self, path):
         self.path = os.path.expanduser(path)
 
-    def get_tub_list(self,path):
+    def get_tub_list(self, path):
         folders = next(os.walk(path))[1]
         return folders
 
@@ -509,7 +557,7 @@ class TubHandler():
     def create_tub_path(self):
         tub_num = self.next_tub_number(self.path)
         date = datetime.datetime.now().strftime('%y-%m-%d')
-        name = '_'.join(['tub',str(tub_num),date])
+        name = '_'.join(['tub', str(tub_num), date])
         tub_path = os.path.join(self.path, name)
         return tub_path
 
@@ -521,25 +569,26 @@ class TubHandler():
 
 
 class TubImageStacker(Tub):
-    '''
+    """
     A Tub for training a NN with images that are the last three records stacked
-    togther as 3 channels of a single image. The idea is to give a simple feedforward
-    NN some chance of building a model based on motion.
-    If you drive with the ImageFIFO part, then you don't need this.
-    Just make sure your inference pass uses the ImageFIFO that the NN will now expect.
-    '''
+    together as 3 channels of a single image. The idea is to give a simple
+    feed-forward NN some chance of building a model based on motion. If you
+    drive with the ImageFIFO part, then you don't need this. Just make sure
+    your inference pass uses the ImageFIFO that the NN will now expect.
+    """
 
     def rgb2gray(self, rgb):
-        '''
-        take a numpy rgb image return a new single channel image converted to greyscale
-        '''
+        """
+        take a numpy rgb image return a new single channel image converted to
+        greyscale
+        """
         return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
 
     def stack3Images(self, img_a, img_b, img_c):
-        '''
+        """
         convert 3 rgb images into grayscale and put them into the 3 channels of
         a single output image
-        '''
+        """
         width, height, _ = img_a.shape
 
         gray_a = self.rgb2gray(img_a)
@@ -548,17 +597,18 @@ class TubImageStacker(Tub):
 
         img_arr = np.zeros([width, height, 3], dtype=np.dtype('B'))
 
-        img_arr[...,0] = np.reshape(gray_a, (width, height))
-        img_arr[...,1] = np.reshape(gray_b, (width, height))
-        img_arr[...,2] = np.reshape(gray_c, (width, height))
+        img_arr[..., 0] = np.reshape(gray_a, (width, height))
+        img_arr[..., 1] = np.reshape(gray_b, (width, height))
+        img_arr[..., 2] = np.reshape(gray_c, (width, height))
 
         return img_arr
 
     def get_record(self, ix):
-        '''
+        """
         get the current record and two previous.
         stack the 3 images into a single image.
-        '''
+        """
+
         data = super(TubImageStacker, self).get_record(ix)
 
         if ix > 1:
@@ -570,10 +620,14 @@ class TubImageStacker(Tub):
                 typ = self.get_input_type(key)
                 # load objects that were saved as separate files
                 if typ == 'image':
-                    val = self.stack3Images(data_ch0[key], data_ch1[key], data[key])
+                    val = self.stack3Images(data_ch0[key],
+                                            data_ch1[key],
+                                            data[key])
                     data[key] = val
                 elif typ == 'image_array':
-                    img = self.stack3Images(data_ch0[key], data_ch1[key], data[key])
+                    img = self.stack3Images(data_ch0[key],
+                                            data_ch1[key],
+                                            data[key])
                     val = np.array(img)
 
         return data
@@ -588,19 +642,18 @@ class TubTimeStacker(TubImageStacker):
 
     def __init__(self, frame_list, *args, **kwargs):
         '''
-        frame_list of [0, 10] would stack the current and 10 frames from now records togther in a single record
-        with just the current image returned.
-        [5, 90, 200] would return 3 frames of records, ofset 5, 90, and 200 frames in the future.
-
+        frame_list of [0, 10] would stack the current and 10 frames from now
+        records togther in a single record with just the current image returned.
+        [5, 90, 200] would return 3 frames of records, ofset 5, 90, and 200 f
+        rames in the future.
         '''
         super(TubTimeStacker, self).__init__(*args, **kwargs)
         self.frame_list = frame_list
 
     def get_record(self, ix):
         '''
-        stack the N records into a single record.
-        Each key value has the record index with a suffix of _N where N is
-        the frame offset into the data.
+        stack the N records into a single record. Each key value has the record
+        index with a suffix of _N where N is the frame offset into the data.
         '''
         data = {}
         for i, iOffset in enumerate(self.frame_list):

@@ -11,17 +11,15 @@ Options:
     -h --help          Show this screen.    
     -f --file=<file>   A text file containing paths to tub files, one per line. Option may be used more than once.
 """
-import os
-import time
 
 from docopt import docopt
-import numpy as np
 
 import donkeycar as dk
 from donkeycar.parts.datastore import TubHandler
 from donkeycar.parts.controller import LocalWebController
 from donkeycar.parts.camera import PiCamera
 from donkeycar.utils import *
+from donkeycar.parts.transform import ImgPrecondition
 
 
 def drive(cfg, model_path=None, model_type=None):
@@ -38,7 +36,7 @@ def drive(cfg, model_path=None, model_type=None):
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE
     
-    #Initialize car
+    # Initialize car
     V = dk.vehicle.Vehicle()
     
     cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H, image_d=cfg.IMAGE_DEPTH)
@@ -51,8 +49,8 @@ def drive(cfg, model_path=None, model_type=None):
           threaded=True)
 
    
-    #See if we should even run the pilot module. 
-    #This is only needed because the part run_condition only accepts boolean
+    # See if we should even run the pilot module.
+    # This is only needed because the part run_condition only accepts boolean
     class PilotCondition:
         def run(self, mode):
             if mode == 'user':
@@ -62,27 +60,17 @@ def drive(cfg, model_path=None, model_type=None):
 
     V.add(PilotCondition(), inputs=['user/mode'], outputs=['run_pilot'])
     
-    #Sombrero
+    # Sombrero
     if cfg.HAVE_SOMBRERO:
         from donkeycar.parts.sombrero import Sombrero
         s = Sombrero()
 
-    class ImgPrecondition():
-        '''
-        precondition camera image for inference
-        '''
-        def __init__(self, cfg):
-            self.cfg = cfg
-
-        def run(self, img_arr):
-            return normalize_and_crop(img_arr, self.cfg)
-
     V.add(ImgPrecondition(cfg),
-        inputs=['cam/image_array'],
-        outputs=['cam/normalized/cropped'],
-        run_condition='run_pilot')
+          inputs=['cam/image_array'],
+          outputs=['cam/normalized/cropped'],
+          run_condition='run_pilot')
 
-    inputs=['cam/normalized/cropped']
+    inputs = ['cam/normalized/cropped']
 
     def load_model(kl, model_path):
         start = time.time()
@@ -118,18 +106,18 @@ def drive(cfg, model_path=None, model_type=None):
             print("ERR>> problems loading model json", json_fnm)
 
     if model_path:
-        #When we have a model, first create an appropriate Keras part
+        # When we have a model, first create an appropriate Keras part
         kl = dk.utils.get_model_by_type(model_type, cfg)
 
         if '.h5' in model_path:
-            #when we have a .h5 extension
-            #load everything from the model file
+            # when we have a .h5 extension
+            # load everything from the model file
             load_model(kl, model_path)
 
         elif '.json' in model_path:
-            #when we have a .json extension
-            #load the model from there and look for a matching
-            #.wts file with just weights
+            # when we have a .json extension
+            # load the model from there and look for a matching
+            # .wts file with just weights
             load_model_json(kl, model_path)
             weights_path = model_path.replace('.json', '.weights')
             load_weights(kl, weights_path)
@@ -139,12 +127,12 @@ def drive(cfg, model_path=None, model_type=None):
             return
 
         outputs=['pilot/angle', 'pilot/throttle']
-   
-        V.add(kl, inputs=inputs, 
-            outputs=outputs,
-            run_condition='run_pilot')
+
+        V.add(kl, inputs=inputs,
+              outputs=outputs,
+              run_condition='run_pilot')
     
-    #Choose what inputs should change the car.
+    # Choose what inputs should change the car.
     class DriveMode:
         def run(self, mode, 
                     user_angle, user_throttle,
@@ -163,16 +151,18 @@ def drive(cfg, model_path=None, model_type=None):
                   'pilot/angle', 'pilot/throttle'], 
           outputs=['angle', 'throttle'])
 
-    #Drive train setup
+    # Drive train setup
 
     from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 
-    steering_controller = PCA9685(cfg.STEERING_CHANNEL, cfg.PCA9685_I2C_ADDR, busnum=cfg.PCA9685_I2C_BUSNUM)
+    steering_controller = PCA9685(cfg.STEERING_CHANNEL, cfg.PCA9685_I2C_ADDR,
+                                  busnum=cfg.PCA9685_I2C_BUSNUM)
     steering = PWMSteering(controller=steering_controller,
                                     left_pulse=cfg.STEERING_LEFT_PWM, 
                                     right_pulse=cfg.STEERING_RIGHT_PWM)
     
-    throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL, cfg.PCA9685_I2C_ADDR, busnum=cfg.PCA9685_I2C_BUSNUM)
+    throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL, cfg.PCA9685_I2C_ADDR,
+                                  busnum=cfg.PCA9685_I2C_BUSNUM)
     throttle = PWMThrottle(controller=throttle_controller,
                                     max_pulse=cfg.THROTTLE_FORWARD_PWM,
                                     zero_pulse=cfg.THROTTLE_STOPPED_PWM, 
@@ -181,25 +171,17 @@ def drive(cfg, model_path=None, model_type=None):
     V.add(steering, inputs=['angle'])
     V.add(throttle, inputs=['throttle'])
     
-    #add tub to save data
+    # add tub to save data
 
-    inputs=['cam/image_array',
-            'user/angle', 'user/throttle', 
-            'user/mode']
-
-    types=['image_array',
-           'float', 'float',
-           'str']
+    inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode']
+    types = ['image_array', 'float', 'float', 'str']
 
     th = TubHandler(path=cfg.DATA_PATH)
     tub = th.new_tub_writer(inputs=inputs, types=types)
     V.add(tub, inputs=inputs, outputs=["tub/num_records"], run_condition='recording')
 
-    print("You can now go to <your pis hostname.local>:8887 to drive your car.")
-
     # run the vehicle for 20 seconds
-    V.start(rate_hz=cfg.DRIVE_LOOP_HZ, 
-            max_loop_count=cfg.MAX_LOOPS)
+    V.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS)
 
 
 if __name__ == '__main__':

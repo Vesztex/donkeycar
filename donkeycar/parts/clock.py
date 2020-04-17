@@ -1,7 +1,10 @@
-import datetime
+from datetime import datetime
 
 
 class Timestamp:
 
     def run(self):
-        return str(datetime.datetime.utcnow())
+        """
+        :return: summer-time adjusted local time
+        """
+        return str(datetime.now())

@@ -3,8 +3,8 @@
 Scripts to drive a donkey 2 car
 
 Usage:
-    manage.py (drive) [--model=<model>] [--js] [--type=(linear|categorical|rnn|imu|behavior|3d|localizer|latent)] [--camera=(single|stereo)] [--meta=<key:value> ...] [--myconfig=<filename>]
-    manage.py (train) [--tub=<tub1,tub2,..tubn>] [--file=<file> ...] (--model=<model>) [--transfer=<model>] [--type=(linear|categorical|rnn|imu|behavior|3d|localizer)] [--continuous] [--aug] [--myconfig=<filename>]
+    manage.py (drive) [--model=<model>] [--js] [--type=(linear|categorical|rnn|imu|behavior|3d|localizer|latent)] [--camera=(single|stereo)] [--meta=<key:value> ...]
+    manage.py (train) [--tub=<tub1,tub2,..tubn>] [--file=<file> ...] (--model=<model>) [--transfer=<model>] [--type=(linear|categorical|rnn|imu|behavior|3d|localizer)] [--continuous] [--aug]
 
 
 Options:
@@ -101,12 +101,12 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
 
     else:
         if cfg.DONKEY_GYM:
-            from donkeycar.parts.dgym import DonkeyGymEnv 
-        
+            from donkeycar.parts.dgym import DonkeyGymEnv
+
         inputs = []
         threaded = True
         if cfg.DONKEY_GYM:
-            from donkeycar.parts.dgym import DonkeyGymEnv 
+            from donkeycar.parts.dgym import DonkeyGymEnv
             cam = DonkeyGymEnv(cfg.DONKEY_SIM_PATH, host=cfg.SIM_HOST, env_name=cfg.DONKEY_GYM_ENV_NAME, conf=cfg.GYM_CONF, delay=cfg.SIM_ARTIFICIAL_LATENCY)
             threaded = True
             inputs = ['angle', 'throttle']
@@ -130,9 +130,9 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
             cam = MockCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H, image_d=cfg.IMAGE_DEPTH)
         else:
             raise(Exception("Unkown camera type: %s" % cfg.CAMERA_TYPE))
-            
+
         V.add(cam, inputs=inputs, outputs=['cam/image_array'], threaded=threaded)
-        
+
     if use_joystick or cfg.USE_JOYSTICK_AS_DEFAULT:
         #modify max_throttle closer to 1.0 to have more power
         #modify steering_scale lower than 1.0 to have less responsive steering
@@ -248,11 +248,11 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
 
                 if num_records % 10 == 0:
                     print("recorded", num_records, "records")
-                        
+
                 if num_records % cfg.REC_COUNT_ALERT == 0 or self.force_alert:
                     self.dur_alert = num_records // cfg.REC_COUNT_ALERT * cfg.REC_COUNT_ALERT_CYC
                     self.force_alert = 0
-                    
+
             if self.dur_alert > 0:
                 self.dur_alert -= 1
 
@@ -420,8 +420,8 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
 
             else:
                 return pilot_angle if pilot_angle else 0.0, pilot_throttle * cfg.AI_THROTTLE_MULT if pilot_throttle else 0.0
-        
-    V.add(DriveMode(), 
+
+    V.add(DriveMode(),
           inputs=['user/mode', 'user/angle', 'user/throttle',
                   'pilot/angle', 'pilot/throttle'],
           outputs=['angle', 'throttle'])
@@ -491,13 +491,13 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
                                             zero_pulse=cfg.THROTTLE_STOPPED_PWM,
                                             min_pulse=cfg.THROTTLE_REVERSE_PWM)
 
-            V.add(steering, inputs=['angle'], threaded=True)
-            V.add(throttle, inputs=['throttle'], threaded=True)
+        V.add(steering, inputs=['angle'], threaded=True)
+        V.add(throttle, inputs=['throttle'], threaded=True)
 
 
     elif cfg.DRIVE_TRAIN_TYPE == "DC_STEER_THROTTLE":
         from donkeycar.parts.actuator import Mini_HBridge_DC_Motor_PWM
-        
+
         steering = Mini_HBridge_DC_Motor_PWM(cfg.HBRIDGE_PIN_LEFT, cfg.HBRIDGE_PIN_RIGHT)
         throttle = Mini_HBridge_DC_Motor_PWM(cfg.HBRIDGE_PIN_FWD, cfg.HBRIDGE_PIN_BWD)
 
@@ -612,11 +612,10 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
 if __name__ == '__main__':
     args = docopt(__doc__)
     cfg = dk.load_config(myconfig=args['--myconfig'])
-    
+
     if args['drive']:
         model_type = args['--type']
         camera_type = args['--camera']
-
         drive(cfg, model_path=args['--model'], use_joystick=args['--js'],
               model_type=model_type, camera_type=camera_type,
               meta=args['--meta'])
@@ -631,7 +630,7 @@ if __name__ == '__main__':
         continuous = args['--continuous']
         aug = args['--aug']
 
-        dirs = preprocessFileList( args['--file'] )
+        dirs = preprocessFileList(args['--file'])
         if tub is not None:
             tub_paths = [os.path.expanduser(n.strip()) for n in tub.split(',')]
             print("Using tubs:")

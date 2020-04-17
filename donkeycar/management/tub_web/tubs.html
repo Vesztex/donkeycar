@@ -3,10 +3,10 @@
 
 <body>
 <div>
-    <h2>Available tubs</h2>
+    <h2 style="color:rgb(226, 110, 57)">Available tubs</h2>
 </div>
 <div class="container">
-    <ul>
+    <ul style="color:rgb(226, 110, 57)">
         {% for tub in tubs %}
         <li><a href={{"/tubs/" + escape(tub) }}>{{ escape(tub) }}</a></li>
         {% end %}

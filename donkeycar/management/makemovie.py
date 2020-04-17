@@ -113,7 +113,7 @@ class MakeMovie(object):
             return
 
         import cv2
-         
+
         expected = self.keras_part.get_input_shape()[1:]
         actual = img.shape
 

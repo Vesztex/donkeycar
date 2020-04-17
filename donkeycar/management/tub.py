@@ -6,13 +6,24 @@ Manage tubs
 import os
 import json
 import tornado.web
+import argparse
 from stat import ST_ATIME
 
 
 class TubManager:
 
     def run(self, args):
-        WebServer(args[0]).start()
+        args = self.parse_args(args)
+        data_dir = args.data[0]
+        WebServer(data_dir).start()
+
+    def parse_args(self, args):
+        parser = argparse.ArgumentParser(prog='clean',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('data', nargs='+', help='paths to data dir '
+                                                    'containing tubs')
+        parsed_args = parser.parse_args(args)
+        return parsed_args
 
 
 class WebServer(tornado.web.Application):
@@ -53,6 +64,8 @@ class TubsView(tornado.web.RequestHandler):
         import fnmatch
         dir_list = fnmatch.filter(os.listdir(self.data_path), '*')
         dir_list.sort()
+        # Remove '.' files in directory list
+        dir_list = [d for d in dir_list if d[0] is not '.']
         data = {"tubs": dir_list}
         self.render("tub_web/tubs.html", **data)
 
@@ -60,7 +73,7 @@ class TubsView(tornado.web.RequestHandler):
 class TubView(tornado.web.RequestHandler):
 
     def get(self, tub_id):
-        data = {}
+        data = {'tub': tub_id}
         self.render("tub_web/tub.html", **data)
 
 

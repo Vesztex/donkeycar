@@ -43,8 +43,8 @@ class Config:
 
 
 
-def load_config(config_path=None):
-
+def load_config(config_path=None, myconfig="myconfig.py"):
+    
     if config_path is None:
         import __main__ as main
         main_path = os.path.dirname(os.path.realpath(main.__file__))
@@ -59,7 +59,8 @@ def load_config(config_path=None):
     cfg.from_pyfile(config_path)
 
     #look for the optional myconfig.py in the same path.
-    personal_cfg_path = config_path.replace("config.py", "myconfig.py")
+    print("myconfig", myconfig)
+    personal_cfg_path = config_path.replace("config.py", myconfig)
     if os.path.exists(personal_cfg_path):
         print("loading personal config over-rides...", end=' ')
         personal_cfg = Config()
@@ -67,11 +68,12 @@ def load_config(config_path=None):
         #personal_cfg.show()
 
         cfg.from_object(personal_cfg)
-
         #print("final settings:")
         #cfg.show()
+    else:
+        print("personal config: file not found ", personal_cfg_path)
 
-
+    
     #derivative settings
     if hasattr(cfg, 'IMAGE_H') and hasattr(cfg, 'IMAGE_W'):
         cfg.TARGET_H = cfg.IMAGE_H - cfg.ROI_CROP_TOP - cfg.ROI_CROP_BOTTOM

@@ -174,31 +174,47 @@ class CalibrateCar(BaseCommand):
         parser.add_argument('--address', default='0x40', help="The i2c address you'd like to calibrate [default 0x40]")
         parser.add_argument('--bus', default=None, help="The i2c bus you'd like to calibrate [default autodetect]")
         parser.add_argument('--pwmFreq', default=60, help="The frequency to use for the PWM")
+        parser.add_argument('--arduino', dest='arduino', action='store_true', help='Use arduino pin for PWM (calibrate pin=<channel>)')
+        parser.set_defaults(arduino=False)
         parsed_args = parser.parse_args(args)
         return parsed_args
 
     def run(self, args):
-        from donkeycar.parts.actuator import PCA9685
-
         args = self.parse_args(args)
         channel = int(args.channel)
-        bus_num = None
-        if args.bus:
-            bus_num = int(args.bus)
-        address = int(args.address, 16)
-        print('init PCA9685 on channel %d address %s bus %s'
-              % (channel, str(hex(address)), str(bus_num)))
-        freq = int(args.pwmFreq)
-        print("Using PWM freq: {}".format(freq))
-        c = PCA9685(channel, address=address, busnum=bus_num, frequency=freq)
-        print()
+
+        if args.arduino == True:
+            from donkeycar.parts.actuator import ArduinoFirmata
+
+            arduino_controller = ArduinoFirmata(servo_pin=channel)
+            print('init Arduino PWM on pin %d' %(channel))
+            input_prompt = "Enter a PWM setting to test ('q' for quit) (0-180): "
+        else:
+            from donkeycar.parts.actuator import PCA9685
+            from donkeycar.parts.sombrero import Sombrero
+
+            s = Sombrero()
+
+            busnum = None
+            if args.bus:
+                busnum = int(args.bus)
+            address = int(args.address, 16)
+            print('init PCA9685 on channel %d address %s bus %s' %(channel, str(hex(address)), str(busnum)))
+            freq = int(args.pwmFreq)
+            print("Using PWM freq: {}".format(freq))
+            c = PCA9685(channel, address=address, busnum=busnum, frequency=freq)
+            input_prompt = "Enter a PWM setting to test ('q' for quit) (0-1500): "
+            print()
         while True:
             try:
-                val = input("""Enter a PWM setting to test ('q' for quit) (0-1500): """)
+                val = input(input_prompt)
                 if val == 'q' or val == 'Q':
                     break
                 pmw = int(val)
-                c.run(pmw)
+                if args.arduino == True:
+                    arduino_controller.set_pulse(channel,pmw)
+                else:
+                    c.run(pmw)
             except KeyboardInterrupt:
                 print("\nKeyboardInterrupt received, exit.")
                 break
@@ -241,7 +257,6 @@ class MakeMovieShell(BaseCommand):
 
 
 class TubCheck(BaseCommand):
-
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='tubcheck', usage='%(prog)s [options]')
         parser.add_argument('tubs', nargs='+', help='paths to tubs')
@@ -255,7 +270,8 @@ class TubCheck(BaseCommand):
         Check for any problems. Looks at tubs and find problems in any records or images that won't open.
         If fix is True, then delete images and records that cause problems.
         '''
-        tubs = [Tub(path) for path in tub_paths]
+        cfg = load_config('config.py')
+        tubs = gather_tubs(cfg, tub_paths)
 
         for tub in tubs:
             tub.check(fix=fix)
@@ -358,7 +374,7 @@ class ConTrain(BaseCommand):
         parser.add_argument('--model', default='./models/drive.h5', help='path to model')
         parser.add_argument('--transfer', default=None, help='path to transfer model')
         parser.add_argument('--type', default='categorical', help='type of model (linear|categorical|rnn|imu|behavior|3d)')
-        parser.add_argument('--aug', action="store_true", help='perform image augmentation')
+        parser.add_argument('--aug', action="store_true", help='perform image augmentation')        
         parsed_args = parser.parse_args(args)
         return parsed_args
 

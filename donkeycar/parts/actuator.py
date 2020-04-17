@@ -5,6 +5,7 @@ are wrapped in a mixer class before being used in the drive loop.
 """
 
 import time
+
 import donkeycar as dk
 
 
@@ -83,7 +84,6 @@ class JHat:
         if busnum is not None:
             from Adafruit_GPIO import I2C
             # replace the get_bus function with our own
-
             def get_bus():
                 return busnum
             I2C.get_default_bus = get_bus
@@ -101,7 +101,7 @@ class JHat:
     def set_pwm(self, channel, on, off):
         # sets a single PWM channel
         self.pwm._device.writeList(self.register, [off & 0xFF, off >> 8])
-
+        
     def run(self, pulse):
         self.set_pulse(pulse)
 
@@ -144,9 +144,11 @@ class JHatReader:
         val_d = self.pwm._device.readU8(self.register)
         self.throttle = (val_d << 8) + val_c
 
-        # scale the values from -1 to 1
-        self.steering = (((float)(self.steering)) - 1500.0) / 500.0 + 0.158
-        self.throttle = (((float)(self.throttle)) - 1500.0) / 500.0 + 0.136
+        #scale the values from -1 to 1
+        self.steering = (((float)(self.steering)) - 1500.0) / 500.0  + 0.158
+        self.throttle = (((float)(self.throttle)) - 1500.0) / 500.0  + 0.136
+        
+        #print(self.steering, self.throttle)
 
     def update(self):
         while(self.running):
@@ -168,26 +170,29 @@ class PWMSteering:
     LEFT_ANGLE = -1
     RIGHT_ANGLE = 1
 
-    def __init__(self, controller=None,
-                       left_pulse=290,
-                       right_pulse=490):
+    def __init__(self,
+                 controller=None,
+                 left_pulse=290,
+                 right_pulse=490):
 
         self.controller = controller
         self.left_pulse = left_pulse
         self.right_pulse = right_pulse
-        print('PWM Steering created')
+
 
     def run(self, angle):
-        # map absolute angle to angle that vehicle can implement.
+        #map absolute angle to angle that vehicle can implement.
         pulse = dk.utils.map_range(angle,
                                 self.LEFT_ANGLE, self.RIGHT_ANGLE,
                                 self.left_pulse, self.right_pulse)
 
-        self.controller.set_pulse(pulse)
+    def run(self, angle):
+        self.run_threaded(angle)
+        self.controller.set_pulse(self.pulse)
 
     def shutdown(self):
-        # set steering straight
-        self.run(0)
+        self.run(0) #set steering straight
+
 
 
 class PWMThrottle:
@@ -196,58 +201,74 @@ class PWMThrottle:
     values to PWM pulses.
     """
     MIN_THROTTLE = -1
-    MAX_THROTTLE =  1
+    MAX_THROTTLE = 1
 
-    def __init__(self, controller=None,
-                       max_pulse=300,
-                       min_pulse=490,
-                       zero_pulse=350):
+    def __init__(self,
+                 controller=None,
+                 max_pulse=300,
+                 min_pulse=490,
+                 zero_pulse=350):
 
         self.controller = controller
         self.max_pulse = max_pulse
         self.min_pulse = min_pulse
         self.zero_pulse = zero_pulse
+        self.pulse = zero_pulse
 
         # send zero pulse to calibrate ESC
         print("Init ESC")
+        self.controller.set_pulse(self.max_pulse)
+        time.sleep(0.01)
+        self.controller.set_pulse(self.min_pulse)
+        time.sleep(0.01)
         self.controller.set_pulse(self.zero_pulse)
         time.sleep(1)
+        self.running = True
         print('PWM Throttle created')
 
-    def run(self, throttle):
+    def update(self):
+        while self.running:
+            self.controller.set_pulse(self.pulse)
+
+    def run_threaded(self, throttle):
         if throttle > 0:
-            pulse = dk.utils.map_range(throttle, 0, self.MAX_THROTTLE,
-                                       self.zero_pulse, self.max_pulse)
+            self.pulse = dk.utils.map_range(throttle, 0, self.MAX_THROTTLE,
+                                            self.zero_pulse, self.max_pulse)
         else:
-            pulse = dk.utils.map_range(throttle, self.MIN_THROTTLE, 0,
-                                       self.min_pulse, self.zero_pulse)
-        self.controller.set_pulse(pulse)
+            self.pulse = dk.utils.map_range(throttle, self.MIN_THROTTLE, 0,
+                                            self.min_pulse, self.zero_pulse)
+
+    def run(self, throttle):
+        self.run_threaded(throttle)
+        self.controller.set_pulse(self.pulse)
 
     def shutdown(self):
         # stop vehicle
         self.run(0)
+        self.running = False
 
 
 class Adafruit_DCMotor_Hat:
-    '''
-    Adafruit DC Motor Controller
+    ''' 
+    Adafruit DC Motor Controller 
     Used for each motor on a differential drive car.
     '''
     def __init__(self, motor_num):
         from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor
         import atexit
-
+        
         self.FORWARD = Adafruit_MotorHAT.FORWARD
         self.BACKWARD = Adafruit_MotorHAT.BACKWARD
-        self.mh = Adafruit_MotorHAT(addr=0x60)
-
+        self.mh = Adafruit_MotorHAT(addr=0x60) 
+        
         self.motor = self.mh.getMotor(motor_num)
         self.motor_num = motor_num
-
+        
         atexit.register(self.turn_off_motors)
         self.speed = 0
         self.throttle = 0
-
+    
+        
     def run(self, speed):
         '''
         Update the speed of the motor where 1 is full forward and
@@ -255,20 +276,20 @@ class Adafruit_DCMotor_Hat:
         '''
         if speed > 1 or speed < -1:
             raise ValueError( "Speed must be between 1(forward) and -1(reverse)")
-
+        
         self.speed = speed
         self.throttle = int(dk.utils.map_range(abs(speed), -1, 1, -255, 255))
-
-        if speed > 0:
+        
+        if speed > 0:            
             self.motor.run(self.FORWARD)
         else:
             self.motor.run(self.BACKWARD)
-
+            
         self.motor.setSpeed(self.throttle)
+
 
     def shutdown(self):
         self.mh.getMotor(self.motor_num).run(Adafruit_MotorHAT.RELEASE)
-
 
 class Maestro:
     '''
@@ -347,11 +368,10 @@ class Maestro:
             if Maestro.astar_device.inWaiting() > 8:
                 ret = Maestro.astar_device.readline()
 
-        if ret is not None:
+        if ret != None:
             ret = ret.rstrip()
 
         return ret
-
 
 class Teensy:
     '''
@@ -661,11 +681,11 @@ class Mini_HBridge_DC_Motor_PWM(object):
         self.pin_forward = pin_forward
         self.pin_backward = pin_backward
         self.max_duty = max_duty
-
+        
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.pin_forward, GPIO.OUT)
         GPIO.setup(self.pin_backward, GPIO.OUT)
-
+        
         self.pwm_f = GPIO.PWM(self.pin_forward, freq)
         self.pwm_f.start(0)
         self.pwm_b = GPIO.PWM(self.pin_backward, freq)
@@ -679,13 +699,13 @@ class Mini_HBridge_DC_Motor_PWM(object):
         '''
         if speed is None:
             return
-
+        
         if speed > 1 or speed < -1:
             raise ValueError( "Speed must be between 1(forward) and -1(reverse)")
-
+        
         self.speed = speed
         self.throttle = int(dk.utils.map_range(speed, -1, 1, -self.max_duty, self.max_duty))
-
+        
         if self.throttle > 0:
             self.pwm_f.ChangeDutyCycle(self.throttle)
             self.pwm_b.ChangeDutyCycle(0)
@@ -695,6 +715,7 @@ class Mini_HBridge_DC_Motor_PWM(object):
         else:
             self.pwm_f.ChangeDutyCycle(0)
             self.pwm_b.ChangeDutyCycle(0)
+
 
     def shutdown(self):
         import RPi.GPIO as GPIO
@@ -738,7 +759,7 @@ class RPi_GPIO_Servo(object):
         -1 is full backwards.
         '''
         #I've read 90 is a good max
-        self.throttle = map_frange(pulse, -1.0, 1.0, self.min, self.max)
+        self.throttle = dk.map_frange(pulse, -1.0, 1.0, self.min, self.max)
         #print(pulse, self.throttle)
         self.pwm.ChangeDutyCycle(self.throttle)
 
@@ -830,3 +851,115 @@ class ModeSwitch:
             self._active_loop = False
 
         return self._current_mode
+
+
+class ArduinoFirmata:
+    '''
+    PWM controller using Arduino board.
+    This is particularly useful for boards like Latte Panda with built it Arduino.
+    Standard Firmata sketch needs to be loaded on Arduino side.
+    Refer to docs/parts/actuators.md for more details
+    '''
+
+    def __init__(self, servo_pin = 6, esc_pin = 5):
+        from pymata_aio.pymata3 import PyMata3
+        self.board = PyMata3()
+        self.board.sleep(0.015)
+        self.servo_pin = servo_pin
+        self.esc_pin = esc_pin
+        self.board.servo_config(servo_pin)
+        self.board.servo_config(esc_pin)
+
+    def set_pulse(self, pin, angle):
+        try:
+            self.board.analog_write(pin, int(angle))
+        except:
+            self.board.analog_write(pin, int(angle))
+
+    def set_servo_pulse(self, angle):
+        self.set_pulse(self.servo_pin, int(angle))
+
+    def set_esc_pulse(self, angle):
+        self.set_pulse(self.esc_pin, int(angle))
+
+
+class ArdPWMSteering:
+    """
+    Wrapper over a Arduino Firmata controller to convert angles to PWM pulses.
+    """
+    LEFT_ANGLE = -1
+    RIGHT_ANGLE = 1
+
+    def __init__(self,
+                 controller=None,
+                 left_pulse=60,
+                 right_pulse=120):
+
+        self.controller = controller
+        self.left_pulse = left_pulse
+        self.right_pulse = right_pulse
+        self.pulse = dk.utils.map_range(0, self.LEFT_ANGLE, self.RIGHT_ANGLE,
+                                        self.left_pulse, self.right_pulse)
+        self.running = True
+        print('Arduino PWM Steering created')
+
+    def run(self, angle):
+        # map absolute angle to angle that vehicle can implement.
+        self.pulse = dk.utils.map_range(angle,
+                                        self.LEFT_ANGLE, self.RIGHT_ANGLE,
+                                        self.left_pulse, self.right_pulse)
+        self.controller.set_servo_pulse(self.pulse)
+
+    def shutdown(self):
+        # set steering straight
+        self.pulse = dk.utils.map_range(0, self.LEFT_ANGLE, self.RIGHT_ANGLE,
+                                        self.left_pulse, self.right_pulse)
+        time.sleep(0.3)
+        self.running = False
+
+
+class ArdPWMThrottle:
+
+    """
+    Wrapper over Arduino Firmata controller to convert -1 to 1 throttle
+    values to PWM pulses.
+    """
+    MIN_THROTTLE = -1
+    MAX_THROTTLE = 1
+
+    def __init__(self,
+                 controller=None,
+                 max_pulse=105,
+                 min_pulse=75,
+                 zero_pulse=90):
+
+        self.controller = controller
+        self.max_pulse = max_pulse
+        self.min_pulse = min_pulse
+        self.zero_pulse = zero_pulse
+        self.pulse = zero_pulse
+
+        # send zero pulse to calibrate ESC
+        print("Init ESC")
+        self.controller.set_esc_pulse(self.max_pulse)
+        time.sleep(0.01)
+        self.controller.set_esc_pulse(self.min_pulse)
+        time.sleep(0.01)
+        self.controller.set_esc_pulse(self.zero_pulse)
+        time.sleep(1)
+        self.running = True
+        print('Arduino PWM Throttle created')
+
+    def run(self, throttle):
+        if throttle > 0:
+            self.pulse = dk.utils.map_range(throttle, 0, self.MAX_THROTTLE,
+                                            self.zero_pulse, self.max_pulse)
+        else:
+            self.pulse = dk.utils.map_range(throttle, self.MIN_THROTTLE, 0,
+                                            self.min_pulse, self.zero_pulse)
+        self.controller.set_esc_pulse(self.pulse)
+
+    def shutdown(self):
+        # stop vehicle
+        self.run(0)
+        self.running = False

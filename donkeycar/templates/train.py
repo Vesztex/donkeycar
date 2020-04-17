@@ -689,7 +689,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type, conti
 
     kl = dk.utils.get_model_by_type(model_type=model_type, cfg=cfg)
     tubs = gather_tubs(cfg, tub_names)
-    verbose = cfg.VEBOSE_TRAIN
+    verbose = cfg.VERBOSE_TRAIN
     records = []
 
     for tub in tubs:

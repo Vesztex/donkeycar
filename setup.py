@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 import os
-
+from donkeycar import __version__
 
 # include the non python files
 def package_files(directory, strip_leading):
@@ -23,7 +23,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='donkeycar',
-    version='3.1.2 DocGarbanzo',
+    version=__version__,
     long_description = long_description,
     description='Self driving library for python.',
     url='https://github.com/autorope/donkeycar',

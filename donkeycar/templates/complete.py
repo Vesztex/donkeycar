@@ -29,16 +29,11 @@ Options:
     --myconfig=filename     Specify myconfig file to use.
                             [default: myconfig.py]
 """
-import os
-import time
 
 from docopt import docopt
-import numpy as np
-
 import donkeycar as dk
 
-#import parts
-from donkeycar.parts.transform import Lambda, TriggeredCallback, DelayedTrigger
+from donkeycar.parts.transform import TriggeredCallback, DelayedTrigger
 from donkeycar.parts.datastore import TubHandler
 from donkeycar.parts.controller import LocalWebController, \
     JoystickController, WebFpv
@@ -48,7 +43,9 @@ from donkeycar.parts.file_watcher import FileWatcher
 from donkeycar.parts.launch import AiLaunch
 from donkeycar.utils import *
 
-def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type='single', meta=[]):
+
+def drive(cfg, model_path=None, use_joystick=False, model_type=None,
+          camera_type='single', meta=[]):
     '''
     Construct a working robotic vehicle from many parts.
     Each part runs as a job in the Vehicle loop, calling either
@@ -60,8 +57,8 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
     '''
 
     if cfg.DONKEY_GYM:
-        #the simulator will use cuda and then we usually run out of resources
-        #if we also try to use cuda. so disable for donkey_gym.
+        # the simulator will use cuda and then we usually run out of resources
+        # if we also try to use cuda. so disable for donkey_gym.
         os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 
     if model_type is None:

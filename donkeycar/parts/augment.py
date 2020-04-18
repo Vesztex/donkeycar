@@ -52,7 +52,7 @@ def augment_image(np_img, shadow_images=None, do_warp_persp=False):
     img = ImageEnhance.Contrast(img).enhance(factor)
     factor = random.uniform(0.5, 1.5)
     img = ImageEnhance.Sharpness(img).enhance(factor)
-    factor = random.uniform(0.0, 1.0)
+    factor = random.uniform(0.0, 2.0)
     img = ImageEnhance.Color(img).enhance(factor)
 
     # optionally composite a shadow, perpared from load_shadow_images

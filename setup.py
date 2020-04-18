@@ -45,8 +45,9 @@ setup(name='donkeycar',
                       'pandas',
                       'PrettyTable',
                       'paho-mqtt',
-                      'progress'
-                     ],
+                      'progress',
+                      'simple-pid'
+                      ],
 
     extras_require={
                     'pi': [
@@ -55,6 +56,7 @@ setup(name='donkeycar',
                         'Adafruit_SSD1306',
                         'RPi.GPIO',
                         'pyserial',
+                        'adafruit-circuitpython-mpu6050'
                         ],
                     'nano': [
                         'Adafruit_PCA9685',
@@ -62,6 +64,7 @@ setup(name='donkeycar',
                         ],
                     'pc': [
                         'matplotlib',
+                        'plotly'
                         ],
                     'dev' : [
                         'pytest',

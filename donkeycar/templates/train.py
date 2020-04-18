@@ -28,7 +28,6 @@ from tensorflow.python import keras
 from docopt import docopt
 
 import donkeycar as dk
-from donkeycar.parts.datastore import Tub
 from donkeycar.parts.keras import KerasIMU, KerasCategorical, KerasBehavioral, \
     KerasLatent, KerasLocalizer, KerasSquarePlusImu
 from donkeycar.parts.augment import augment_image

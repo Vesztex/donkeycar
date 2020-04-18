@@ -552,7 +552,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
                                  verbose=verbose, save_best_only=True,
                                  mode='min', cfg=cfg)
 
-    #stop training if the validation error stops improving.
+    # stop training if the validation error stops improving.
     early_stop = keras.callbacks.EarlyStopping(monitor='val_loss',
                                                 min_delta=cfg.MIN_DELTA,
                                                 patience=cfg.EARLY_STOP_PATIENCE,
@@ -616,14 +616,15 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
                     plt.xlabel('epoch')
                     # plt.legend(['train', 'validate'], loc='upper left')
 
-                plt.savefig(model_path + '_loss_acc_%f.%s' % (save_best.best, figure_format))
+                plt.savefig(model_path + '_loss_acc_%f.%s' % (save_best.best,
+                                                              figure_format))
                 plt.show()
             else:
                 print("not saving loss graph because matplotlib not set up.")
         except Exception as ex:
             print("problems with loss graph: {}".format(ex))
 
-    #Save tflite, optionally in the int quant format for Coral TPU
+    # Save tflite, optionally in the int quant format for Coral TPU
     if "tflite" in cfg.model_type:
         print("\n\n--------- Saving TFLite Model ---------")
         tflite_fnm = model_path.replace(".h5", ".tflite")
@@ -632,7 +633,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
         prepare_for_coral = "coral" in cfg.model_type
 
         if prepare_for_coral:
-            #compile a list of records to calibrate the quantization
+            # compile a list of records to calibrate the quantization
             data_list = []
             max_items = 1000
             for key, _record in gen_records.items():
@@ -643,7 +644,8 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
             stride = 1
             num_calibration_steps = len(data_list) // stride
 
-            #a generator function to help train the quantizer with the expected range of data from inputs
+            # a generator function to help train the quantizer with the
+            # expected range of data from inputs
             def representative_dataset_gen():
                 start = 0
                 end = stride
@@ -659,8 +661,13 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
                     start += stride
                     end += stride
 
-                    # Get sample input data as a numpy array in a method of your choosing.
-                    yield [ np.array(inputs, dtype=np.float32).reshape(stride, cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D) ]
+                    # Get sample input data as a numpy array in a method of
+                    # your choosing.
+                    yield [np.array(inputs,
+                                    dtype=np.float32).reshape(stride,
+                                                              cfg.TARGET_H,
+                                                              cfg.TARGET_W,
+                                                              cfg.TARGET_D)]
         else:
             representative_dataset_gen = None
 
@@ -671,7 +678,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
             print("compile for Coral w: edgetpu_compiler", tflite_fnm)
             os.system("edgetpu_compiler " + tflite_fnm)
 
-    #Save tensorrt
+    # Save tensorrt
     if "tensorrt" in cfg.model_type:
         print("\n\n--------- Saving TensorRT Model ---------")
         # TODO RAHUL
@@ -715,10 +722,8 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type, conti
         image_filename = json_data["cam/image_array"]
         image_path = os.path.join(basepath, image_filename)
         sample = {'record_path': record_path, 'image_path': image_path,
-                  'json_data' : json_data}
-
-        sample["tub_path"] = basepath
-        sample["index"] = get_image_index(image_filename)
+                  'json_data': json_data, "tub_path": basepath,
+                  "index": get_image_index(image_filename)}
 
         angle = float(json_data['user/angle'])
         throttle = float(json_data[throttle_key])
@@ -755,29 +760,23 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type, conti
         sequences.append(seq)
 
     print("Collated", len(sequences), "sequences of length", target_len)
-
-    #shuffle and split the data
-    train_data, val_data  = train_test_split(sequences,
-                                             test_size=(1 - cfg.TRAIN_TEST_SPLIT))
-
+    # shuffle and split the data
+    train_data, val_data = train_test_split(sequences,
+                                            test_size=(1 - cfg.TRAIN_TEST_SPLIT))
 
     def generator(data, opt, batch_size=cfg.BATCH_SIZE):
         num_records = len(data)
-
         while True:
-            #shuffle again for good measure
+            # shuffle again for good measure
             random.shuffle(data)
-
             for offset in range(0, num_records, batch_size):
                 batch_data = data[offset:offset+batch_size]
-
                 if len(batch_data) != batch_size:
                     break
 
                 b_inputs_img = []
                 b_vec_in = []
                 b_labels = []
-                b_vec_out = []
 
                 for seq in batch_data:
                     inputs_img = []
@@ -824,25 +823,26 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type, conti
                     b_labels.append(labels)
 
                 if look_ahead:
-                    X = [np.array(b_inputs_img).reshape(batch_size,\
-                        cfg.TARGET_H, cfg.TARGET_W, cfg.SEQUENCE_LENGTH)]
-                    X.append(np.array(b_vec_in))
-                    y = np.array(b_labels).reshape(batch_size, (cfg.SEQUENCE_LENGTH + 1) * 2)
+                    X = [np.array(b_inputs_img).reshape(batch_size,
+                                                        cfg.TARGET_H,
+                                                        cfg.TARGET_W,
+                                                        cfg.SEQUENCE_LENGTH),
+                         np.array(b_vec_in)]
+                    y = np.array(b_labels).reshape(batch_size,
+                                                   (cfg.SEQUENCE_LENGTH + 1) * 2)
                 else:
-                    X = [np.array(b_inputs_img).reshape(batch_size,\
-                        cfg.SEQUENCE_LENGTH, cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)]
+                    X = [np.array(b_inputs_img).reshape(batch_size,
+                                                        cfg.SEQUENCE_LENGTH,
+                                                        cfg.TARGET_H,
+                                                        cfg.TARGET_W,
+                                                        cfg.TARGET_D)]
                     y = np.array(b_labels).reshape(batch_size, 2)
 
                 yield X, y
 
     opt = {'look_ahead': look_ahead, 'cfg': cfg}
-
     train_gen = generator(train_data, opt)
     val_gen = generator(val_data, opt)
-
-    model_path = os.path.expanduser(model_name)
-
-    total_records = len(sequences)
     total_train = len(train_data)
     total_val = len(val_data)
 
@@ -850,22 +850,12 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type, conti
     steps_per_epoch = total_train // cfg.BATCH_SIZE
     val_steps = total_val // cfg.BATCH_SIZE
     print('steps_per_epoch', steps_per_epoch)
-
     if steps_per_epoch < 2:
         raise Exception("Too little data to train. Please record more records.")
 
     cfg.model_type = model_type
-
-    go_train(kl, cfg, train_gen, val_gen, gen_records, model_name, steps_per_epoch, val_steps, continuous, verbose)
-
-    '''
-    kl.train(train_gen,
-        val_gen,
-        saved_model_path=model_path,
-        steps=steps_per_epoch,
-        train_split=cfg.TRAIN_TEST_SPLIT,
-        use_early_stop = cfg.USE_EARLY_STOP)
-    '''
+    go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
+             steps_per_epoch, val_steps, continuous, verbose)
 
 
 def multi_train(cfg, tub, model, transfer, model_type, continuous, aug):
@@ -981,6 +971,7 @@ def remove_comments(dir_list):
             del dir_list[i]
         elif len(dir_list[i]) == 0:
             del dir_list[i]
+
 
 def preprocessFileList(filelist):
     dirs = []

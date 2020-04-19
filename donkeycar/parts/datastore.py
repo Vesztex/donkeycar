@@ -455,8 +455,7 @@ class Tub(object):
                         count += 1
                     except IOError as err:
                         print(err)
-
-        print('Augmented', count, 'images for tub', self.path)
+        print('Augmenting', count, 'images in', self.path)
 
     def write_exclude(self):
         if 0 == len(self.exclude):

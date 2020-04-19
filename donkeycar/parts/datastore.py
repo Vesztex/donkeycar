@@ -436,7 +436,6 @@ class Tub(object):
         # Get all record's index
         index = self.get_index(shuffled=False)
         # Go through index
-        bar = Bar('Processing', max=len(index))
         count = 0
         for ix in index:
             data = self.get_record(ix)
@@ -444,16 +443,19 @@ class Tub(object):
                 typ = self.get_input_type(key)
                 # load objects that were saved as separate files
                 if typ == 'image_array':
-                    # here val is already and img_arr, but we need to normalise
+                    # here val is already an img_arr, but we need to normalise
                     img_arr = val * one_byte_scale
-                    # and denormalise
+                    # then augment and denormalise
                     img_arr_aug = augment_image(img_arr) * 255.0
+                    # convert back to image and save
                     img_aug = arr_to_img(img_arr_aug)
-                    name = self.make_file_name(key, ext='.jpg')
-                    img_aug.save(os.path.join(self.path, name))
-                    count += 1
-            bar.next()
-        bar.finish()
+                    name = self.make_file_name(key, ext='.jpg', ix=ix)
+                    try:
+                        img_aug.save(os.path.join(self.path, name))
+                        count += 1
+                    except IOError as err:
+                        print(err)
+
         print('Augmented', count, 'images for tub', self.path)
 
     def write_exclude(self):

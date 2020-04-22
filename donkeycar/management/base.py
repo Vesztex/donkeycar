@@ -737,12 +737,15 @@ class PackTubs(BaseCommand):
         id = str(tub_ids[0]) if len(tub_ids) == 1 else \
             str(tub_ids[0]) + '-' + str(tub_ids[-1])
 
+        is_aug = 'aug' in tub_paths[0]
+        out_tub = '/tub_aug_' if is_aug else '/tub_'
+
         pack_path = cfg.PACK_PATH
         tub_arg = ' '.join(tub_paths)
         print('Packing tubs ' + tub_arg + ' into directory ' + pack_path +
               ' with id ' + id)
         # create a tar.gz of input tubs
-        os.system("tar cfz " + pack_path + '/tub_' + id + '.tar.gz ' + tub_arg)
+        os.system("tar cfz " + pack_path + out_tub + id + '.tar.gz ' + tub_arg)
 
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='pack',

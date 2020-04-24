@@ -14,12 +14,10 @@ import random
 import glob
 import numpy as np
 import pandas as pd
-
 from PIL import Image
 
 from donkeycar.parts.augment import augment_pil_image
-from donkeycar.utils import arr_to_img, one_byte_scale
-from progress.bar import Bar
+from donkeycar.utils import arr_to_img
 
 
 class Tub(object):

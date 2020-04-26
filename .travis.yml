@@ -3,9 +3,8 @@ language: python
 dist: xenial
 # This list should match the versions listed in setup.py
 python:
-- 3.5
 - 3.6
-- 3.7 # disable until travis fixes pip install tensorflow
+- 3.7
 
 os:
   - linux

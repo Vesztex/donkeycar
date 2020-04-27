@@ -15,6 +15,7 @@ import glob
 import numpy as np
 import pandas as pd
 from PIL import Image
+from tqdm import tqdm
 
 from donkeycar.parts.augment import augment_pil_image
 from donkeycar.utils import arr_to_img
@@ -433,9 +434,9 @@ class Tub(object):
     def augment_images(self):
         # Get all record's index
         index = self.get_index(shuffled=False)
+        print('Augmenting', len(index), 'images in', self.path)
         # Go through index
-        count = 0
-        for ix in index:
+        for ix in tqdm(index):
             data = self.get_record(ix)
             for key, val in data.items():
                 typ = self.get_input_type(key)
@@ -448,10 +449,8 @@ class Tub(object):
                     name = self.make_file_name(key, ext='.jpg', ix=ix)
                     try:
                         img_aug.save(os.path.join(self.path, name))
-                        count += 1
                     except IOError as err:
                         print(err)
-        print('Augmenting', count, 'images in', self.path)
 
     def write_exclude(self):
         if 0 == len(self.exclude):

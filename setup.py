@@ -45,6 +45,7 @@ setup(name='donkeycar',
                       'PrettyTable',
                       'paho-mqtt',
                       'progress',
+                      'tqdm',
                       'simple-pid'
                       ],
 

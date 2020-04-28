@@ -23,7 +23,7 @@ import zlib
 from os.path import basename, join, splitext, dirname
 import pickle
 import datetime
-
+from tqdm import tqdm
 from tensorflow.python import keras
 from docopt import docopt
 
@@ -72,15 +72,16 @@ def collate_records(records, gen_records, opts):
     add them to a list of gen_records, passed in.
     use the opts dict to specify config choices
     '''
-    print('collating %d records ...' % (len(records)))
     throttle_key = 'user/throttle'
-    if hasattr(opts['cfg'], 'USE_SPEED_FOR_MODEL') and opts['cfg'].USE_SPEED_FOR_MODEL:
+    if hasattr(opts['cfg'], 'USE_SPEED_FOR_MODEL') \
+            and opts['cfg'].USE_SPEED_FOR_MODEL:
         throttle_key = 'car/speed'
 
     print('Using', throttle_key, 'for training')
+    print('Collating %d records ...' % (len(records)))
     new_records = {}
 
-    for record_path in records:
+    for record_path in tqdm(records):
 
         basepath = os.path.dirname(record_path)
         index = get_record_index(record_path)
@@ -108,9 +109,9 @@ def collate_records(records, gen_records, opts):
         throttle = float(json_data[throttle_key])
 
         if opts['categorical']:
+            r = opts['cfg'].MODEL_CATEGORICAL_MAX_THROTTLE_RANGE
             angle = dk.utils.linear_bin(angle)
-            throttle = dk.utils.linear_bin(throttle, N=20, offset=0,
-                                           R=opts['cfg'].MODEL_CATEGORICAL_MAX_THROTTLE_RANGE)
+            throttle = dk.utils.linear_bin(throttle, N=20, offset=0, R=r)
 
         sample['angle'] = angle
         sample['throttle'] = throttle
@@ -711,9 +712,9 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type, conti
     throttle_key = 'user/throttle'
     if hasattr(cfg, 'USE_SPEED_FOR_MODEL') and cfg.USE_SPEED_FOR_MODEL:
         throttle_key = 'car/speed'
-    print('Collating records, using', throttle_key, 'for training')
+    print('Collating records, using', throttle_key, 'for training:')
 
-    for record_path in records:
+    for record_path in tqdm(records):
 
         with open(record_path, 'r') as fp:
             json_data = json.load(fp)

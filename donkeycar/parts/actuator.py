@@ -36,7 +36,7 @@ class PCA9685:
         try:
             self.pwm.set_pwm(self.channel, 0, int(pulse * self.pwm_scale))
         except OSError as e:
-            print(e)
+            print('Problem w/ PCA9685 on channel', self.channel, ":", e)
 
     def run(self, pulse):
         self.set_pulse(pulse)

@@ -176,12 +176,16 @@ class Tub(object):
         return d
 
     def copy(self, suffix='copy'):
+        """
+        Create new tub by inserting 'copy' before the date like
+        'tub_XY_YY-MM-DD' -> 'tub_XY_copy_YY-MM-DD
+        :param suffix:  string to insert into copied tub name
+        :return:        new tub at new location
+        """
         tub_path = self.path
         # remove trailing slash if exits
         if tub_path[-1] == '/':
             tub_path = tub_path[:-1]
-        # create new tub path by inserting 'copy' before the date like
-        # 'tub_XY_YY-MM-DD' -> 'tub_XY_copy_YY-MM-DD
         head, tail = os.path.split(tub_path)
         tail_list = tail.split('_')
         length = len(tail_list)

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import time
 from simple_pid import PID
+from PIL import ImageEnhance, ImageStat
 
-from donkeycar.utils import normalize_and_crop
+from donkeycar.utils import normalize_and_crop, img_to_arr, arr_to_img
 
 
 class Lambda:
@@ -143,3 +144,33 @@ class ImgPrecondition:
     def run(self, img_arr):
         return normalize_and_crop(img_arr, self.cfg)
 
+
+class ImgBrightnessNormaliser:
+    """
+    Donkey part to normalise the image brightness
+    """
+    def __init__(self, norm=100):
+        """
+        :param norm: Normalisation factor between 0 (black) and 255 (white)
+        """
+        self.norm = norm
+        print('Created part', type(self).__name__)
+
+    def run(self, img_arr):
+        """
+        Method to adjust the brightness level to given value using PIL
+        :param img_arr:     numpy input image array
+        :return:            numpy image array
+        """
+        img = self.normalise_image(img_arr)
+        img_arr = img_to_arr(img)
+        return img_arr
+
+    def normalise_image(self, img_arr):
+        img = arr_to_img(img_arr)
+        stat = ImageStat.Stat(img)
+        brightness = stat.rms[0]
+        if brightness > 0:
+            factor = self.norm / brightness
+            img = ImageEnhance.Brightness(img).enhance(factor)
+        return img

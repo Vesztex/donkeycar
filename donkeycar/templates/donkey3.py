@@ -21,7 +21,8 @@ from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
     RCReceiver, ModeSwitch
 from donkeycar.parts.datastore import TubWiper, TubHandler
 from donkeycar.parts.clock import Timestamp
-from donkeycar.parts.transform import SimplePidController, ImgPrecondition
+from donkeycar.parts.transform import SimplePidController, ImgPrecondition, \
+    ImgBrightnessNormaliser
 from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
 from donkeycar.parts.imu import Mpu6050Ada
@@ -33,6 +34,11 @@ class TypePrinter:
 
     def run(self, in_type):
         print("Type of", self.type_name, type(in_type))
+
+
+# define some strings that are used in the vehicle data flow
+CAM_IMG = 'cam/image_array'
+CAM_IMG_NORM = 'cam/normalized/cropped'
 
 
 def drive(cfg, use_pid=False, no_cam=False, model_path=None,
@@ -68,7 +74,11 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     if not no_cam:
         cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
                        image_d=cfg.IMAGE_DEPTH, framerate=frame_rate)
-        car.add(cam, outputs=['cam/image_array'], threaded=True)
+        car.add(cam, outputs=[CAM_IMG], threaded=True)
+
+        if hasattr(cfg, 'IMG_BRIGHTNESS'):
+            img_brightness = ImgBrightnessNormaliser(cfg.IMG_BRIGHTNESS)
+            car.add(img_brightness, inputs=[CAM_IMG], outputs=[CAM_IMG])
 
     odo = Odometer(gpio=cfg.ODOMETER_GPIO,
                    tick_per_meter=cfg.TICK_PER_M,
@@ -81,11 +91,11 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     car.add(mpu, outputs=['car/accel', 'car/gyro'], threaded=True)
 
     if web:
-        car.add(WebFpv(), inputs=['cam/image_array'], threaded=True)
+        car.add(WebFpv(), inputs=[CAM_IMG], threaded=True)
 
     if fpv:
         streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)
-        car.add(streamer, inputs=['cam/image_array'], threaded=True)
+        car.add(streamer, inputs=[CAM_IMG], threaded=True)
 
     # create the RC receiver with 3 channels
     rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
@@ -116,11 +126,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)
 
-        car.add(ImgPrecondition(cfg), inputs=['cam/image_array'],
-                outputs=['cam/normalized/cropped'])
+        car.add(ImgPrecondition(cfg), inputs=[CAM_IMG], outputs=[CAM_IMG_NORM])
 
         use_imu = 'imu' in model_path
-        inputs = ['cam/normalized/cropped']
+        inputs = [CAM_IMG_NORM]
         outputs = ['pilot/angle', pilot_throttle_var]
         if use_imu:
             print('Use IMU in pilot')
@@ -208,7 +217,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
             car.add(pilot_to_user_steering, ['pilot/angle'], ['user/angle'])
 
         # add tub to save data
-        inputs = ['cam/image_array', 'user/angle', 'user/throttle',
+        inputs = [CAM_IMG, 'user/angle', 'user/throttle',
                   'car/speed', 'car/inst_speed', 'car/lap',
                   'car/accel', 'car/gyro', 'timestamp']
         types = ['image_array', 'float', 'float', 'float', 'float', 'int',

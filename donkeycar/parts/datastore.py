@@ -16,9 +16,11 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 from tqdm import tqdm
+import shutil
 
 from donkeycar.parts.augment import augment_pil_image
 from donkeycar.utils import arr_to_img
+from donkeycar.parts.transform import ImgBrightnessNormaliser
 
 
 class Tub(object):
@@ -172,6 +174,24 @@ class Tub(object):
                 v = os.path.join(self.path, v)
             d[k] = v
         return d
+
+    def copy(self, suffix='copy'):
+        tub_path = self.path
+        # remove trailing slash if exits
+        if tub_path[-1] == '/':
+            tub_path = tub_path[:-1]
+        # create new tub path by inserting 'copy' before the date like
+        # 'tub_XY_YY-MM-DD' -> 'tub_XY_copy_YY-MM-DD
+        head, tail = os.path.split(tub_path)
+        tail_list = tail.split('_')
+        length = len(tail_list)
+        tail_list.insert(length - 1, suffix)
+        new_tail = '_'.join(tail_list)
+        new_path = os.path.join(head, new_tail)
+        # copy whole tub to new location
+        shutil.copytree(self.path, new_path)
+        new_tub = Tub(new_path)
+        return new_tub
 
     def check(self, fix=False):
         """
@@ -432,9 +452,40 @@ class Tub(object):
         return laps_to_keep
 
     def augment_images(self):
+        """
+        Augment all images inplace
+        """
+        # define the processor
+        def processor(img_arr):
+            # here val is an img_arr
+            img = arr_to_img(img_arr)
+            # then augment and denormalise
+            img_aug = augment_pil_image(img)
+            return img_aug
+        self._process_images(processor)
+
+    def normalize_brightness_in_images(self, norm):
+        """
+        Normalises image brightness of all images in place
+        :param norm: normalisation factor [0, 255]
+        """
+        # define the brightness normaliser
+        img_br = ImgBrightnessNormaliser(norm)
+
+        # define the processor
+        def processor(img_arr):
+            return img_br.normalise_image(img_arr)
+
+        self._process_images(processor)
+
+    def _process_images(self, processor):
+        """
+        Go through all images and process them
+        :param processor: function(img_arr) returning an PIL image
+        """
         # Get all record's index
         index = self.get_index(shuffled=False)
-        print('Augmenting', len(index), 'images in', self.path)
+        print('Processing', len(index), 'images in', self.path)
         # Go through index
         for ix in tqdm(index):
             data = self.get_record(ix)
@@ -443,12 +494,10 @@ class Tub(object):
                 # load objects that were saved as separate files
                 if typ == 'image_array':
                     # here val is an img_arr
-                    img = arr_to_img(val)
-                    # then augment and denormalise
-                    img_aug = augment_pil_image(img)
+                    img_out = processor(val)
                     name = self.make_file_name(key, ext='.jpg', ix=ix)
                     try:
-                        img_aug.save(os.path.join(self.path, name))
+                        img_out.save(os.path.join(self.path, name))
                     except IOError as err:
                         print(err)
 

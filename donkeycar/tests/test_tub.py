@@ -6,10 +6,10 @@ import unittest
 from donkeycar.parts.datastore import TubHandler
 from donkeycar.parts.datastore import TubWriter, Tub
 from donkeycar.utils import arr_to_img, img_to_arr
-from PIL import ImageChops
+from PIL import ImageChops, ImageStat
 
 # fixtures
-from .setup import tub, tub_path
+from .setup import tub, tub_rand, tub_path
 
 
 def test_tub_load(tub, tub_path):
@@ -97,6 +97,23 @@ def test_tub_augment(tub):
     # square images. Empirically we see changes in the order of 0.1
     assert total_change / len(img_arr_before) < 1.0, \
         'The augmented pictures differ too much.'
+
+
+def test_tub_normalise_brightness(tub_rand):
+    """Tub brightness adjusted images."""
+    index = tub_rand.get_index(shuffled=False)
+    img_arr_before = [tub_rand.get_record(ix)['cam/image_array'] for ix in index]
+    target_brightness = 100
+    tub_rand.normalize_brightness_in_images(target_brightness)
+    img_arr_after = [tub_rand.get_record(ix)['cam/image_array'] for ix in index]
+    for img_arr_b, img_arr_a in zip(img_arr_before, img_arr_after):
+        img_b, img_a = arr_to_img(img_arr_b), arr_to_img(img_arr_a)
+        stat_b, stat_a = ImageStat.Stat(img_b), ImageStat.Stat(img_a)
+        brightness_b, brightness_a = stat_b.rms[0], stat_a.rms[0]
+        if brightness_b > 0:
+            assert abs(brightness_a - target_brightness) < 3, \
+                'brightness adjustment didnt work, ' \
+                'original brightness {:.2f}'.format(brightness_b)
 
 
 class TestTubWriter(unittest.TestCase):

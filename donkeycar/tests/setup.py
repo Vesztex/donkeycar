@@ -1,6 +1,7 @@
 import os
 import platform
 import pytest
+import numpy as np
 from donkeycar.parts.datastore import Tub
 from donkeycar.parts.simulation import SquareBoxCamera, MovingSquareTelemetry
 from donkeycar.management.base import CreateCar
@@ -24,6 +25,12 @@ def tub_path(tmpdir):
 @pytest.fixture
 def tub(tub_path):
     t = create_sample_tub(tub_path, records=128)
+    return t
+
+
+@pytest.fixture
+def tub_rand(tub_path):
+    t = create_random_tub(tub_path, records=128)
     return t
 
 
@@ -52,6 +59,20 @@ def create_sample_tub(path, records=128):
                       'user/angle': x,
                       'user/throttle': y,
                       'location/one_hot_state_array': loc})
+
+    global temp_tub_path
+    temp_tub_path = t.path
+    print("setting temp tub path to:", temp_tub_path)
+    return t
+
+
+def create_random_tub(path, records=128):
+    inputs = ['cam/image_array']
+    types = ['image_array']
+    t = Tub(path, inputs=inputs, types=types)
+    for _ in range(records):
+        img_arr = np.random.rand(120, 160, 3) * 255
+        t.put_record({'cam/image_array': img_arr})
 
     global temp_tub_path
     temp_tub_path = t.path

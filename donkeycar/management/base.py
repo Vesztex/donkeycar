@@ -765,8 +765,13 @@ class PackTubs(BaseCommand):
 
 
 class TubAugment(BaseCommand):
+    def __init__(self):
+        self.prog_name = 'tubaugment'
+        self.tub_str = 'aug'
+        self.cfg = load_config('config.py')
+
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='tubaugment',
+        parser = argparse.ArgumentParser(prog=self.prog_name,
                                          usage='%(prog)s [options]')
         parser.add_argument('tubs', nargs='+', help='paths to tubs')
         parser.add_argument('--inplace', dest='inplace', action='store_true',
@@ -776,37 +781,33 @@ class TubAugment(BaseCommand):
         parsed_args = parser.parse_args(args)
         return parsed_args
 
-    def augment(self, tub_paths, inplace=False):
-        """
-        :param tub_paths:   path list to tubs
-        :param inplace:     if tub should be changed or copied
-        :return:            None
-        """
-        cfg = load_config('config.py')
-        tubs = gather_tubs(cfg, tub_paths)
+    def process(self, tub):
+        tub.augment_images()
 
-        for tub in tubs:
-            if inplace:
-                tub.augment_images()
-            else:
-                tub_path = tub.path
-                # remove trailing slash if exits
-                if tub_path[-1] == '/':
-                    tub_path = tub_path[:-1]
-                # create new tub path by inserting '_aug' after 'tub_XY'
-                head, tail = os.path.split(tub_path)
-                tail_list = tail.split('_')
-                tail_list.insert(2, 'aug')
-                new_tail = '_'.join(tail_list)
-                new_path = os.path.join(head, new_tail)
-                # copy whole tub to new location and run augmentation
-                shutil.copytree(tub.path, new_path)
-                new_tub = Tub(new_path)
-                new_tub.augment_images()
+    def make_tubs(self, tub_paths, inplace=False):
+        tubs = gather_tubs(self.cfg, tub_paths)
+        if inplace:
+            return tubs
+        else:
+            return [tub.copy(self.tub_str) for tub in tubs]
 
     def run(self, args):
         args = self.parse_args(args)
-        self.augment(args.tubs, args.inplace)
+        tubs = self.make_tubs(args.tubs, args.inplace)
+        for tub in tubs:
+            self.process(tub)
+
+
+class TubNormBrightness(TubAugment):
+    def __init__(self):
+        super.__init__()
+        self.prog_name = 'tubbrightness'
+        self.tub_str = 'norm'
+        assert hasattr(self.cfg, 'IMG_BRIGHTNESS'), 'IMG_BRIGHTNESS needs to ' \
+                                                    'be defined in the config'
+
+    def process(self, tub):
+        tub.normalize_brightness_in_images(self.cfg.IMG_BRIGHTNESS)
 
 
 def execute_from_command_line():
@@ -822,6 +823,7 @@ def execute_from_command_line():
                 'tubpredict': ShowPredictionMetric,
                 'tubcheck': TubCheck,
                 'tubaugment': TubAugment,
+                'tubnorm': TubNormBrightness,
                 'makemovie': MakeMovieShell,
                 'createjs': CreateJoystick,
                 'consync': ConSync,

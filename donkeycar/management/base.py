@@ -800,11 +800,11 @@ class TubAugment(BaseCommand):
 
 class TubNormBrightness(TubAugment):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         self.prog_name = 'tubbrightness'
         self.tub_str = 'norm'
-        assert hasattr(self.cfg, 'IMG_BRIGHTNESS'), 'IMG_BRIGHTNESS needs to ' \
-                                                    'be defined in the config'
+        assert hasattr(self.cfg, 'IMG_BRIGHTNESS'), \
+            'IMG_BRIGHTNESS needs to be defined in the config'
 
     def process(self, tub):
         tub.normalize_brightness_in_images(self.cfg.IMG_BRIGHTNESS)

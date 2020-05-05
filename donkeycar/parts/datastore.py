@@ -478,7 +478,8 @@ class Tub(object):
 
         # define the processor
         def processor(img_arr):
-            return img_br.normalise_image(img_arr)
+            out_arr = img_br.run(img_arr)
+            return arr_to_img(out_arr)
 
         self._process_images(processor)
 

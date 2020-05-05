@@ -2,6 +2,7 @@
 import time
 from simple_pid import PID
 from PIL import ImageEnhance, ImageStat
+import numpy as np
 
 from donkeycar.utils import normalize_and_crop, img_to_arr, arr_to_img
 
@@ -162,15 +163,20 @@ class ImgBrightnessNormaliser:
         :param img_arr:     numpy input image array
         :return:            numpy image array
         """
-        img = self.normalise_image(img_arr)
-        img_arr = img_to_arr(img)
-        return img_arr
-
-    def normalise_image(self, img_arr):
-        img = arr_to_img(img_arr)
-        stat = ImageStat.Stat(img)
-        brightness = stat.rms[0]
-        if brightness > 0:
-            factor = self.norm / brightness
-            img = ImageEnhance.Brightness(img).enhance(factor)
-        return img
+        # determine number of pixels = h * w * num-channels
+        num = 1
+        for j in img_arr.shape:
+            num *= j
+        # determine the average brightness
+        brightness = img_arr.sum() / num
+        # this number should be between 0 and 255
+        assert 0 <= brightness <= 255, \
+            'brightness {:2f} is wrong'.format(brightness)
+        # this is the factor to be applied
+        factor = self.norm / brightness
+        # convert to float first and adjust
+        img_arr = img_arr.astype(np.float32)
+        img_arr *= factor
+        # clamp to [0, 255]
+        np.clip(img_arr, 0, 255, out=img_arr)
+        return img_arr.astype(np.uint8)

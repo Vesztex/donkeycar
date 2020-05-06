@@ -163,12 +163,8 @@ class ImgBrightnessNormaliser:
         :param img_arr:     numpy input image array
         :return:            numpy image array
         """
-        # determine number of pixels = h * w * num-channels
-        num = 1
-        for j in img_arr.shape:
-            num *= j
         # determine the average brightness
-        brightness = img_arr.sum() / num
+        brightness = self.brightness(img_arr)
         # this number should be between 0 and 255
         assert 0 <= brightness <= 255, \
             'brightness {:2f} is wrong'.format(brightness)
@@ -180,3 +176,13 @@ class ImgBrightnessNormaliser:
         # clamp to [0, 255]
         np.clip(img_arr, 0, 255, out=img_arr)
         return img_arr.astype(np.uint8)
+
+    @staticmethod
+    def brightness(img_arr):
+        # determine number of pixels = h * w * num-channels
+        num = 1
+        for j in img_arr.shape:
+            num *= j
+        # determine the average brightness
+        brightness = img_arr.sum() / num
+        return brightness

@@ -6,7 +6,8 @@ import unittest
 from donkeycar.parts.datastore import TubHandler
 from donkeycar.parts.datastore import TubWriter, Tub
 from donkeycar.utils import arr_to_img, img_to_arr
-from PIL import ImageChops, ImageStat
+from PIL import ImageChops
+from donkeycar.parts.transform import ImgBrightnessNormaliser
 
 # fixtures
 from .setup import tub, tub_rand, tub_path
@@ -107,11 +108,12 @@ def test_tub_normalise_brightness(tub_rand):
     tub_rand.normalize_brightness_in_images(target_brightness)
     img_arr_after = [tub_rand.get_record(ix)['cam/image_array'] for ix in index]
     for img_arr_b, img_arr_a in zip(img_arr_before, img_arr_after):
-        img_b, img_a = arr_to_img(img_arr_b), arr_to_img(img_arr_a)
-        stat_b, stat_a = ImageStat.Stat(img_b), ImageStat.Stat(img_a)
-        brightness_b, brightness_a = stat_b.rms[0], stat_a.rms[0]
+        brightness_b = ImgBrightnessNormaliser.brightness(img_arr_b)
+        brightness_a = ImgBrightnessNormaliser.brightness(img_arr_a)
         if brightness_b > 0:
-            assert abs(brightness_a - target_brightness) < 3, \
+            diff = abs(brightness_a - target_brightness)
+            # print('Brightness diff is {:2f}'.format(diff))
+            assert diff < 1, \
                 'brightness adjustment didnt work, ' \
                 'original brightness {:.2f}'.format(brightness_b)
 

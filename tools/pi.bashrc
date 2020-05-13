@@ -92,8 +92,11 @@ alias ll='ls -ahl'
 #alias la='ls -A'
 #alias l='ls -CF'
 alias e='emacs'
-alias run='cd ~/projects/donkeycar; git pull; rm -f ~/mycar/{manage,myconfig}.py; donkey createcar --path ~/mycar --template donkey3; cd ~/mycar; mv manage.py manage_rc.py'
+alias run='cd ~/projects/donkeycar; git pull; rm -f ~/mycar/{manage,myconfig}.py; donkey createcar --path ~/mycar --template donkey3; cd ~/mycar; mv manage.py manage_rc.py; chmod u+x manage_rc.py'
 alias bye='sudo shutdown -h now'
+alias cpu='vcgencmd measure_clock arm; vcgencmd get_throttled; vcgencmd measure_temp'
+
+
 export PATH=$PATH:.
 
 

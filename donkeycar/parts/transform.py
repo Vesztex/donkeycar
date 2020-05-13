@@ -168,6 +168,9 @@ class ImgBrightnessNormaliser:
         # this number should be between 0 and 255
         assert 0 <= brightness <= 255, \
             'brightness {:2f} is wrong'.format(brightness)
+        # if brightness is zero we can't scale, so return input
+        if brightness == 0:
+            return img_arr
         # this is the factor to be applied
         factor = self.norm / brightness
         # convert to float first and adjust

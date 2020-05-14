@@ -77,8 +77,9 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         car.add(cam, outputs=[CAM_IMG], threaded=True)
 
         if hasattr(cfg, 'IMG_BRIGHTNESS'):
-            img_brightness = ImgBrightnessNormaliser(cfg.IMG_BRIGHTNESS)
-            car.add(img_brightness, inputs=[CAM_IMG], outputs=[CAM_IMG])
+            is_prop = getattr(cfg, 'IMG_BRIGHTNESS_PROPORTIONAL', True)
+            img_norm = ImgBrightnessNormaliser(cfg.IMG_BRIGHTNESS, is_prop)
+            car.add(img_norm, inputs=[CAM_IMG], outputs=[CAM_IMG])
 
     odo = Odometer(gpio=cfg.ODOMETER_GPIO,
                    tick_per_meter=cfg.TICK_PER_M,

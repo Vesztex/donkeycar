@@ -150,12 +150,14 @@ class ImgBrightnessNormaliser:
     """
     Donkey part to normalise the image brightness
     """
-    def __init__(self, norm=100):
+    def __init__(self, norm=100, proportional=False):
         """
         :param norm: Normalisation factor between 0 (black) and 255 (white)
         """
         self.norm = norm
-        print('Created part', type(self).__name__)
+        self.relative = proportional
+        print('Created part', type(self).__name__, 'using',
+              'proportional' if proportional else 'absolute pixel shifting')
 
     def run(self, img_arr):
         """
@@ -168,17 +170,22 @@ class ImgBrightnessNormaliser:
         # this number should be between 0 and 255
         assert 0 <= brightness <= 255, \
             'brightness {:2f} is wrong'.format(brightness)
-        # if brightness is zero we can't scale, so return input
-        if brightness == 0:
+        if self.relative:
+            # if brightness is zero we can't scale, so return input
+            if brightness == 0:
+                return img_arr
+            # this is the factor to be applied
+            factor = self.norm / brightness
+            # convert to float first and adjust
+            img_arr = img_arr.astype(np.float32)
+            img_arr *= factor
+            # clamp to [0, 255]
+            np.clip(img_arr, 0, 255, out=img_arr)
+            return img_arr.astype(np.uint8)
+        else:
+            img_arr += int(self.norm) - brightness
+            np.clip(img_arr, 0, 255, out=img_arr)
             return img_arr
-        # this is the factor to be applied
-        factor = self.norm / brightness
-        # convert to float first and adjust
-        img_arr = img_arr.astype(np.float32)
-        img_arr *= factor
-        # clamp to [0, 255]
-        np.clip(img_arr, 0, 255, out=img_arr)
-        return img_arr.astype(np.uint8)
 
     @staticmethod
     def brightness(img_arr):

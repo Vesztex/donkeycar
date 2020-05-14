@@ -67,6 +67,7 @@ class Vehicle:
         self.loop_count = 0
         self.loop_exceed = 0
         self.excess_time = 0.0
+        self.run_time = 0.0
 
     def add(self, part, inputs=[], outputs=[],
             threaded=False, run_condition=None):
@@ -137,18 +138,15 @@ class Vehicle:
         self.loop_count = 0
         self.loop_exceed = 0
         self.excess_time = 0.0
+        self.run_time = 0.0
         try:
-
             self.on = True
-
             for entry in self.parts:
                 if entry.get('thread'):
                     # start the update thread
                     entry.get('thread').start()
 
-            # wait until the parts warm up.
             print('Starting vehicle at {} Hz'.format(rate_hz))
-
             while self.on:
                 start_time = time.time()
                 self.update_parts()
@@ -156,7 +154,9 @@ class Vehicle:
                 if max_loop_count and self.loop_count > max_loop_count:
                     self.on = False
 
-                sleep_time = loop_time - (time.time() - start_time)
+                this_loop_time = time.time() - start_time
+                sleep_time = loop_time - this_loop_time
+                self.run_time += this_loop_time
                 if sleep_time > 0.0:
                     time.sleep(sleep_time)
                 else:
@@ -218,8 +218,9 @@ class Vehicle:
                 print(e)
         count = max(self.loop_count, 1)
         print('Ran {:} vehicle loops with {:.2f}% exceeding loop time. '
-              'Average excess time {:.1f}ms.'
+              'Average excess time {:.1f}ms, average loop time {:.1f}ms.'
               .format(self.loop_count,
                       100.0 * self.loop_exceed / count,
-                      1000.0 * self.excess_time / count))
+                      1000.0 * self.excess_time / count,
+                      1000.0 * self.run_time / count))
         self.profiler.report()

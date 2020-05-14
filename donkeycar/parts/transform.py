@@ -183,9 +183,9 @@ class ImgBrightnessNormaliser:
             np.clip(img_arr, 0, 255, out=img_arr)
             return img_arr.astype(np.uint8)
         else:
-            img_arr += int(self.norm) - brightness
-            np.clip(img_arr, 0, 255, out=img_arr)
-            return img_arr
+            img_arr_out = img_arr + int(self.norm) - brightness
+            np.clip(img_arr_out, 0, 255, out=img_arr_out)
+            return img_arr_out
 
     @staticmethod
     def brightness(img_arr):

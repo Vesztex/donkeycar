@@ -150,7 +150,7 @@ class ImgBrightnessNormaliser:
     """
     Donkey part to normalise the image brightness
     """
-    def __init__(self, norm=100, proportional=False):
+    def __init__(self, norm=100, proportional=True):
         """
         :param norm: Normalisation factor between 0 (black) and 255 (white)
         """

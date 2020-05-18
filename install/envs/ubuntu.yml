@@ -3,7 +3,7 @@ dependencies:
 
 - h5py
 - pillow
-- tensorflow==1.13.1
+- tensorflow-gpu==1.15
 - opencv
 - matplotlib
 - tornado

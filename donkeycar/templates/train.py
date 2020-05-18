@@ -10,7 +10,12 @@ Basic usage should feel familiar: python train.py --model models/mypilot
 
 
 Usage:
-    train.py [--tub=<tub1,tub2,..tubn>] [--file=<file> ...] (--model=<model>) [--transfer=<model>] [--type=(linear|latent|categorical|rnn|imu|behavior|3d|look_ahead|tensorrt_linear|tflite_linear|coral_tflite_linear)] [--figure_format=<figure_format>] [--continuous] [--aug]
+    train.py [--tub=<tub1,tub2,..tubn>] [--file=<file> ...] (--model=<model>)
+    [--transfer=<model>]
+    [--type=(linear|latent|categorical|rnn|imu|behavior|3d|look_ahead|tensorrt_linear|tflite_linear|coral_tflite_linear)]
+    [--figure_format=<figure_format>]
+    [--nn_size=<nn_size>]
+    [--continuous] [--aug]
 
 Options:
     -h --help              Show this screen.
@@ -619,7 +624,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
 
                 plt.savefig(model_path + '_loss_acc_%f.%s' % (save_best.best,
                                                               figure_format))
-                plt.show()
+                plt.show(block=False)
             else:
                 print("not saving loss graph because matplotlib not set up.")
         except Exception as ex:
@@ -997,10 +1002,13 @@ if __name__ == "__main__":
         figure_format = args['--figure_format']
     continuous = args['--continuous']
     aug = args['--aug']
+    nn_size = args['--nn_size']
+    if nn_size is not None:
+        cfg.NN_SIZE = nn_size
 
-    dirs = preprocessFileList( args['--file'] )
+    dirs = preprocessFileList(args['--file'])
     if tub is not None:
         tub_paths = [os.path.expanduser(n) for n in tub.split(',')]
-        dirs.extend( tub_paths )
+        dirs.extend(tub_paths)
 
     multi_train(cfg, dirs, model, transfer, model_type, continuous, aug)

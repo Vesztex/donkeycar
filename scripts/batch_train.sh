@@ -8,18 +8,26 @@ tubs_expand=$tubs
 # use transfer
 use_transfer=1
 
+# iterations
+iter=2
+
 # define repeatedly used variables
 type=square_plus_imu.tflite
 model_name=pilot_speed_imu_norm
 
 for size in s m l; do
+  # build the argument of the train job
   model_full_name="${model_name}_${size}_${tub_range}"
   model_arg="models/${model_full_name}.tflite"
   command_args="--type $type --model $model_arg --nn_size $size --tub $tubs_expand"
-  if [ $use_transfer = 1]; then
+  if [ $use_transfer = 1 ]; then
     command_args="${command_args}  --transfer ${model_full_name}.h5";
   fi
-  train.py $command_args
+  # run training iteratively
+  for (( i=0; i<iter; i++))
+  do
+    train.py $command_args
+  done
 done
 
 exit 0

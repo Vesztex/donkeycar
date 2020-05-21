@@ -27,7 +27,7 @@ for size in s m l; do
   # run training iteratively
   for (( i=0; i<iter; i++))
   do
-      train.py $command_args
+      train.py "$command_args"
   done
 
 done

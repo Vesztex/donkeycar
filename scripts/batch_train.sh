@@ -29,6 +29,7 @@ for size in s m l; do
   do
       train.py $command_args
   done
+
 done
 
 exit 0

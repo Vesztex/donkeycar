@@ -179,7 +179,7 @@ class KerasSquarePlus(KerasLinear):
     """
 
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
-        size = kwargs.get('size', 'S')
+        size = kwargs.get('size', 'S').upper()
         self.model = linear_square_plus(input_shape, roi_crop, size=size)
         self.compile()
         print('Created', self.__class__.__name__, 'NN size:', size)
@@ -195,7 +195,7 @@ class KerasSquarePlusImu(KerasSquarePlus):
     """
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
         imu_dim = kwargs.get('imu_dim', 6)
-        size = kwargs.get('size', 'S')
+        size = kwargs.get('size', 'S').upper()
         self.model = linear_square_plus_imu(input_shape, roi_crop,
                                             imu_dim=imu_dim,
                                             size=size)
@@ -394,16 +394,16 @@ def linear_square_plus_cnn(x, size='S'):
     drop = 0.02
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
-    if size.upper() in ['S', 'M']:
+    if size in ['S', 'M']:
         filters = [16, 32, 64, 96]
         kernels = [(7, 7), (5, 5), (3, 3), (2, 2)]
-        if size.upper() == 'M':
+        if size == 'M':
             filters += [128]
             kernels += [(2, 2)]
-    if size.upper() == 'L':
+    if size == 'L':
         filters = [20, 40, 80, 120, 160]
         kernels = [(9, 9), (7, 7), (5, 5), (3, 3), (2, 2)]
-    if size.upper() == 'S':
+    if size == 'S':
         strides = [(3, 4), (2, 2)] + [(1, 1)] * 2
     else:  # M or L
         strides = [(3, 4)] + [(1, 1)] * 4
@@ -422,19 +422,18 @@ def linear_square_plus_cnn(x, size='S'):
 
 
 def square_plus_dense(size='S'):
-    if size.upper() == 'S':
+    if size == 'S':
         layers = [96] * 4 + [48]
-    elif size.upper() == 'M':
+    elif size == 'M':
         layers = [128] * 5 + [64]
-    elif size.upper() == 'L':
+    elif size == 'L':
         layers = [144] * 8
     else:
         raise ValueError('size must be S, M or L but was', size)
     return layers
 
 
-def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
-                       size='S'):
+def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0), size='S'):
     l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
     img_in = Input(shape=input_shape, name='img_in')
@@ -464,9 +463,9 @@ def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
 
     y = imu_in
     units = 24
-    if size.upper() == 'M':
+    if size == 'M':
         units = 36
-    elif size.upper() == 'L':
+    elif size == 'L':
         units = 48
     y = Dense(units=units, activation='relu',
               kernel_regularizer=regularizers.l2(l2),

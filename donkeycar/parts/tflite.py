@@ -97,8 +97,8 @@ class TFLitePilot(object):
         return steering, throttle
 
     def get_input_shape(self):
-        assert self.input_shape is not None, "Need to load model first"
-        return tuple(self.input_shape)
+        assert self.input_shape_0 is not None, "Need to load model first"
+        return tuple(self.input_shape_0)
 
     def compile(self):
         pass

@@ -8,12 +8,15 @@ try:
     from vis.backprop_modifiers import get
     from vis.losses import ActivationMaximization
     from vis.optimizer import Optimizer
-except:
-    raise Exception("Please install keras-vis: pip install git+https://github.com/autorope/keras-vis.git")
+except ImportError:
+    raise Exception("Please install keras-vis: pip install "
+                    "git+https://github.com/autorope/keras-vis.git")
 
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
 from donkeycar.utils import *
+
+ONE_OVER_INT = 1.0 / 255.0
 
 
 class MakeMovie(object):
@@ -32,13 +35,15 @@ class MakeMovie(object):
             return
 
         if args.type is None and args.model is not None:
-            print("ERR>> --type argument missing. Required when providing a model.")
+            print("ERR>> --type argument missing. "
+                  "Required when providing a model.")
             parser.print_help()
             return
 
         if args.salient:
             if args.model is None:
-                print("ERR>> salient visualization requires a model. Pass with the --model arg.")
+                print("ERR>> salient visualization requires a model. "
+                      "Pass with the --model arg.")
                 parser.print_help()
 
         conf = os.path.expanduser(args.config)
@@ -63,6 +68,11 @@ class MakeMovie(object):
             self.keras_part = get_model_by_type(args.type, cfg=self.cfg)
             self.keras_part.load(args.model)
             self.keras_part.compile()
+            self.imu_model = 'imu' in args.model
+            if self.imu_model:
+                imu_dim = self.cfg.IMU_DIM if hasattr(self.cfg, "IMU_DIM") \
+                    else 6
+                self.imu_input = [0.0] * imu_dim
             if args.salient:
                 self.do_salient = self.init_salient(self.keras_part.model)
 
@@ -118,7 +128,7 @@ class MakeMovie(object):
         actual = img.shape
 
         # normalize image before prediction
-        pred_img = img.astype(np.float32) / 255.0
+        pred_img = img.astype(np.float32) * ONE_OVER_INT
 
         # check input depth
         if expected[2] == 1 and actual[2] == 3:
@@ -127,17 +137,21 @@ class MakeMovie(object):
             actual = pred_img.shape
 
         if expected != actual:
-            print("expected input dim", expected, "didn't match actual dim", actual)
+            print("expected input dim", expected,
+                  "didn't match actual dim", actual)
             return
 
-        pilot_angle, pilot_throttle = self.keras_part.run(pred_img)
+        if self.imu_model:
+            angle, throttle = self.keras_part.run(pred_img, self.imu_input)
+        else:
+            angle, throttle = self.keras_part.run(pred_img)
         height, width, _ = pred_img.shape
 
         length = height
         if self.use_speed:
             length /= self.cfg.MAX_SPEED
-        a2 = pilot_angle * 45.0
-        l2 = pilot_throttle * length
+        a2 = angle * 45.0
+        l2 = throttle * length
 
         mid = width // 2 - 1
 
@@ -176,16 +190,19 @@ class MakeMovie(object):
             x += dx
 
     def init_salient(self, model):
-        # Utility to search for layer index by name. 
-        # Alternatively we can specify this as -1 since it corresponds to the last layer.
+        # Utility to search for layer index by name. Alternatively we can
+        # specify this as -1 since it corresponds to the last layer.
         first_output_name = None
         for i, layer in enumerate(model.layers):
-            if first_output_name is None and "dropout" not in layer.name.lower() and "out" in layer.name.lower():
+            if first_output_name is None \
+                    and "dropout" not in layer.name.lower() \
+                    and "out" in layer.name.lower():
                 first_output_name = layer.name
                 layer_idx = i
 
         if first_output_name is None:
-            print("Failed to find the model layer named with 'out'. Skipping salient.")
+            print("Failed to find the model layer named with 'out'. "
+                  "Skipping salient.")
             return False
 
         print("####################")
@@ -206,7 +223,8 @@ class MakeMovie(object):
 
     def compute_visualisation_mask(self, img):
         grad_modifier = 'absolute'
-        grads = self.opt.minimize(seed_input=img, max_iter=1, grad_modifier=grad_modifier, verbose=False)[1]
+        grads = self.opt.minimize(seed_input=img, max_iter=1,
+                                  grad_modifier=grad_modifier, verbose=False)[1]
         channel_idx = 1 if K.image_data_format() == 'channels_first' else -1
         grads = np.max(grads, axis=channel_idx)
         res = utils.normalize(grads)[0]
@@ -219,7 +237,7 @@ class MakeMovie(object):
 
         expected = self.keras_part.model.inputs[0].shape[1:]
         actual = img.shape
-        pred_img = img.astype(np.float32) / 255.0
+        pred_img = img.astype(np.float32) * ONE_OVER_INT
 
         # check input depth
         if expected[2] == 1 and actual[2] == 3:
@@ -230,7 +248,8 @@ class MakeMovie(object):
         z = np.zeros_like(salient_mask)
         salient_mask_stacked = np.dstack((z, z))
         salient_mask_stacked = np.dstack((salient_mask_stacked, salient_mask))
-        blend = cv2.addWeighted(img.astype('float32'), alpha, salient_mask_stacked, beta, 0.0)
+        blend = cv2.addWeighted(img.astype('float32'), alpha,
+                                salient_mask_stacked, beta, 0.0)
         return blend
 
     def make_frame(self, t):

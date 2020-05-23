@@ -69,10 +69,6 @@ class MakeMovie(object):
             self.keras_part.load(args.model)
             self.keras_part.compile()
             self.imu_model = 'imu' in args.model
-            if self.imu_model:
-                imu_dim = self.cfg.IMU_DIM if hasattr(self.cfg, "IMU_DIM") \
-                    else 6
-                self.imu_input = [0.0] * imu_dim
             if args.salient:
                 self.do_salient = self.init_salient(self.keras_part.model)
 
@@ -119,7 +115,7 @@ class MakeMovie(object):
         cv2.putText(img, text='User', org=bottom_left, fontFace=font,
                     fontScale=1.0, color=green, lineType=1)
         
-    def draw_model_prediction(self, record, img):
+    def draw_model_prediction(self, record, img, imu):
         '''
         query the model for it's prediction, draw the predictions
         as a blue line on the image
@@ -147,7 +143,8 @@ class MakeMovie(object):
             return
 
         if self.imu_model:
-            angle, throttle = self.keras_part.run(pred_img, self.imu_input)
+            assert (imu is not None), "IMU model requires imu data"
+            angle, throttle = self.keras_part.run(pred_img, imu)
         else:
             angle, throttle = self.keras_part.run(pred_img)
         height, width, _ = pred_img.shape
@@ -277,6 +274,13 @@ class MakeMovie(object):
         rec_ix = self.index[self.iRec]
         rec = self.tub.get_record(rec_ix)
         image = rec['cam/image_array']
+        accel = rec.get('car/accel')
+        gyro = rec.get('car/gyro')
+        imu = None
+        if accel is not None:
+            imu = accel
+        if gyro is not None:
+            imu = accel + gyro
 
         if self.cfg.ROI_CROP_TOP != 0 or self.cfg.ROI_CROP_BOTTOM != 0:
             image = img_crop(image, self.cfg.ROI_CROP_TOP, self.cfg.ROI_CROP_BOTTOM)
@@ -288,7 +292,7 @@ class MakeMovie(object):
         
         self.draw_user_input(rec, image)
         if self.keras_part is not None:
-            self.draw_model_prediction(rec, image)
+            self.draw_model_prediction(rec, image, imu)
             self.draw_steering_distribution(rec, image)
 
         if self.scale != 1:

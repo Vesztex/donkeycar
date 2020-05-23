@@ -58,17 +58,23 @@ class BaseCommand(object):
 class CreateCar(BaseCommand):
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='createcar', usage='%(prog)s [options]')
-        parser.add_argument('--path', default=None, help='path where to create car folder')
-        parser.add_argument('--template', default=None, help='name of car template to use')
-        parser.add_argument('--overwrite', action='store_true', help='should replace existing files')
+        parser = argparse.ArgumentParser(prog='createcar',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('--path', default=None,
+                            help='path where to create car folder')
+        parser.add_argument('--template', default=None,
+                            help='name of car template to use')
+        parser.add_argument('--overwrite', action='store_true',
+                            help='should replace existing files')
 
         parsed_args = parser.parse_args(args)
         return parsed_args
 
     def run(self, args):
         args = self.parse_args(args)
-        self.create_car(path=args.path, template=args.template, overwrite=args.overwrite)
+        self.create_car(path=args.path,
+                        template=args.template,
+                        overwrite=args.overwrite)
 
     def create_car(self, path, template='complete', overwrite=False):
         """
@@ -101,19 +107,23 @@ class CreateCar(BaseCommand):
         train_app_path = os.path.join(path, 'train.py')
 
         if os.path.exists(car_app_path) and not overwrite:
-            print('Car app already exists. Delete it and rerun createcar to replace.')
+            print('Car app already exists. Delete it and rerun createcar to '
+                  'replace.')
         else:
             print("Copying car application template: {}".format(template))
             shutil.copyfile(app_template_path, car_app_path)
 
         if os.path.exists(car_config_path) and not overwrite:
-            print('Car config already exists. Delete it and rerun createcar to replace.')
+            print('Car config already exists. Delete it and rerun createcar to '
+                  'replace.')
         else:
-            print("Copying car config defaults. Adjust these before starting your car.")
+            print("Copying car config defaults. Adjust these before starting "
+                  "your car.")
             shutil.copyfile(config_template_path, car_config_path)
 
         if os.path.exists(train_app_path) and not overwrite:
-            print('Train already exists. Delete it and rerun createcar to replace.')
+            print('Train already exists. Delete it and rerun createcar to '
+                  'replace.')
         else:
             print("Copying train script. Adjust these before starting your car.")
             shutil.copyfile(train_template_path, train_app_path)
@@ -121,7 +131,8 @@ class CreateCar(BaseCommand):
         if not os.path.exists(mycar_config_path):
             print("Copying my car config overrides")
             shutil.copyfile(myconfig_template_path, mycar_config_path)
-            # now copy file contents from config to myconfig, with all lines commented out.
+            # now copy file contents from config to myconfig, with all lines
+            # commented out.
             cfg = open(car_config_path, "rt")
             mcfg = open(mycar_config_path, "at")
             copy = False
@@ -142,7 +153,8 @@ class UpdateCar(BaseCommand):
     '''
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='update', usage='%(prog)s [options]')
+        parser = argparse.ArgumentParser(prog='update',
+                                         usage='%(prog)s [options]')
         parsed_args = parser.parse_args(args)
         return parsed_args
 
@@ -164,7 +176,8 @@ class FindCar(BaseCommand):
         s.close()
 
         print("Finding your car's IP address...")
-        cmd = "sudo nmap -sP " + ip + "/24 | awk '/^Nmap/{ip=$NF}/B8:27:EB/{print ip}'"
+        cmd = "sudo nmap -sP " + ip \
+              + "/24 | awk '/^Nmap/{ip=$NF}/B8:27:EB/{print ip}'"
         print("Your car's ip address is:" )
         os.system(cmd)
 
@@ -172,12 +185,21 @@ class FindCar(BaseCommand):
 class CalibrateCar(BaseCommand):
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='calibrate', usage='%(prog)s [options]')
-        parser.add_argument('--channel', help="The channel you'd like to calibrate [0-15]")
-        parser.add_argument('--address', default='0x40', help="The i2c address you'd like to calibrate [default 0x40]")
-        parser.add_argument('--bus', default=None, help="The i2c bus you'd like to calibrate [default autodetect]")
-        parser.add_argument('--pwmFreq', default=60, help="The frequency to use for the PWM")
-        parser.add_argument('--arduino', dest='arduino', action='store_true', help='Use arduino pin for PWM (calibrate pin=<channel>)')
+        parser = argparse.ArgumentParser(prog='calibrate',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('--channel', help="The channel you'd like to "
+                                              "calibrate [0-15]")
+        parser.add_argument('--address', default='0x40',
+                            help="The i2c address you'd like to calibrate "
+                                 "[default 0x40]")
+        parser.add_argument('--bus', default=None,
+                            help="The i2c bus you'd like to calibrate "
+                                 "[default autodetect]")
+        parser.add_argument('--pwmFreq', default=60,
+                            help="The frequency to use for the PWM")
+        parser.add_argument('--arduino', dest='arduino', action='store_true',
+                            help='Use arduino pin for PWM '
+                                 '(calibrate pin=<channel>)')
         parser.set_defaults(arduino=False)
         parsed_args = parser.parse_args(args)
         return parsed_args
@@ -191,7 +213,8 @@ class CalibrateCar(BaseCommand):
 
             arduino_controller = ArduinoFirmata(servo_pin=channel)
             print('init Arduino PWM on pin %d' %(channel))
-            input_prompt = "Enter a PWM setting to test ('q' for quit) (0-180): "
+            input_prompt = "Enter a PWM setting to test ('q' for quit) " \
+                           "(0-180): "
         else:
             from donkeycar.parts.actuator import PCA9685
             from donkeycar.parts.sombrero import Sombrero
@@ -202,11 +225,13 @@ class CalibrateCar(BaseCommand):
             if args.bus:
                 busnum = int(args.bus)
             address = int(args.address, 16)
-            print('init PCA9685 on channel %d address %s bus %s' %(channel, str(hex(address)), str(busnum)))
+            print('init PCA9685 on channel %d address %s bus %s'
+                  %(channel, str(hex(address)), str(busnum)))
             freq = int(args.pwmFreq)
             print("Using PWM freq: {}".format(freq))
             c = PCA9685(channel, address=address, busnum=busnum, frequency=freq)
-            input_prompt = "Enter a PWM setting to test ('q' for quit) (0-1500): "
+            input_prompt = "Enter a PWM setting to test ('q' for quit) " \
+                           "(0-1500): "
             print()
         while True:
             try:
@@ -214,7 +239,7 @@ class CalibrateCar(BaseCommand):
                 if val == 'q' or val == 'Q':
                     break
                 pmw = int(val)
-                if args.arduino == True:
+                if args.arduino:
                     arduino_controller.set_pulse(channel,pmw)
                 else:
                     c.run(pmw)
@@ -236,14 +261,24 @@ class MakeMovieShell(BaseCommand):
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='makemovie')
         parser.add_argument('--tub', help='The tub to make movie from')
-        parser.add_argument('--out', default='tub_movie.mp4', help='The movie filename to create. default: tub_movie.mp4')
-        parser.add_argument('--config', default='./config.py', help='location of config file to use. default: ./config.py')
-        parser.add_argument('--model', default=None, help='the model to use to show control outputs')
-        parser.add_argument('--type', default=None, help='the model type to load')
-        parser.add_argument('--salient', action="store_true", help='should we overlay salient map showing activations')
-        parser.add_argument('--start', type=int, default=0, help='first frame to process')
-        parser.add_argument('--end', type=int, default=-1, help='last frame to process')
-        parser.add_argument('--scale', type=int, default=2, help='make image frame output larger by X mult')
+        parser.add_argument('--out', default='tub_movie.mp4',
+                            help='The movie filename to create - default: '
+                                 'tub_movie.mp4')
+        parser.add_argument('--config', default='./config.py',
+                            help='location of config file to use - default: '
+                                 './config.py')
+        parser.add_argument('--model', default=None,
+                            help='the model to use to show control outputs')
+        parser.add_argument('--type', default=None,
+                            help='the model type to load')
+        parser.add_argument('--salient', action="store_true",
+                            help='overlay salient map showing activations')
+        parser.add_argument('--start', type=int, default=0,
+                            help='first frame to process')
+        parser.add_argument('--end', type=int, default=-1,
+                            help='last frame to process')
+        parser.add_argument('--scale', type=int, default=2,
+                            help='make image frame output larger by X mult')
         parsed_args = parser.parse_args(args)
         return parsed_args, parser
 
@@ -261,17 +296,21 @@ class MakeMovieShell(BaseCommand):
 
 class TubCheck(BaseCommand):
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='tubcheck', usage='%(prog)s [options]')
+        parser = argparse.ArgumentParser(prog='tubcheck',
+                                         usage='%(prog)s [options]')
         parser.add_argument('tubs', nargs='+', help='paths to tubs')
-        parser.add_argument('--fix', action='store_true', help='remove problem records')
-        parser.add_argument('--delete_empty', action='store_true', help='delete tub dir with no records')
+        parser.add_argument('--fix', action='store_true',
+                            help='remove problem records')
+        parser.add_argument('--delete_empty', action='store_true',
+                            elp='delete tub dir with no records')
         parsed_args = parser.parse_args(args)
         return parsed_args
 
     def check(self, tub_paths, fix=False, delete_empty=False):
         '''
-        Check for any problems. Looks at tubs and find problems in any records or images that won't open.
-        If fix is True, then delete images and records that cause problems.
+        Check for any problems. Looks at tubs and find problems in any records
+        or images that won't open. If fix is True, then delete images and
+        records that cause problems.
         '''
         cfg = load_config('config.py')
         tubs = gather_tubs(cfg, tub_paths)
@@ -291,9 +330,11 @@ class TubCheck(BaseCommand):
 class ShowHistogram(BaseCommand):
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='tubhist', usage='%(prog)s [options]')
+        parser = argparse.ArgumentParser(prog='tubhist',
+                                         usage='%(prog)s [options]')
         parser.add_argument('--tub', nargs='+', help='paths to tubs')
-        parser.add_argument('--record', default=None, help='name of record to create histogram')
+        parser.add_argument('--record', default=None,
+                            help='name of record to create histogram')
         parsed_args = parser.parse_args(args)
         return parsed_args
 
@@ -311,7 +352,8 @@ class ShowHistogram(BaseCommand):
             tg.df.hist(bins=50)
 
         try:
-            filename = os.path.basename(tub_paths) + '_hist_%s.png' % record_name.replace('/', '_')
+            filename = os.path.basename(tub_paths) \
+                       + '_hist_%s.png' % record_name.replace('/', '_')
             plt.savefig(filename)
             print('saving image to:', filename)
         except:
@@ -330,9 +372,13 @@ class ConSync(BaseCommand):
     '''
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='consync', usage='%(prog)s [options]')
-        parser.add_argument('--dir', default='./cont_data/', help='paths to tubs')
-        parser.add_argument('--delete', default='y', help='remove files locally that were deleted remotely y=yes n=no')
+        parser = argparse.ArgumentParser(prog='consync',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('--dir', default='./cont_data/',
+                            help='paths to tubs')
+        parser.add_argument('--delete', default='y',
+                            help='remove files locally that were deleted '
+                                 'remotely y=yes n=no')
         parsed_args = parser.parse_args(args)
         return parsed_args
 
@@ -343,7 +389,8 @@ class ConSync(BaseCommand):
         del_arg = ""
 
         if args.delete == 'y':
-            reply = input('WARNING:this rsync operation will delete data in the target dir: %s. ok to proceeed? [y/N]: ' % dest_dir)
+            reply = input('WARNING:this rsync operation will delete data in the'
+                          ' target dir: %s. ok to proceeed? [y/N]: ' % dest_dir)
 
             if reply != 'y' and reply != "Y":
                 return
@@ -360,7 +407,8 @@ class ConSync(BaseCommand):
 
         while True:
             command = "rsync -aW --progress %s@%s:%s/data/ %s %s" %\
-                (cfg.PI_USERNAME, cfg.PI_HOSTNAME, cfg.PI_DONKEY_ROOT, dest_dir, del_arg)
+                (cfg.PI_USERNAME, cfg.PI_HOSTNAME, cfg.PI_DONKEY_ROOT,
+                 dest_dir, del_arg)
 
             os.system(command)
             time.sleep(5)
@@ -372,12 +420,19 @@ class ConTrain(BaseCommand):
     '''
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='contrain', usage='%(prog)s [options]')
-        parser.add_argument('--tub', default='./cont_data/*', help='paths to tubs')
-        parser.add_argument('--model', default='./models/drive.h5', help='path to model')
-        parser.add_argument('--transfer', default=None, help='path to transfer model')
-        parser.add_argument('--type', default='categorical', help='type of model (linear|categorical|rnn|imu|behavior|3d)')
-        parser.add_argument('--aug', action="store_true", help='perform image augmentation')        
+        parser = argparse.ArgumentParser(prog='contrain',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('--tub', default='./cont_data/*',
+                            help='paths to tubs')
+        parser.add_argument('--model', default='./models/drive.h5',
+                            help='path to model')
+        parser.add_argument('--transfer', default=None,
+                            help='path to transfer model')
+        parser.add_argument('--type', default='categorical',
+                            help='type of model '
+                                 '(linear|categorical|rnn|imu|behavior|3d)')
+        parser.add_argument('--aug', action="store_true",
+                            help='perform image augmentation')
         parsed_args = parser.parse_args(args)
         return parsed_args
 
@@ -388,7 +443,8 @@ class ConTrain(BaseCommand):
         sys.path.append('.')
         from train import multi_train
         continuous = True
-        multi_train(cfg, args.tub, args.model, args.transfer, args.type, continuous, args.aug)
+        multi_train(cfg, args.tub, args.model, args.transfer, args.type,
+                    continuous, args.aug)
 
 
 class ShowCnnActivations(BaseCommand):
@@ -448,10 +504,13 @@ class ShowCnnActivations(BaseCommand):
         return conv_layers
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='cnnactivations', usage='%(prog)s [options]')
+        parser = argparse.ArgumentParser(prog='cnnactivations',
+                                         usage='%(prog)s [options]')
         parser.add_argument('--image', help='path to image')
         parser.add_argument('--model', default=None, help='path to model')
-        parser.add_argument('--config', default='./config.py', help='location of config file to use. default: ./config.py')
+        parser.add_argument('--config', default='./config.py',
+                            help='location of config file to use - default: '
+                                 './config.py')
 
         parsed_args = parser.parse_args(args)
         return parsed_args
@@ -545,7 +604,8 @@ class ShowPredictionPlots(BaseCommand):
         parser.add_argument('--type', default=None,
                             help='model type')
         parser.add_argument('--config', default='./config.py',
-                            help='location of config file to use. default: ./config.py')
+                            help='location of config file to use - default: '
+                                 './config.py')
         parsed_args = parser.parse_args(args)
         return parsed_args
 
@@ -616,7 +676,8 @@ class ShowPredictionMetric(BaseCommand):
         parser.add_argument('--type', default=None,
                             help='model type')
         parser.add_argument('--config', default='./config.py',
-                            help='location of config file to use. default: ./config.py')
+                            help='location of config file to use - default: '
+                                 './config.py')
         parsed_args = parser.parse_args(args)
         return parsed_args
 
@@ -644,7 +705,8 @@ class ShowLapTimes(BaseCommand):
         parser.add_argument('--tub', nargs='+',
                             help='paths to tubs')
         parser.add_argument('--config', default='./config.py',
-                            help='location of config file to use. default: ./config.py')
+                            help='location of config file to use -default: '
+                                 './config.py')
         parsed_args = parser.parse_args(args)
         return parsed_args
 
@@ -673,7 +735,7 @@ class Monitor(BaseCommand):
                                          usage='%(prog)s [options]')
         parser.add_argument('--scale', help='scale frame size', default=1.0)
         parser.add_argument('--config', default='./config.py',
-                            help='location of config file to use. default: '
+                            help='location of config file to use - default: '
                                  './config.py')
         parsed_args = parser.parse_args(args)
         return parsed_args

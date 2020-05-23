@@ -112,7 +112,12 @@ class MakeMovie(object):
                      int(p1[1] + l1 * math.sin((a1 + 270.0) * self.deg_to_rad))))
 
         # user is green, pilot is blue
-        cv2.line(img, p1, p11, (0, 255, 0), 2)
+        green = (0, 255, 0)
+        cv2.line(img, p1, p11, green, 2)
+        font = cv2.FONT_HERSHEY_PLAIN
+        bottom_left = (width - 40, height-2)
+        cv2.putText(img, text='User', org=bottom_left, fontFace=font,
+                    fontScale=1.0, color=green, lineType=1)
         
     def draw_model_prediction(self, record, img):
         '''
@@ -160,7 +165,13 @@ class MakeMovie(object):
                      int(p2[1] + l2 * math.sin((a2 + 270.0) * self.deg_to_rad))))
 
         # user is green, pilot is blue
-        cv2.line(img, p2, p22, (0, 0, 255), 2)
+        blue = (0, 0, 255)
+        cv2.line(img, p2, p22, blue, 2)
+
+        font = cv2.FONT_HERSHEY_PLAIN
+        bottom_left = (2, height-2)
+        cv2.putText(img, text='Pilot', org=bottom_left, fontFace=font,
+                    fontScale=1.0, color=blue, lineType=1)
 
     def draw_steering_distribution(self, record, img):
         '''

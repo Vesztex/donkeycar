@@ -490,7 +490,10 @@ def get_model_by_type(model_type, cfg):
         from donkeycar.parts.fastai import FastAiPilot
         kl = FastAiPilot()
     else:
-        raise Exception("unknown model type: %s" % model_type)
+        model_types = ['tflite_linear', 'localizer', 'behavior', 'imu', 'linear', 'square_plus', 'square_plus_imu',
+                       'tensorrt_linear', 'coral_tflite_linear', '3d', 'rnn', 'categorical', 'latent', 'fastai']
+        raise ValueError("Unknown model type: '{:}', known types: {:}. Note for TFlite models pass 'tflite_linear' "
+                         "whatever the underlying model is.".format(model_type, model_types))
 
     return kl
 

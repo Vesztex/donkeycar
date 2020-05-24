@@ -302,7 +302,7 @@ class TubCheck(BaseCommand):
         parser.add_argument('--fix', action='store_true',
                             help='remove problem records')
         parser.add_argument('--delete_empty', action='store_true',
-                            elp='delete tub dir with no records')
+                            help='delete tub dir with no records')
         parsed_args = parser.parse_args(args)
         return parsed_args
 

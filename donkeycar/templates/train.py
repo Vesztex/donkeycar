@@ -15,7 +15,7 @@ Usage:
     [--type=(linear|latent|categorical|rnn|imu|behavior|3d|look_ahead|tensorrt_linear|tflite_linear|coral_tflite_linear)]
     [--figure_format=<figure_format>]
     [--nn_size=<nn_size>]
-    [--continuous] [--aug]
+    [--continuous] [--aug] [--dry]
 
 Options:
     -h --help              Show this screen.
@@ -300,7 +300,7 @@ def on_best_model(cfg, model, model_filename):
 
 
 def train(cfg, tub_names, model_name, transfer_model,
-          model_type, continuous, aug):
+          model_type, continuous, aug, dry):
     """
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -378,6 +378,9 @@ def train(cfg, tub_names, model_name, transfer_model,
 
     records = gather_records(cfg, tub_names, opts, verbose=True)
     collate_records(records, gen_records, opts)
+    if dry:
+        print("Dry run only - stop here.")
+        return
 
     def generator(save_best, opts, data, batch_size, is_train_set=True,
                   min_records_to_train=1000):
@@ -693,7 +696,8 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
         # print("Saved TensorRT model:", uff_filename)
 
 
-def sequence_train(cfg, tub_names, model_name, transfer_model, model_type, continuous, aug):
+def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
+                   continuous, aug, dry):
     '''
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -766,6 +770,9 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type, conti
         sequences.append(seq)
 
     print("Collated", len(sequences), "sequences of length", target_len)
+    if dry:
+        print("Dry run only - stop here.")
+        return
     # shuffle and split the data
     train_data, val_data = train_test_split(sequences,
                                             test_size=(1 - cfg.TRAIN_TEST_SPLIT))
@@ -864,7 +871,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type, conti
              steps_per_epoch, val_steps, continuous, verbose)
 
 
-def multi_train(cfg, tub, model, transfer, model_type, continuous, aug):
+def multi_train(cfg, tub, model, transfer, model_type, continuous, aug, dry):
     '''
     choose the right regime for the given model type
     '''
@@ -872,7 +879,7 @@ def multi_train(cfg, tub, model, transfer, model_type, continuous, aug):
     if model_type in ('rnn', '3d', "look_ahead"):
         train_fn = sequence_train
 
-    train_fn(cfg, tub, model, transfer, model_type, continuous, aug)
+    train_fn(cfg, tub, model, transfer, model_type, continuous, aug, dry)
 
 
 def prune(model, validation_generator, val_steps, cfg):
@@ -1003,6 +1010,7 @@ if __name__ == "__main__":
     continuous = args['--continuous']
     aug = args['--aug']
     nn_size = args['--nn_size']
+    dry = args['--dry']
     if nn_size is not None:
         cfg.NN_SIZE = nn_size
 
@@ -1011,4 +1019,4 @@ if __name__ == "__main__":
         tub_paths = [os.path.expanduser(n) for n in tub.split(',')]
         dirs.extend(tub_paths)
 
-    multi_train(cfg, dirs, model, transfer, model_type, continuous, aug)
+    multi_train(cfg, dirs, model, transfer, model_type, continuous, aug, dry)

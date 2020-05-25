@@ -354,7 +354,7 @@ Tub management
 """
 
 
-def expand_path_masks(paths):
+def expand_path_masks(paths, exclude=None):
     '''
     take a list of paths and expand any wildcards
     returns a new list of paths fully expanded
@@ -366,9 +366,7 @@ def expand_path_masks(paths):
         if '*' in path or '?' in path or '[' in path or '{' in path:
             # brace expand first
             if '{' in path:
-                print("{ found")
                 path = list(braceexpand(path))
-                print(len(path))
             else:
                 path = [path]
             for ex_path in path:
@@ -376,11 +374,19 @@ def expand_path_masks(paths):
                 expanded_paths += mask_paths
         else:
             expanded_paths.append(path)
+    # finally allow exclusion patterns on expanded paths
+    if exclude is None:
+        exclude = []
+    elif type(exclude) is str:
+        exclude = [exclude]
+    filtered_paths = []
+    for path in expanded_paths:
+        if not any([ex in path for ex in exclude]):
+            filtered_paths.append(path)
+    return filtered_paths
 
-    return expanded_paths
 
-
-def gather_tub_paths(cfg, tub_names=None):
+def gather_tub_paths(cfg, tub_names=None, exclude=None):
     '''
     takes as input the configuration, and the comma seperated list of tub paths
     returns a list of Tub paths
@@ -390,7 +396,7 @@ def gather_tub_paths(cfg, tub_names=None):
             tub_paths = [os.path.expanduser(n) for n in tub_names]
         else:
             tub_paths = [os.path.expanduser(n) for n in tub_names.split(',')]
-        return expand_path_masks(tub_paths)
+        return expand_path_masks(tub_paths, exclude=exclude)
     else:
         paths = [os.path.join(cfg.DATA_PATH, n) for n in os.listdir(cfg.DATA_PATH)]
         dir_paths = []
@@ -400,14 +406,14 @@ def gather_tub_paths(cfg, tub_names=None):
         return dir_paths
 
 
-def gather_tubs(cfg, tub_names):    
+def gather_tubs(cfg, tub_names, exclude=None):
     '''
     takes as input the configuration, and the comma seperated list of tub paths
     returns a list of Tub objects initialized to each path
     '''
     from donkeycar.parts.datastore import Tub
     
-    tub_paths = gather_tub_paths(cfg, tub_names)
+    tub_paths = gather_tub_paths(cfg, tub_names, exclude)
     tubs = [Tub(p) for p in tub_paths]
 
     return tubs
@@ -427,8 +433,8 @@ def get_record_index(fnm):
     return int(sl[1].split('.')[0])
 
 
-def gather_records(cfg, tub_names, opts=None, verbose=False):
-    tubs = gather_tubs(cfg, tub_names)
+def gather_records(cfg, tub_names, exclude=None, verbose=False):
+    tubs = gather_tubs(cfg, tub_names, exclude)
     records = []
 
     for tub in tubs:

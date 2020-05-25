@@ -18,6 +18,7 @@ from prettytable import PrettyTable
 
 PACKAGE_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 TEMPLATES_PATH = os.path.join(PACKAGE_PATH, 'templates')
+SCRIPT_PATH = os.path.join(PACKAGE_PATH, '..', 'scripts')
 
 ONE_BYTE_SCALE = 1.0 / 255.0
 
@@ -101,10 +102,12 @@ class CreateCar(BaseCommand):
         config_template_path = os.path.join(TEMPLATES_PATH, 'cfg_complete.py')
         myconfig_template_path = os.path.join(TEMPLATES_PATH, 'myconfig.py')
         train_template_path = os.path.join(TEMPLATES_PATH, 'train.py')
+        batch_train_template_path = os.path.join(SCRIPT_PATH, 'batch_train.sh')
         car_app_path = os.path.join(path, 'manage.py')
         car_config_path = os.path.join(path, 'config.py')
         mycar_config_path = os.path.join(path, 'myconfig.py')
         train_app_path = os.path.join(path, 'train.py')
+        batch_train_path = os.path.join(path, 'batch_train.sh')
 
         if os.path.exists(car_app_path) and not overwrite:
             print('Car app already exists. Delete it and rerun createcar to '
@@ -143,6 +146,13 @@ class CreateCar(BaseCommand):
                     mcfg.write("# " + line)
             cfg.close()
             mcfg.close()
+
+        if os.path.exists(batch_train_path) and not overwrite:
+            print('batch_train.sh already exists. Delete it and rerun '
+                  'createcar to replace.')
+        else:
+            print("Copying batch_train.sh. Adjust before training.")
+            shutil.copyfile(batch_train_template_path, batch_train_path)
 
         print("Donkey setup complete.")
 

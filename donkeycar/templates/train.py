@@ -10,7 +10,10 @@ Basic usage should feel familiar: python train.py --model models/mypilot
 
 
 Usage:
-    train.py [--tub=<tub1,tub2,..tubn>] [--file=<file> ...] (--model=<model>)
+    train.py [--tub=<tub1,tub2,..tubn>]
+    [--exclude=<[pattern1, pattern2]>]
+    [--file=<file> ...]
+    (--model=<model>)
     [--transfer=<model>]
     [--type=(linear|latent|categorical|rnn|imu|behavior|3d|look_ahead|tensorrt_linear|tflite_linear|coral_tflite_linear)]
     [--figure_format=<figure_format>]
@@ -77,13 +80,13 @@ def collate_records(records, gen_records, opts):
     add them to a list of gen_records, passed in.
     use the opts dict to specify config choices
     '''
+    print('Collating %d records ...' % (len(records)))
     throttle_key = 'user/throttle'
     if hasattr(opts['cfg'], 'USE_SPEED_FOR_MODEL') \
             and opts['cfg'].USE_SPEED_FOR_MODEL:
         throttle_key = 'car/speed'
 
     print('Using', throttle_key, 'for training')
-    print('Collating %d records ...' % (len(records)))
     new_records = {}
 
     for record_path in tqdm(records):
@@ -300,7 +303,7 @@ def on_best_model(cfg, model, model_filename):
 
 
 def train(cfg, tub_names, model_name, transfer_model,
-          model_type, continuous, aug, dry=False):
+          model_type, continuous, aug, exclude=None, dry=False):
     """
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -374,14 +377,13 @@ def train(cfg, tub_names, model_name, transfer_model,
     opts['continuous'] = continuous
     opts['model_type'] = model_type
 
-    extract_data_from_pickles(cfg, tub_names)
-
-    records = gather_records(cfg, tub_names, opts, verbose=True)
-    collate_records(records, gen_records, opts)
+    extract_data_from_pickles(cfg, tub_names, exclude=exclude)
+    records = gather_records(cfg, tub_names, exclude=exclude, verbose=True)
     if dry:
-        print("Dry run only - stop here.")
+        print("Dry run only - stop here.\n")
         return
 
+    collate_records(records, gen_records, opts)
     def generator(save_best, opts, data, batch_size, is_train_set=True,
                   min_records_to_train=1000):
 
@@ -393,7 +395,7 @@ def train(cfg, tub_names, model_name, transfer_model,
                 # When continuous training, we look for new records after each
                 # epoch. This will add new records to the train and validation
                 # set.
-                records = gather_records(cfg, tub_names, opts)
+                records = gather_records(cfg, tub_names)
                 if len(records) > num_records:
                     collate_records(records, gen_records, opts)
                     new_num_rec = len(data)
@@ -697,7 +699,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
 
 
 def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
-                   continuous, aug, dry=False):
+                   continuous, aug, exclude=None, dry=False):
     '''
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -707,7 +709,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     print("Sequence of images training")
 
     kl = dk.utils.get_model_by_type(model_type=model_type, cfg=cfg)
-    tubs = gather_tubs(cfg, tub_names)
+    tubs = gather_tubs(cfg, tub_names, exclude)
     verbose = cfg.VERBOSE_TRAIN
     records = []
 
@@ -721,8 +723,11 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     throttle_key = 'user/throttle'
     if hasattr(cfg, 'USE_SPEED_FOR_MODEL') and cfg.USE_SPEED_FOR_MODEL:
         throttle_key = 'car/speed'
-    print('Collating records, using', throttle_key, 'for training:')
+    if dry:
+        print("Dry run only - stop here.\n")
+        return
 
+    print('Collating records, using', throttle_key, 'for training:')
     for record_path in tqdm(records):
 
         with open(record_path, 'r') as fp:
@@ -770,12 +775,9 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
         sequences.append(seq)
 
     print("Collated", len(sequences), "sequences of length", target_len)
-    if dry:
-        print("Dry run only - stop here.")
-        return
     # shuffle and split the data
-    train_data, val_data = train_test_split(sequences,
-                                            test_size=(1 - cfg.TRAIN_TEST_SPLIT))
+    train_data, val_data \
+        = train_test_split(sequences, test_size=(1 - cfg.TRAIN_TEST_SPLIT))
 
     def generator(data, opt, batch_size=cfg.BATCH_SIZE):
         num_records = len(data)
@@ -872,7 +874,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
 
 def multi_train(cfg, tub, model, transfer, model_type, continuous, aug,
-                dry=False):
+                exclude=None, dry=False):
     '''
     choose the right regime for the given model type
     '''
@@ -880,7 +882,8 @@ def multi_train(cfg, tub, model, transfer, model_type, continuous, aug,
     if model_type in ('rnn', '3d', "look_ahead"):
         train_fn = sequence_train
 
-    train_fn(cfg, tub, model, transfer, model_type, continuous, aug, dry)
+    train_fn(cfg, tub, model, transfer, model_type, continuous, aug, exclude,
+             dry)
 
 
 def prune(model, validation_generator, val_steps, cfg):
@@ -896,16 +899,19 @@ def prune(model, validation_generator, val_steps, cfg):
     return model, n_channels_delete
 
 
-def extract_data_from_pickles(cfg, tubs):
+def extract_data_from_pickles(cfg, tubs, exclude=[]):
     """
-    Extracts record_{id}.json and image from a pickle with the same id if exists in the tub.
+    Extracts record_{id}.json and image from a pickle with the same id if
+    exists in the tub.
     Then writes extracted json/jpg along side the source pickle that tub.
     This assumes the format {id}.pickle in the tub directory.
-    :param cfg: config with data location configuration. Generally the global config object.
+    :param cfg: config with data location configuration. Generally the global
+    config object.
     :param tubs: The list of tubs involved in training.
+    :param exclude: string patterns to exclude form tub path names
     :return: implicit None.
     """
-    t_paths = gather_tub_paths(cfg, tubs)
+    t_paths = gather_tub_paths(cfg, tubs, exclude)
     for tub_path in t_paths:
         file_paths = glob.glob(join(tub_path, '*.pickle'))
         print('found {} pickles writing json records and images in tub {}'
@@ -1003,6 +1009,7 @@ if __name__ == "__main__":
     args = docopt(__doc__)
     cfg = dk.load_config()
     tub = args['--tub']
+    exclude = args['--exclude']
     model = args['--model']
     transfer = args['--transfer']
     model_type = args['--type']
@@ -1020,4 +1027,5 @@ if __name__ == "__main__":
         tub_paths = [os.path.expanduser(n) for n in tub.split(',')]
         dirs.extend(tub_paths)
 
-    multi_train(cfg, dirs, model, transfer, model_type, continuous, aug, dry)
+    multi_train(cfg, dirs, model, transfer, model_type, continuous, aug,
+                exclude, dry)

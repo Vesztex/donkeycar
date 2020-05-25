@@ -341,7 +341,6 @@ def run_shell_command(cmd, cwd=None, timeout=15):
     return out, err, proc.pid
 
 
-
 def kill(proc_id):
     os.kill(proc_id, signal.SIGINT)
 
@@ -361,11 +360,20 @@ def expand_path_masks(paths):
     returns a new list of paths fully expanded
     '''
     import glob
+    from braceexpand import braceexpand
     expanded_paths = []
     for path in paths:
-        if '*' in path or '?' in path:
-            mask_paths = glob.glob(path)
-            expanded_paths += mask_paths
+        if '*' in path or '?' in path or '[' in path or '{' in path:
+            # brace expand first
+            if '{' in path:
+                print("{ found")
+                path = list(braceexpand(path))
+                print(len(path))
+            else:
+                path = [path]
+            for ex_path in path:
+                mask_paths = glob.glob(ex_path)
+                expanded_paths += mask_paths
         else:
             expanded_paths.append(path)
 

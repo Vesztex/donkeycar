@@ -46,7 +46,8 @@ setup(name='donkeycar',
                       'paho-mqtt',
                       'progress',
                       'tqdm',
-                      'simple-pid'
+                      'simple-pid',
+                      'braceexpand'
                       ],
 
     extras_require={
@@ -66,7 +67,7 @@ setup(name='donkeycar',
                         'matplotlib',
                         'plotly'
                         ],
-                    'dev' : [
+                    'dev': [
                         'pytest',
                         'pytest-cov',
                         'responses',

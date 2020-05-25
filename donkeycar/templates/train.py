@@ -300,7 +300,7 @@ def on_best_model(cfg, model, model_filename):
 
 
 def train(cfg, tub_names, model_name, transfer_model,
-          model_type, continuous, aug, dry):
+          model_type, continuous, aug, dry=False):
     """
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -697,7 +697,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
 
 
 def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
-                   continuous, aug, dry):
+                   continuous, aug, dry=False):
     '''
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -871,7 +871,8 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
              steps_per_epoch, val_steps, continuous, verbose)
 
 
-def multi_train(cfg, tub, model, transfer, model_type, continuous, aug, dry):
+def multi_train(cfg, tub, model, transfer, model_type, continuous, aug,
+                dry=False):
     '''
     choose the right regime for the given model type
     '''

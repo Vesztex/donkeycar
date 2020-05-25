@@ -1,4 +1,8 @@
+#!/bin/bash
 # shell script to run training over a set of tubs for all 3 models
+
+# enforces Ctrl-C to stop the asynchronous processes
+trap "kill 0" EXIT
 
 # define tubs using shell wildcard expansion
 tub_range=46-62

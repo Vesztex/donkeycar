@@ -77,9 +77,10 @@ class Odometer:
             inst_speed = self.scale / self.inst
             self._max_speed = max(self._max_speed, speed)
         self._last_tick_speed = self._last_tick
+        distance = float(self._distance) / float(self._tick_per_meter)
         if self._debug:
-            print("Speed =", speed, "InstSpeed = ", inst_speed)
-        return speed, inst_speed
+            print("Speed", speed, "InstSpeed", inst_speed, "Distance", distance)
+        return speed, inst_speed, distance
 
     def shutdown(self):
         """
@@ -112,6 +113,9 @@ class LapTimer:
         self.last_time = time.time()
         self.lap_count = 0
         self.lap_times = []
+        self.lap_lenghts = []
+        self.distance = 0.0
+        self.last_distance = None
         self.debug = debug
         self.running = True
         self.count_lo = 0
@@ -142,6 +146,11 @@ class LapTimer:
                         self.last_time = now
                         self.lap_count += 1
                         self.lap_times.append(dt)
+                        this_lap_dist = \
+                            self.distance if self.last_distance is None else \
+                            self.distance - self.last_distance
+                        self.last_distance = self.distance
+                        self.lap_lenghts.append(this_lap_dist)
                 # rest lo counter
                 self.count_lo = 0
             # Sleep for 0.5 ms. At 5m/s car makes 2.5mm / 0.5ms. At that speed
@@ -150,10 +159,11 @@ class LapTimer:
             # down w/ the speed.
             time.sleep(0.0005)
 
-    def run_threaded(self):
+    def run_threaded(self, distance):
         """
         Donkey parts interface
         """
+        self.distance = distance
         return self.lap_count
 
     def shutdown(self):
@@ -163,9 +173,9 @@ class LapTimer:
         self.running = False
         print("Lap Summary: (times in s)")
         pt = PrettyTable()
-        pt.field_names = ['Lap', 'Time']
-        for i, t in enumerate(self.lap_times):
-            pt.add_row([i, '{0:6.3f}'.format(t)])
+        pt.field_names = ['Lap', 'Time', 'Distance']
+        for i, (t, l) in enumerate(zip(self.lap_times, self.lap_lenghts)):
+            pt.add_row([i, '{0:6.3f}'.format(t), '{0:6.3f}'.format(l)])
         print(pt)
 
 

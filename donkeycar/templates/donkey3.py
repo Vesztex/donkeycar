@@ -87,7 +87,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
                    debug=verbose)
     car.add(odo, outputs=['car/speed', 'car/inst_speed', 'car/distance'])
     lap = LapTimer(gpio=cfg.LAP_TIMER_GPIO, trigger=4)
-    car.add(lap, inputs=['car/distance'], outputs=['car/lap'], threaded=True)
+    car.add(lap, inputs=['car/distance'], outputs=['car/lap', 'car/m_in_lap'],
+            threaded=True)
     mpu = Mpu6050Ada()
     car.add(mpu, outputs=['car/accel', 'car/gyro'], threaded=True)
 
@@ -219,9 +220,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
 
         # add tub to save data
         inputs = [CAM_IMG, 'user/angle', 'user/throttle',
-                  'car/speed', 'car/inst_speed', 'car/distance', 'car/lap',
-                  'car/accel', 'car/gyro', 'timestamp']
-        types = ['image_array', 'float', 'float', 'float', 'float', 'float',
+                  'car/speed', 'car/inst_speed', 'car/distance', 'car/m_in_lap',
+                  'car/lap', 'car/accel', 'car/gyro', 'timestamp']
+        types = ['image_array', 'float', 'float',
+                 'float', 'float', 'float', 'float',
                  'int', 'vector', 'vector', 'str']
 
         # multiple tubs

@@ -164,7 +164,7 @@ class LapTimer:
         Donkey parts interface
         """
         self.distance = distance
-        return self.lap_count
+        return self.lap_count, distance - self.last_distance
 
     def shutdown(self):
         """

@@ -115,7 +115,7 @@ class LapTimer:
         self.lap_times = []
         self.lap_lenghts = []
         self.distance = 0.0
-        self.last_distance = None
+        self.last_distance = 0.0
         self.debug = debug
         self.running = True
         self.count_lo = 0
@@ -146,9 +146,7 @@ class LapTimer:
                         self.last_time = now
                         self.lap_count += 1
                         self.lap_times.append(dt)
-                        this_lap_dist = \
-                            self.distance if self.last_distance is None else \
-                            self.distance - self.last_distance
+                        this_lap_dist = self.distance - self.last_distance
                         self.last_distance = self.distance
                         self.lap_lenghts.append(this_lap_dist)
                 # rest lo counter

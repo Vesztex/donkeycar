@@ -97,10 +97,10 @@ $(document).ready(function(){
             var gyro_z_pct = Math.round(Math.abs(gyro_z) * 100) + '%';
             var gyro_z_rounded = gyro_z.toFixed(2);
             $('.gyro-z-bar .progress-bar').css('width', '0%').html('');
-            if(gyro_z < 0) {
+            if(accel_y < 0) {
                 $('#gyro-z-bar-backward').css('width', accel_y_pct).html(accel_y_rounded);
             }
-            if (gyro_z > 0) {
+            if (accel_y > 0) {
                 $('#gyro-z-bar-forward').css('width', accel_y_pct).html(accel_y_rounded);
             }
 

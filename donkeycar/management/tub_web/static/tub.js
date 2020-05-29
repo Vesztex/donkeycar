@@ -98,10 +98,10 @@ $(document).ready(function(){
             var gyro_z_rounded = gyro_z.toFixed(2);
             $('.gyro-z-bar .progress-bar').css('width', '0%').html('');
             if(gyro_z < 0) {
-                $('#gyro-z-bar-backward').css('width', gyro_z_pct).html(gyro_z_rounded);
+                $('#gyro-z-bar-backward').css('width', accel_y_pct).html(accel_y_rounded);
             }
             if (gyro_z > 0) {
-                $('#gyro-z-bar-forward').css('width', gyro_z_pct).html(gyro_z_rounded);
+                $('#gyro-z-bar-forward').css('width', accel_y_pct).html(accel_y_rounded);
             }
 
         });

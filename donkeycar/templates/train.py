@@ -33,6 +33,8 @@ import pickle
 import datetime
 from tqdm import tqdm
 from tensorflow.python import keras
+import tensorflow as tf
+from tensorflow.keras.callbacks import TensorBoard
 from docopt import docopt
 
 import donkeycar as dk
@@ -581,6 +583,15 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
     if cfg.USE_EARLY_STOP and not continuous:
         callbacks_list.append(early_stop)
 
+    if hasattr(cfg, 'USE_TENSORBOARD') and cfg.USE_TENSORBOARD:
+        print("Using tensor board...")
+        car_dir = os.path.dirname(os.path.realpath(__file__))
+        now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        log_dir = os.path.join(car_dir, "logs/fit/" + now)
+        tb_cb = tf.keras.callbacks.TensorBoard(log_dir=log_dir,
+                                               histogram_freq=1)
+        callbacks_list.append(tb_cb)
+
     history = kl.model.fit_generator(
                     train_gen,
                     steps_per_epoch=steps_per_epoch,
@@ -597,7 +608,6 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
 
     duration_train = time.time() - start
     print("Training completed in %s." % str(datetime.timedelta(seconds=round(duration_train))) )
-
     print("\n\n----------- Best Eval Loss :%f ---------" % save_best.best)
 
     if cfg.SHOW_PLOT:

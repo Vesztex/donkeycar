@@ -161,7 +161,7 @@ tbody#clips .progress {
 }
 
 .gyro-z-bar .progress {
-    width: 25%;
+    width: 50%;
     margin-bottom: 0px;
     border-radius: 2px;
     float: left;

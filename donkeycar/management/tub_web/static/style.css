@@ -159,3 +159,22 @@ tbody#clips .progress {
     border-left-width: thin;
     border-left-color: red;
 }
+
+.gyro-z-bar .progress {
+    width: 25%;
+    margin-bottom: 0px;
+    border-radius: 2px;
+    float: left;
+}
+
+.gyro-z-bar .progress.negative {
+    border-right-style: solid;
+    border-right-width: thin;
+    border-right-color: red;
+}
+
+.gyro-z-bar .progress.positive {
+    border-left-style: solid;
+    border-left-width: thin;
+    border-left-color: red;
+}

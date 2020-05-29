@@ -9,6 +9,7 @@ import glob
 from donkeycar.utils import rgb2gray
 from donkeycar.utils import arr_to_binary
 
+
 class BaseCamera:
 
     def run_threaded(self):

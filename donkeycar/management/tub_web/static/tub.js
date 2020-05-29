@@ -92,6 +92,17 @@ $(document).ready(function(){
                 $('#accel-y-bar-forward').css('width', accel_y_pct).html(accel_y_rounded)
             }
 
+            var gyro = data["car/gyro"];
+            var gyro_z = gyro[2]/180
+            var gyro_z_pct = Math.round(Math.abs(gyro_z) * 100) + '%';
+            var gyro_z_rounded = gyro_z.toFixed(2)
+            $('.gyro_z-bar .progress-bar').css('width', '0%').html('');
+            if(gyro_z < 0) {
+                $('#gyro_z-bar-backward').css('width', gyro_z_pct).html(gyro_z_rounded)
+            }
+            if (gyro_z > 0) {
+                $('#gyro_z-bar-forward').css('width', gyro_z_pct).html(gyro_z_rounded)
+            }
 
         });
     };

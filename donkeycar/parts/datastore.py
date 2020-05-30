@@ -450,7 +450,8 @@ class Tub(object):
                                  lap_distances=distances, gyro_z=gyro_z_acc),
                             index=laps[1: -1])
 
-    def exclude_slow_laps(self, keep_frac_or_seconds=None):
+    def exclude_slow_laps(self, keep_frac_or_seconds=None, clean=True,
+                          apply_gyro=False):
         """
         Removes records of slower laps
         :param keep_frac_or_seconds:    either fraction of the laps to keep or
@@ -466,17 +467,32 @@ class Tub(object):
         if self.exclude:
             self.exclude.clear()
         df = self.make_lap_times()
+        # remove laps that are too short
+        if clean:
+            med_dist = df['lap_distances'].median()
+            df = df[df['lap_distances'] > 0.9 * med_dist]
 
         if keep_frac_or_seconds <= 1:
-            df_sorted = df.sort_values(by=['lap_times'])
+            if apply_gyro:
+                df_sorted = df.sort_values(by=['gyro_z'])
+                text = 'the lowest {:.1f}% of gyro_z'
+            else:
+                df_sorted = df.sort_values(by=['lap_times'])
+                text = 'the slowest {:.1f}% of laps'
+            text = text.format((1.0 - keep_frac_or_seconds) * 100.0)
             slowest_index = int(len(df) * keep_frac_or_seconds)
             laps_to_keep = df_sorted['lap'].iloc[:slowest_index]
-            text = 'the slowest {:.1f}% of laps'\
-                .format((1.0 - keep_frac_or_seconds) * 100.0)
+
         else:
-            laps_to_keep \
-                = df.loc[df['lap_times'] <= keep_frac_or_seconds]['lap']
-            text = 'all laps slower than {:.2f}s'.format(keep_frac_or_seconds)
+            if apply_gyro:
+                laps_to_keep \
+                    = df.loc[df['gyro_z'] <= keep_frac_or_seconds]['lap']
+                text = 'all gyro_z lower than {:.2f}s'
+            else:
+                laps_to_keep \
+                    = df.loc[df['lap_times'] <= keep_frac_or_seconds]['lap']
+                text = 'all laps slower than {:.2f}s'
+            text = text.format(keep_frac_or_seconds)
 
         df_records = self.get_df()
         df_to_remove = df_records[~df_records['car/lap'].isin(laps_to_keep)]

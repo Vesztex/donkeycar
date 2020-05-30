@@ -72,11 +72,25 @@
                                 </div>
                             </div>
                         </div>
+                        Speed:
+                        <div class="speed-bar">
+                            <div class="progress">
+                                <div id="speed-bar-forward" class="progress-bar progress-bar-success" role="progressbar"
+                                     style="width: 0%;">
+                                </div>
+                            </div>
+                        </div>
                         <img id="img-preview" class="train-img" src=""/>
                     </div>
                     <div class="preview-toolbar">
                         Current Frame:
-                        <h4 id="cur-frame">0</h4>
+                        <h3 id="cur-frame">0</h3>
+                        Distance:
+                        <h5 id="dist">0</h5>
+                        Distance in lap:
+                        <h5 id="m_in_lap">0</h5>
+                        Lap:
+                        <h5 id="lap">0</h5>
                         <select id="preview-speed" class="form-control">
                             <option value='7'>0.5x playback</option>
                             <option value='15' selected>1x playback</option>

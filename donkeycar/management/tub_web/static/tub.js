@@ -53,6 +53,13 @@ $(document).ready(function(){
         $('#img-preview').attr('src', '/tub_data/' + tubId + '/' + curFrame + '_cam-image_array_.jpg');
         $('#cur-frame').text(curFrame);
         $.getJSON('/tub_data/' + tubId + '/' + 'record_' + curFrame + '.json', function(data) {
+            distance = Math.round(1000 * data["car/distance"]) / 1000
+            $('#dist').text(distance)
+            m_in_lap = Math.round(1000 * data["car/m_in_lap"]) / 1000
+            $('#m_in_lap').text(m_in_lap)
+            lap = data["car/lap"]
+            $('#lap').text(lap)
+
             var angle = data["user/angle"];
             var steeringPercent = Math.round(Math.abs(angle) * 100) + '%';
             var steeringRounded = angle.toFixed(2);
@@ -69,6 +76,12 @@ $(document).ready(function(){
             var throttleRounded = throttle.toFixed(2);
             $('.throttle-bar .progress-bar').css('width', '0%').html('');
             $('#throttle-bar-forward').css('width', throttlePercent).html(throttleRounded);
+
+            var speed = data["car/speed"] / 4.4; // divided by car max speed
+            var speedPercent = Math.round(Math.abs(speed) * 100) + '%';
+            var speedRounded = speed.toFixed(2);
+            $('.speed-bar .progress-bar').css('width', '0%').html('');
+            $('#speed-bar-forward').css('width', speedPercent).html(speedRounded);
 
             var accel = data["car/accel"];
             var accel_x = -accel[0]/10;
@@ -97,11 +110,11 @@ $(document).ready(function(){
             var gyro_z_pct = Math.round(Math.abs(gyro_z) * 100) + '%';
             var gyro_z_rounded = gyro_z.toFixed(2);
             $('.gyro-z-bar .progress-bar').css('width', '0%').html('');
-            if(accel_y < 0) {
-                $('#gyro-z-bar-backward').css('width', accel_y_pct).html(accel_y_rounded);
+            if(gyro_z < 0) {
+                $('#gyro-z-bar-backward').css('width', gyro_z_pct).html(gyro_z_rounded);
             }
-            if (accel_y > 0) {
-                $('#gyro-z-bar-forward').css('width', accel_y_pct).html(accel_y_rounded);
+            if (gyro_z > 0) {
+                $('#gyro-z-bar-forward').css('width', gyro_z_pct).html(gyro_z_rounded);
             }
 
         });

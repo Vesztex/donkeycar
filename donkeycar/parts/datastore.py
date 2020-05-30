@@ -105,7 +105,8 @@ class Tub(object):
 
     def update_df(self):
         index = self.get_index(shuffled=False)
-        df = pd.DataFrame([self.get_json_record(i) for i in index])
+        df = pd.DataFrame([self.get_json_record(i, unravel=True) for i in
+                           index])
         df = df.set_index(pd.Index(index))
         self.df = df
 
@@ -323,7 +324,7 @@ class Tub(object):
     def get_json_record_path(self, ix):
         return os.path.join(self.path, 'record_' + str(ix) + '.json')
 
-    def get_json_record(self, ix):
+    def get_json_record(self, ix, unravel=False):
         path = self.get_json_record_path(ix)
         err_add = 'You may want to run `donkey tubcheck --fix`'
         try:
@@ -347,6 +348,21 @@ class Tub(object):
         if "car/speed" in json_data and json_data["car/speed"] <= 0.0:
             raise Exception(('Bad record: %d. "car/speed" should be >0 for '
                             'recorded data. ' + err_add) % ix)
+
+        if unravel:
+            unravel_dict = {}
+            delete_keys = []
+            for k, v in json_data.items():
+                typ = self.get_input_type(k)
+                if typ == 'vector':
+                    for i in range(len(v)):
+                        unravel_dict[k + "_" + str(i)] = v[i]
+                    delete_keys.append(k)
+            for d in delete_keys:
+                del(json_data[d])
+            json_data.update(unravel_dict)
+
+
 
         record_dict = self.make_record_paths_absolute(json_data)
         return record_dict
@@ -409,15 +425,29 @@ class Tub(object):
         assert 'car/lap' in df.columns, 'No lap data found in tub ' + self.path
         laps = df['car/lap'].unique()
         times = []
+        distances = []
+        gyro_z_acc = []
         last_start = None
+        last_start_dist = None
         for l in laps[1:]:
             mask = df['car/lap'] == l
             lap_df = df[mask]
             start = lap_df['milliseconds'].iloc[0]
+            start_dist = lap_df['car/distance'].iloc[0]
             if last_start is not None:
                 times.append((start - last_start) * 1.0e-3)
+                lap_dist = start_dist - last_start_dist
+                distances.append(lap_dist)
+                gyro_z = lap_df['car/gyro_2']
+                # use average absolute turning speed to indicate fuzzy driving
+                gyro_acc = gyro_z.abs().mean()
+                gyro_z_acc.append(gyro_acc)
+
             last_start = start
-        return pd.DataFrame(dict(lap=laps[1:-1], lap_times=times),
+            last_start_dist = start_dist
+
+        return pd.DataFrame(dict(lap=laps[1:-1], lap_times=times,
+                                 lap_distances=distances, gyro_z=gyro_z_acc),
                             index=laps[1: -1])
 
     def exclude_slow_laps(self, keep_frac_or_seconds=None):

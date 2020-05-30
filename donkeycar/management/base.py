@@ -6,6 +6,7 @@ import json
 from socket import *
 import os
 from threading import Thread
+import pandas as pd
 
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
@@ -707,12 +708,13 @@ class ShowLapTimes(BaseCommand):
         for tub_path in tub_paths.split(','):
             tub = Tub(tub_path)
             df = tub.make_lap_times()
+            pd.set_option('display.max_rows', df.shape[0] + 1)
             print(df, '\n')
 
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='laps',
                                          usage='%(prog)s [options]')
-        parser.add_argument('--tub', nargs='+',
+        parser.add_argument('tub', nargs='+',
                             help='paths to tubs')
         parser.add_argument('--config', default='./config.py',
                             help='location of config file to use -default: '

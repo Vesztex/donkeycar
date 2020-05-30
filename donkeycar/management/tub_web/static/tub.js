@@ -59,6 +59,8 @@ $(document).ready(function(){
             $('#m_in_lap').text(m_in_lap)
             lap = data["car/lap"]
             $('#lap').text(lap)
+            seconds = data["milliseconds"] / 1000
+            $('#seconds').text(seconds)
 
             var angle = data["user/angle"];
             var steeringPercent = Math.round(Math.abs(angle) * 100) + '%';

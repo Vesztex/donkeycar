@@ -203,10 +203,13 @@ class KerasSquarePlusImu(KerasSquarePlus):
         print('Created', self.__class__.__name__, 'imu_dim:', imu_dim,
               'NN size:', size)
 
-    def run(self, img_arr, imu):
+    def run(self, img_arr, imu=None):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        imu_arr = np.array(imu)
-        outputs = self.model.predict(img_arr, imu_arr)
+        if imu is None:
+            imu_arr = np.zeros((1, 6))
+        else:
+            imu_arr = np.array(imu)
+        outputs = self.model.predict(x=[img_arr, imu_arr])
         steering = outputs[0]
         throttle = outputs[1]
         return steering[0][0], throttle[0][0]

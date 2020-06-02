@@ -440,8 +440,8 @@ def gather_records(cfg, tub_names, exclude=None, verbose=False):
         if verbose:
             print(tub.path)
         if hasattr(cfg, 'EXCLUDE_SLOW_LAPS'):
-            apply_gyro = getattr(cfg, 'APPLY_GYRO', False)
-            tub.exclude_slow_laps(cfg.EXCLUDE_SLOW_LAPS, apply_gyro=apply_gyro)
+            sort_by = getattr(cfg, 'SORT_LAPS_BY', 'lap_time')
+            tub.exclude_slow_laps(cfg.EXCLUDE_SLOW_LAPS, sort_by=sort_by)
         record_paths = tub.gather_records()
         records += record_paths
 

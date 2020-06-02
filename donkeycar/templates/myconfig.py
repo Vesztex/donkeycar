@@ -64,7 +64,7 @@ FREEZE_LAYERS = False
 NUM_LAST_LAYERS_TO_TRAIN = 5  # flat, dense, dense, angle, throttle
 PACK_PATH = r'/Users/dirk/GoogleDrive/mycar/data'
 # EXCLUDE_SLOW_LAPS = 0.5
-APPLY_GYRO=False
+SORT_LAPS_BY='lap_time'  # gyro_z, accel_x
 # ROI_CROP_TOP = 36
 # USE_TENSORBOARD = True
 

@@ -427,6 +427,7 @@ class Tub(object):
         times = []
         distances = []
         gyro_z_acc = []
+        accel_x_acc = []
         last_start = None
         last_start_dist = None
         for l in laps[1:]:
@@ -439,21 +440,28 @@ class Tub(object):
                 lap_dist = start_dist - last_start_dist
                 distances.append(lap_dist)
                 gyro_z = lap_df['car/gyro_2']
-                # use average absolute turning speed to indicate fuzzy driving
-                gyro_acc = gyro_z.abs().mean()
-                gyro_z_acc.append(gyro_acc)
-
+                accel_x = lap_df['car/accel_0']
+                # use average absolute turning speed to indicate fuzzy
+                # driving or alternatively absolute x (i.e. left/right)
+                # acceleration
+                gyro_z_acc.append(gyro_z.abs().mean())
+                accel_x_acc.append(accel_x.abs().mean())
             last_start = start
             last_start_dist = start_dist
 
-        return pd.DataFrame(dict(lap=laps[1:-1], lap_times=times,
-                                 lap_distances=distances, gyro_z=gyro_z_acc),
-                            index=laps[1: -1])
+        data = dict(lap=laps[1:-1],
+                    lap_time=times,
+                    lap_distances=distances,
+                    accel_x=accel_x_acc,
+                    gyro_z=gyro_z_acc)
+        return pd.DataFrame(data, index=laps[1: -1])
 
     def exclude_slow_laps(self, keep_frac_or_seconds=None, clean=True,
-                          apply_gyro=False):
+                          sort_by='lap_time'):
         """
         Removes records of slower laps
+        :param sort_by:                 sort by which column
+        :param clean:                   remove laps that are < 0.9 median length
         :param keep_frac_or_seconds:    either fraction of the laps to keep or
                                         laps with are faster than the  argument
                                         as seconds. Interpreted as fraction if
@@ -467,32 +475,23 @@ class Tub(object):
         if self.exclude:
             self.exclude.clear()
         df = self.make_lap_times()
+        assert sort_by in df, "Cannot find column " + sort_by + " for sorting"
         # remove laps that are too short
         if clean:
             med_dist = df['lap_distances'].median()
             df = df[df['lap_distances'] > 0.9 * med_dist]
 
         if keep_frac_or_seconds <= 1:
-            if apply_gyro:
-                df_sorted = df.sort_values(by=['gyro_z'])
-                text = 'the lowest {:.1f}% of gyro_z'
-            else:
-                df_sorted = df.sort_values(by=['lap_times'])
-                text = 'the slowest {:.1f}% of laps'
-            text = text.format((1.0 - keep_frac_or_seconds) * 100.0)
+            df_sorted = df.sort_values(by=[sort_by])
+            pct = (1.0 - keep_frac_or_seconds) * 100.0
+            text = 'the less than {:.1f}% of {:}'.format(pct, sort_by)
             slowest_index = int(len(df) * keep_frac_or_seconds)
             laps_to_keep = df_sorted['lap'].iloc[:slowest_index]
 
         else:
-            if apply_gyro:
-                laps_to_keep \
-                    = df.loc[df['gyro_z'] <= keep_frac_or_seconds]['lap']
-                text = 'all gyro_z lower than {:.2f}s'
-            else:
-                laps_to_keep \
-                    = df.loc[df['lap_times'] <= keep_frac_or_seconds]['lap']
-                text = 'all laps slower than {:.2f}s'
-            text = text.format(keep_frac_or_seconds)
+            laps_to_keep = df.loc[df[sort_by] <= keep_frac_or_seconds]['lap']
+            text = 'all {:} less than {:.2f}s'.format(sort_by,
+                                                      keep_frac_or_seconds)
 
         df_records = self.get_df()
         df_to_remove = df_records[~df_records['car/lap'].isin(laps_to_keep)]

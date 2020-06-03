@@ -27,8 +27,8 @@ def profile(model_path, model_type):
     if "rnn" in model_type or "3d" in model_type:
         seq_len = cfg.SEQUENCE_LENGTH
 
-    # generate random array in the right shape
-    img = (np.random.rand(int(h), int(w), int(ch)) * 255).astype(np.uint8)
+    # generate random array in the right shape and normalised [0,1]
+    img = np.random.rand(int(h), int(w), int(ch))
 
     if seq_len:
         img_arr = []

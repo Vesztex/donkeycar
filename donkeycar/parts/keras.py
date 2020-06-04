@@ -108,6 +108,22 @@ class KerasPilot(object):
                         validation_steps=steps*(1.0 - train_split))
         return hist
 
+    def get_num_last_layers_to_train(self):
+        """ Find the canonically named Flatten layer and return number of
+        layers after that"""
+        i = 0
+        while self.model.layers[i].name != 'flattened':
+            i += 1
+        return len(self.model.layers) - i
+
+    def freeze_first_layers(self, num_last_layers_to_train=None):
+        if num_last_layers_to_train is None:
+            num_last_layers_to_train = self.get_num_last_layers_to_train()
+        num_to_freeze = len(self.model.layers) - num_last_layers_to_train
+        for i in range(num_to_freeze):
+            self.model.layers[i].trainable = False
+        print('Freezing %d layers' % num_to_freeze)
+
 
 class KerasCategorical(KerasPilot):
     '''
@@ -116,7 +132,7 @@ class KerasCategorical(KerasPilot):
     neuron for each steering and throttle choice. This can be interesting because we
     get the confidence value as a distribution over all choices.
     This uses the dk.utils.linear_bin and dk.utils.linear_unbin to transform continuous
-    real numbers into a range of discreet values for training and runtime.
+real numbers into a range of discreet values for training and runtime.
     The input and output are therefore bounded and must be chosen wisely to match the data.
     The default ranges work for the default setup. But cars which go faster may want to
     enable a higher throttle range. And cars with larger steering throw may want more bins.
@@ -757,7 +773,7 @@ def build_3d_cnn(w, h, d, s, num_outputs):
         pool_size=(1,2,2), strides=(1,2,2), padding='valid', data_format=None)
     )
     # Fully connected layer
-    model.add(Flatten())
+    model.add(Flatten(name='flattened'))
 
     model.add(Dense(256))
     model.add(BatchNormalization())

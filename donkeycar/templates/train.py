@@ -361,10 +361,8 @@ def train(cfg, tub_names, model_name, transfer_model,
 
         # when transfering models, should we freeze all but the last N layers?
         if cfg.FREEZE_LAYERS:
-            num_to_freeze = len(kl.model.layers) - cfg.NUM_LAST_LAYERS_TO_TRAIN
-            print('freezing %d layers' % num_to_freeze)
-            for i in range(num_to_freeze):
-                kl.model.layers[i].trainable = False
+            num_last_layers = getattr(cfg, 'NUM_LAST_LAYERS_TO_TRAIN', None)
+            kl.freeze_first_layers(num_last_layers)
 
     if cfg.OPTIMIZER:
         kl.set_optimizer(cfg.OPTIMIZER, cfg.LEARNING_RATE, cfg.LEARNING_RATE_DECAY)

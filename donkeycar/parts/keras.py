@@ -114,15 +114,18 @@ class KerasPilot(object):
         i = 0
         while self.model.layers[i].name != 'flattened':
             i += 1
-        return len(self.model.layers) - i
+        return len(self.model.layers) - i - 1
 
     def freeze_first_layers(self, num_last_layers_to_train=None):
+        print("num last layers to train input", num_last_layers_to_train)
         if num_last_layers_to_train is None:
             num_last_layers_to_train = self.get_num_last_layers_to_train()
         num_to_freeze = len(self.model.layers) - num_last_layers_to_train
+        frozen_layers = []
         for i in range(num_to_freeze):
             self.model.layers[i].trainable = False
-        print('Freezing %d layers' % num_to_freeze)
+            frozen_layers.append(self.model.layers[i].name)
+        print('Freezing layers {}'.format(frozen_layers))
 
 
 class KerasCategorical(KerasPilot):

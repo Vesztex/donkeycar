@@ -65,7 +65,7 @@ class TubsView(tornado.web.RequestHandler):
         dir_list = fnmatch.filter(os.listdir(self.data_path), '*')
         dir_list.sort()
         # Remove '.' files in directory list
-        dir_list = [d for d in dir_list if d[0] is not '.']
+        dir_list = [d for d in dir_list if d[0] != '.']
         data = {"tubs": dir_list}
         self.render("tub_web/tubs.html", **data)
 

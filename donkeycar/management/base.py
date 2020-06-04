@@ -779,7 +779,7 @@ class Monitor(BaseCommand):
                 img_np = img_to_arr(img)
                 try:
                     img_scaled = cv2.resize(img_np, None, fx=scale, fy=scale) \
-                        if scale is not 1.0 else img_np
+                        if scale != 1.0 else img_np
                     img_scaled = cv2.cvtColor(img_scaled, cv2.COLOR_BGR2RGB)
                     cv2.imshow('Donkey FPV', img_scaled)
                     cv2.waitKey(1)

@@ -77,10 +77,9 @@ def make_next_key(sample, index_offset):
 
 def collate_records(records, gen_records, opts):
     '''
-    open all the .json records from records list passed in,
-    read their contents,
-    add them to a list of gen_records, passed in.
-    use the opts dict to specify config choices
+    open all the .json records from records list passed in, read their contents,
+    add them to a list of gen_records, passed in. use the opts dict to
+    specify config choices
     '''
     print('Collating %d records ...' % (len(records)))
     throttle_key = 'user/throttle'

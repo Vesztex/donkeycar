@@ -11,8 +11,11 @@ import os
 from docopt import docopt
 import donkeycar as dk
 import numpy as np
-import time
 from donkeycar.utils import FPSTimer
+
+# this switches TF >= 2.0 from eager into graph mode which is faster.
+from tensorflow.python.framework.ops import disable_eager_execution
+disable_eager_execution()
 
 
 def profile(model_path, model_type):
@@ -61,4 +64,4 @@ def profile(model_path, model_type):
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    profile(model_path = args['--model'], model_type = args['--type'])
+    profile(model_path=args['--model'], model_type=args['--type'])

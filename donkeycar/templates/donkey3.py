@@ -27,6 +27,9 @@ from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
 from donkeycar.parts.imu import Mpu6050Ada
 
+from tensorflow.python.framework.ops import disable_eager_execution
+disable_eager_execution()
+
 
 class TypePrinter:
     def __init__(self, type_name):

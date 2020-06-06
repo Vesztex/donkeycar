@@ -117,7 +117,6 @@ class KerasPilot(object):
         return len(self.model.layers) - i - 1
 
     def freeze_first_layers(self, num_last_layers_to_train=None):
-        print("num last layers to train input", num_last_layers_to_train)
         if num_last_layers_to_train is None:
             num_last_layers_to_train = self.get_num_last_layers_to_train()
         num_to_freeze = len(self.model.layers) - num_last_layers_to_train
@@ -126,6 +125,10 @@ class KerasPilot(object):
             self.model.layers[i].trainable = False
             frozen_layers.append(self.model.layers[i].name)
         print('Freezing layers {}'.format(frozen_layers))
+        return num_to_freeze
+
+    def model_type(self):
+        return type(self).__name__
 
 
 class KerasCategorical(KerasPilot):
@@ -198,14 +201,17 @@ class KerasSquarePlus(KerasLinear):
     """
 
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
-        size = kwargs.get('size', 'S').upper()
-        self.model = linear_square_plus(input_shape, roi_crop, size=size)
+        self.size = kwargs.get('size', 'S').upper()
+        self.model = linear_square_plus(input_shape, roi_crop, size=self.size)
         self.compile()
-        print('Created', self.__class__.__name__, 'NN size:', size)
+        print('Created', self.__class__.__name__, 'NN size:', self.size)
 
     def compile(self):
         self.model.compile(optimizer='adam', loss='mse',
                            loss_weights={'angle_out': 0.9, 'throttle_out': 0.1})
+
+    def model_type(self):
+        return super().model_type() + '-' + self.size
 
 
 class KerasSquarePlusImu(KerasSquarePlus):
@@ -213,14 +219,14 @@ class KerasSquarePlusImu(KerasSquarePlus):
     The model is a variation of the SquarePlus model that also uses imu data
     """
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
-        imu_dim = kwargs.get('imu_dim', 6)
-        size = kwargs.get('size', 'S').upper()
+        self.imu_dim = kwargs.get('imu_dim', 6)
+        self.size = kwargs.get('size', 'S').upper()
         self.model = linear_square_plus_imu(input_shape, roi_crop,
-                                            imu_dim=imu_dim,
-                                            size=size)
+                                            imu_dim=self.imu_dim,
+                                            size=self.size)
         self.compile()
-        print('Created', self.__class__.__name__, 'imu_dim:', imu_dim,
-              'NN size:', size)
+        print('Created', self.__class__.__name__, 'imu_dim:', self.imu_dim,
+              'NN size:', self.size)
 
     def run(self, img_arr, imu=None):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
@@ -232,6 +238,9 @@ class KerasSquarePlusImu(KerasSquarePlus):
         steering = outputs[0]
         throttle = outputs[1]
         return steering[0][0], throttle[0][0]
+
+    def model_type(self):
+        return super().model_type() + '-' + str(self.imu_dim)
 
 
 class KerasIMU(KerasPilot):
@@ -312,9 +321,11 @@ class KerasLocalizer(KerasPilot):
     A Keras part that take an image as input,
     outputs steering and throttle, and localisation category
     '''
-    def __init__(self, model=None, num_locations=8, input_shape=(120, 160, 3), *args, **kwargs):
+    def __init__(self, model=None, num_locations=8, input_shape=(120, 160, 3),
+                 *args, **kwargs):
         super(KerasLocalizer, self).__init__(*args, **kwargs)
-        self.model = default_loc(num_locations=num_locations, input_shape=input_shape)
+        self.model = default_loc(num_locations=num_locations,
+                                 input_shape=input_shape)
         self.compile()
 
     def compile(self):
@@ -324,14 +335,13 @@ class KerasLocalizer(KerasPilot):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
         angle, throttle, track_loc = self.model.predict([img_arr])
         loc = np.argmax(track_loc[0])
-
         return angle, throttle, loc
 
 
 def adjust_input_shape(input_shape, roi_crop):
     height = input_shape[0]
     new_height = height - roi_crop[0] - roi_crop[1]
-    return (new_height, input_shape[1], input_shape[2])
+    return new_height, input_shape[1], input_shape[2]
 
 
 def default_categorical(input_shape=(120, 160, 3), roi_crop=(0, 0)):
@@ -469,7 +479,8 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0), size='S'):
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
-    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out])
+    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out],
+                  name='Square_Plus')
     return model
 
 
@@ -501,7 +512,8 @@ def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(z)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(z)
-    model = Model(inputs=[img_in, imu_in], outputs=[angle_out, throttle_out])
+    model = Model(inputs=[img_in, imu_in], outputs=[angle_out, throttle_out],
+                  name='Square_Plus_Imu')
     return model
 
 

@@ -432,18 +432,26 @@ def get_record_index(fnm):
     return int(sl[1].split('.')[0])
 
 
-def gather_records(cfg, tub_names, exclude=None, verbose=False):
+def gather_records(cfg, tub_names, exclude=None, verbose=False, data_base=None):
     tubs = gather_tubs(cfg, tub_names, exclude)
     records = []
+    tub_paths = []
+    exclude_laps = getattr(cfg, 'EXCLUDE_SLOW_LAPS', None)
+    exclude_by = getattr(cfg, 'SORT_LAPS_BY', 'lap_time')
 
     for tub in tubs:
         if verbose:
             print(tub.path)
-        if hasattr(cfg, 'EXCLUDE_SLOW_LAPS'):
-            sort_by = getattr(cfg, 'SORT_LAPS_BY', 'lap_time')
-            tub.exclude_slow_laps(cfg.EXCLUDE_SLOW_LAPS, sort_by=sort_by)
+        if exclude_laps is not None:
+            tub.exclude_slow_laps(cfg.EXCLUDE_SLOW_LAPS, sort_by=exclude_by)
         record_paths = tub.gather_records()
         records += record_paths
+        tub_paths.append(tub.path)
+
+    if data_base is not None:
+        data_base['ExcludeLaps'] = exclude_laps
+        data_base['ExcludeBy'] = exclude_by
+        data_base['Tubs'] = tub_paths
 
     return records
 

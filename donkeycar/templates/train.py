@@ -13,7 +13,7 @@ Usage:
     train.py [--tub=<tub1,tub2,..tubn>]
     [--exclude=<[pattern1, pattern2]>]
     [--file=<file> ...]
-    (--model=<model>)
+    [--model=<model>]
     [--transfer=<model>]
     [--type=(linear|latent|categorical|rnn|imu|behavior|3d|look_ahead|tensorrt_linear|tflite_linear|coral_tflite_linear)]
     [--figure_format=<figure_format>]
@@ -310,6 +310,13 @@ def train(cfg, tub_names, model_name, transfer_model,
     saves the output trained model as model_name
     """
     verbose = cfg.VERBOSE_TRAIN
+    pilot_num = 0
+    pilot_data = {}
+    if model_name is None:
+        model_name, pilot_num = auto_generate_model_name()
+        model_name += ".tflite" if "tflite" in model_type else ".uff" if \
+            "tensorrt" in model_type else ".h5"
+    pilot_data['Num'] = pilot_num
 
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE
@@ -353,16 +360,19 @@ def train(cfg, tub_names, model_name, transfer_model,
     kl = get_model_by_type(train_type, cfg=cfg)
 
     opts['categorical'] = type(kl) in [KerasCategorical, KerasBehavioral]
-    print('training with model type', type(kl))
+    print('Training with model type', kl.model_type())
+    pilot_data['ModelType'] = kl.model_type()
 
     if transfer_model:
-        print('loading weights from model', transfer_model)
+        print('Loading weights from model', transfer_model)
         kl.load(transfer_model)
+        pilot_data['TransferModel'] = transfer_model
 
         # when transfering models, should we freeze all but the last N layers?
         if cfg.FREEZE_LAYERS:
             num_last_layers = getattr(cfg, 'NUM_LAST_LAYERS_TO_TRAIN', None)
-            kl.freeze_first_layers(num_last_layers)
+            num_freeze = kl.freeze_first_layers(num_last_layers)
+            pilot_data['Freeze'] = num_freeze
 
     if cfg.OPTIMIZER:
         kl.set_optimizer(cfg.OPTIMIZER, cfg.LEARNING_RATE, cfg.LEARNING_RATE_DECAY)
@@ -377,7 +387,12 @@ def train(cfg, tub_names, model_name, transfer_model,
     opts['model_type'] = model_type
 
     extract_data_from_pickles(cfg, tub_names, exclude=exclude)
-    records = gather_records(cfg, tub_names, exclude=exclude, verbose=True)
+    records = gather_records(cfg, tub_names, exclude=exclude,
+                             verbose=True, data_base=pilot_data)
+    # save model data
+    with open(model_name.replace('.h5', '.json'), 'w') as f:
+        json.dump(pilot_data, f)
+
     if dry:
         print("Dry run only - stop here.\n")
         return
@@ -387,9 +402,7 @@ def train(cfg, tub_names, model_name, transfer_model,
                   min_records_to_train=1000):
 
         num_records = len(data)
-
         while True:
-
             if is_train_set and opts['continuous']:
                 # When continuous training, we look for new records after each
                 # epoch. This will add new records to the train and validation
@@ -921,7 +934,7 @@ def extract_data_from_pickles(cfg, tubs, exclude=[]):
     t_paths = gather_tub_paths(cfg, tubs, exclude)
     for tub_path in t_paths:
         file_paths = glob.glob(join(tub_path, '*.pickle'))
-        print('found {} pickles writing json records and images in tub {}'
+        print('Found {} pickles writing json records and images in tub {}'
               .format(len(file_paths), tub_path))
         for file_path in file_paths:
             # print('loading data from {}'.format(file_paths))
@@ -1010,6 +1023,35 @@ def preprocessFileList(filelist):
 
     remove_comments(dirs)
     return dirs
+
+
+def auto_generate_model_name():
+    """ Assumes models are in directory models/ and their names are
+    pilot_N_YY_MM_DD, where N is a continuous counter. """
+    car_dir = os.path.dirname(os.path.realpath(__file__))
+    model_path = os.path.expanduser(os.path.join(car_dir, 'models'))
+    print('Found model path', model_path)
+    files = os.listdir(model_path)
+    model_files = [f for f in files if f[-3:] == '.h5']
+    pilot_nums = [0]
+    for model_file in model_files:
+        pilot_path = os.path.basename(model_file)
+        # splitting off extension '.h5'
+        pilot_split = pilot_path.split('.')
+        if len(pilot_split) == 2:
+            pilot_name = pilot_split[0]
+            pilot_name_split = pilot_name.split('_')
+            # this is true if name is 'pilot_XYZ_YY-MM-DD' or any other
+            # string after the number XYZ
+            if len(pilot_name_split) == 3 and pilot_name_split[0] == 'pilot' \
+                    and pilot_name_split[1].isnumeric():
+                pilot_num = int(pilot_name_split[1])
+                pilot_nums.append(pilot_num)
+
+    new_pilot_num = max(pilot_nums) + 1
+    new_pilot = 'models/pilot_' + str(new_pilot_num) + '_' + \
+                datetime.datetime.now().strftime('%y-%m-%d')
+    return new_pilot, new_pilot_num
 
 
 if __name__ == "__main__":

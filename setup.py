@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
-
 import os
+
 
 # include the non python files
 def package_files(directory, strip_leading):
@@ -22,63 +22,65 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='donkeycar',
-    version='3.1.2 DocGarbanzo',
-    long_description = long_description,
-    description='Self driving library for python.',
-    url='https://github.com/autorope/donkeycar',
-    author='Will Roscoe, Adam Conway, Tawn Kramer',
-    author_email='wroscoe@gmail.com, adam@casaconway.com, tawnkramer@gmail.com',
-    license='MIT',
-    entry_points={
-        'console_scripts': [
-            'donkey=donkeycar.management.base:execute_from_command_line',
-        ],
-    },
-    install_requires=['numpy', 
-                      'pillow',
-                      'docopt',
-                      'tornado',
-                      'requests',
-                      'h5py',
-                      'moviepy',
-                      'pandas',
-                      'PrettyTable',
-                      'paho-mqtt',
-                      'progress',
-                      'tqdm',
-                      'simple-pid',
-                      'braceexpand'
-                      ],
+      version='3.1.2 DocGarbanzo',
+      long_description=long_description,
+      description='Self driving library for python.',
+      url='https://github.com/autorope/donkeycar',
+      author='Will Roscoe, Adam Conway, Tawn Kramer',
+      author_email='wroscoe@gmail.com, adam@casaconway.com, '
+                   'tawnkramer@gmail.com',
+      license='MIT',
+      entry_points={
+          'console_scripts': [
+              'donkey=donkeycar.management.base:execute_from_command_line',
+          ],
+      },
+      install_requires=['numpy',
+                        'pillow',
+                        'docopt',
+                        'tornado',
+                        'requests',
+                        'h5py',
+                        'moviepy',
+                        'pandas',
+                        'PrettyTable',
+                        'paho-mqtt',
+                        'progress',
+                        'tqdm',
+                        'simple-pid',
+                        'braceexpand'
+                        ],
 
-    extras_require={
-                    'pi': [
-                        'picamera',
-                        'Adafruit_PCA9685',
-                        'Adafruit_SSD1306',
-                        'RPi.GPIO',
-                        'pyserial',
-                        'adafruit-circuitpython-mpu6050'
-                        ],
-                    'nano': [
-                        'Adafruit_PCA9685',
-                        'Adafruit_SSD1306',
-                        ],
-                    'pc': [
-                        'matplotlib',
-                        'plotly'
-                        ],
-                    'dev': [
-                        'pytest',
-                        'pytest-cov',
-                        'responses',
-                        ],
-                    'ci': ['codecov'],
-                    'tf': ['tensorflow==1.13.1'],
-                    'tf_gpu': ['tensorflow-gpu==1.13.1'],
-                    },
-    package_data={
-        'donkeycar': extra_files, 
-        },
+      extras_require={
+          'pi': [
+              'picamera',
+              'Adafruit_PCA9685',
+              'Adafruit_SSD1306',
+              'RPi.GPIO',
+              'pyserial',
+              'adafruit-circuitpython-mpu6050'
+          ],
+          'nano': [
+              'Adafruit_PCA9685',
+              'Adafruit_SSD1306',
+          ],
+          'pc': [
+              'matplotlib',
+              'plotly',
+              'qgrid'
+          ],
+          'dev': [
+              'pytest',
+              'pytest-cov',
+              'responses',
+          ],
+          'ci': ['codecov'],
+          'tf': ['tensorflow==2.2.0'],
+          'tf_gpu': ['tensorflow-gpu==2.2.0'],
+      },
+      package_data={
+          'donkeycar': extra_files,
+      },
 
       include_package_data=True,
 
@@ -98,7 +100,6 @@ setup(name='donkeycar',
 
           # Specify the Python versions you support here. In particular, ensure
           # that you indicate whether you support Python 2, Python 3 or both.
-
           'Programming Language :: Python :: 3.6',
           'Programming Language :: Python :: 3.7',
       ],
@@ -106,3 +107,4 @@ setup(name='donkeycar',
 
       packages=find_packages(exclude=(['tests', 'docs', 'site', 'env'])),
       )
+

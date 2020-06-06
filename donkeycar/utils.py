@@ -15,6 +15,8 @@ import subprocess
 import sys
 import time
 import zipfile
+import json
+import pandas as pd
 from io import BytesIO
 
 import numpy as np
@@ -451,7 +453,7 @@ def gather_records(cfg, tub_names, exclude=None, verbose=False, data_base=None):
     if data_base is not None:
         data_base['ExcludeLaps'] = exclude_laps
         data_base['ExcludeBy'] = exclude_by
-        data_base['Tubs'] = tub_paths
+        data_base['Tubs'] = ",".join(tub_paths)
 
     return records
 
@@ -559,7 +561,7 @@ def train_test_split(data_list, shuffle=True, test_size=0.2):
     val_data = data_list
 
     return train_data, val_data
-    
+
 
 """
 Timers
@@ -582,3 +584,34 @@ class FPSTimer(object):
             print('fps', 100.0 / (e - self.t))
             self.t = time.time()
             self.iter = 0
+
+"""
+Pilot management
+"""
+
+
+def make_pilot_databases(model_path):
+    """
+    Return two dataframes containing pilot traingin info
+    :param model_path:
+    :return: pandas dataframe tuple
+    """
+    files = os.listdir(model_path)
+    j_data = []
+    for d in files:
+        if '.json' in d:
+            full_name = os.path.join(model_path, d)
+            with open(full_name, 'r') as f:
+                j_data.append(json.load(f))
+    df_pilots = pd.DataFrame(j_data)
+    df_pilots = df_pilots.set_index('Num')
+    tubs = df_pilots['Tubs'].drop_duplicates()
+    multi_tubs = [tub for tub in tubs if ',' in tub]
+    d = dict(zip(multi_tubs,
+                 ['tub_group_' + str(i) for i in range(len(multi_tubs))]))
+    new_tubs = [d[tub] if tub in d else tub for tub in df_pilots['Tubs']]
+    df_pilots['Tubs'] = new_tubs
+    # pandas explode normalises multiplicity of arrays as entries in data frame
+    df_tubs = pd.DataFrame(zip(d.values(), [k.split(',') for k in d.keys()]),
+                           columns=['TubGroup', 'Tubs']).explode('Tubs')
+    return df_pilots, df_tubs

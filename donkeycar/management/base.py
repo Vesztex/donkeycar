@@ -884,6 +884,21 @@ class TubNormBrightness(TubAugment):
         tub.normalize_brightness_in_images(self.cfg.IMG_BRIGHTNESS)
 
 
+class PilotDatabases(BaseCommand):
+    def parse_args(self, args):
+        parser = argparse.ArgumentParser(prog='pilots',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('models', help='paths to models')
+        parsed_args = parser.parse_args(args)
+        return parsed_args
+
+    def run(self, args):
+        args = self.parse_args(args)
+        df_pilots, df_tubs = make_pilot_databases(args.models)
+        ll = '\n' + '-' * 120 + '\n'
+        print(ll, df_pilots, ll, df_tubs, ll)
+
+
 def execute_from_command_line():
     """
     This is the function linked to the "donkey" terminal command.
@@ -906,7 +921,8 @@ def execute_from_command_line():
                 'update': UpdateCar,
                 'laps': ShowLapTimes,
                 'monitor': Monitor,
-                'pack': PackTubs
+                'pack': PackTubs,
+                'pilots': PilotDatabases,
                 }
 
     args = sys.argv[:]

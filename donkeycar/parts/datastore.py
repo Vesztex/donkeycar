@@ -484,7 +484,7 @@ class Tub(object):
         df = self.make_lap_times()
         assert sort_by in df, "Cannot find column " + sort_by + " for sorting"
         # remove laps that are too short
-        if clean:
+        if clean and 'lap_distances' in df:
             med_dist = df['lap_distances'].median()
             df = df[df['lap_distances'] > 0.9 * med_dist]
 

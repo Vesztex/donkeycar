@@ -317,6 +317,7 @@ def train(cfg, tub_names, model_name, transfer_model,
         model_name += ".tflite" if "tflite" in model_type else ".uff" if \
             "tensorrt" in model_type else ".h5"
     pilot_data['Num'] = pilot_num
+    pilot_data['Date'] = datetime.datetime.now().date().isoformat()
 
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE

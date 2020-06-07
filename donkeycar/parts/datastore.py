@@ -432,15 +432,18 @@ class Tub(object):
         accel_x_acc = []
         last_start = None
         last_start_dist = None
+        has_distance = 'car/distance' in df.columns
         for l in laps[1:]:
             mask = df['car/lap'] == l
             lap_df = df[mask]
             start = lap_df['milliseconds'].iloc[0]
-            start_dist = lap_df['car/distance'].iloc[0]
+            if has_distance:
+                start_dist = lap_df['car/distance'].iloc[0]
             if last_start is not None:
                 times.append((start - last_start) * 1.0e-3)
-                lap_dist = start_dist - last_start_dist
-                distances.append(lap_dist)
+                if has_distance:
+                    lap_dist = start_dist - last_start_dist
+                    distances.append(lap_dist)
                 gyro_z = lap_df['car/gyro_2']
                 accel_x = lap_df['car/accel_0']
                 # use average absolute turning speed to indicate fuzzy
@@ -449,13 +452,15 @@ class Tub(object):
                 gyro_z_acc.append(gyro_z.abs().mean())
                 accel_x_acc.append(accel_x.abs().mean())
             last_start = start
-            last_start_dist = start_dist
+            if has_distance:
+                last_start_dist = start_dist
 
         data = dict(lap=laps[1:-1],
                     lap_time=times,
-                    lap_distances=distances,
                     accel_x=accel_x_acc,
                     gyro_z=gyro_z_acc)
+        if has_distance:
+            data['lap_distances'] = distances
         return pd.DataFrame(data, index=laps[1: -1])
 
     def exclude_slow_laps(self, keep_frac_or_seconds=None, clean=True,

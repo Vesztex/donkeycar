@@ -39,6 +39,8 @@ class Tub(object):
                  user_meta=[], allow_reverse=True):
 
         self.path = os.path.expanduser(path)
+        if self.path[-1] == '/':
+            self.path = self.path[:-1]
         self.meta_path = os.path.join(self.path, 'meta.json')
         self.exclude_path = os.path.join(self.path, "exclude.json")
         self.df = None

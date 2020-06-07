@@ -367,7 +367,7 @@ def train(cfg, tub_names, model_name, transfer_model,
     if transfer_model:
         print('Loading weights from model', transfer_model)
         kl.load(transfer_model)
-        pilot_data['TransferModel'] = transfer_model
+        pilot_data['TransferModel'] = os.path.basename(transfer_model)
 
         # when transfering models, should we freeze all but the last N layers?
         if cfg.FREEZE_LAYERS:

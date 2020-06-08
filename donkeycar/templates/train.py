@@ -380,7 +380,7 @@ def train(cfg, tub_names, model_name, transfer_model,
     if cfg.PRINT_MODEL_SUMMARY:
         print(kl.model.summary())
 
-    print('Training new pilot:', kl.model_id())
+    print('Training new pilot:', model_name)
     pilot_data['ModelType'] = kl.model_id()
     opts['keras_pilot'] = kl
     opts['continuous'] = continuous

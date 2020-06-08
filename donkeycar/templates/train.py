@@ -359,17 +359,14 @@ def train(cfg, tub_names, model_name, transfer_model,
         train_type = model_type
 
     kl = get_model_by_type(train_type, cfg=cfg)
-
     opts['categorical'] = type(kl) in [KerasCategorical, KerasBehavioral]
     print('Training with model type', kl.model_id())
-    pilot_data['ModelType'] = kl.model_id()
 
     if transfer_model:
         kl.load(transfer_model)
-        print('Loading weights from model', transfer_model, 'model id',
+        print('Loading weights from model:', transfer_model, 'with ID:',
               kl.model_id())
         pilot_data['TransferModel'] = os.path.basename(transfer_model)
-
         # when transfering models, should we freeze all but the last N layers?
         if cfg.FREEZE_LAYERS:
             num_last_layers = getattr(cfg, 'NUM_LAST_LAYERS_TO_TRAIN', None)
@@ -380,10 +377,11 @@ def train(cfg, tub_names, model_name, transfer_model,
         kl.set_optimizer(cfg.OPTIMIZER, cfg.LEARNING_RATE, cfg.LEARNING_RATE_DECAY)
 
     kl.compile()
-
     if cfg.PRINT_MODEL_SUMMARY:
         print(kl.model.summary())
 
+    print('Training new pilot:', kl.model_id())
+    pilot_data['ModelType'] = kl.model_id()
     opts['keras_pilot'] = kl
     opts['continuous'] = continuous
     opts['model_type'] = model_type

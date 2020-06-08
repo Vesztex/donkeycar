@@ -361,12 +361,13 @@ def train(cfg, tub_names, model_name, transfer_model,
     kl = get_model_by_type(train_type, cfg=cfg)
 
     opts['categorical'] = type(kl) in [KerasCategorical, KerasBehavioral]
-    print('Training with model type', kl.model_type())
-    pilot_data['ModelType'] = kl.model_type()
+    print('Training with model type', kl.model_id())
+    pilot_data['ModelType'] = kl.model_id()
 
     if transfer_model:
-        print('Loading weights from model', transfer_model)
         kl.load(transfer_model)
+        print('Loading weights from model', transfer_model, 'model id',
+              kl.model_id())
         pilot_data['TransferModel'] = os.path.basename(transfer_model)
 
         # when transfering models, should we freeze all but the last N layers?

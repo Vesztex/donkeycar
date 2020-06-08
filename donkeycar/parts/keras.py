@@ -127,8 +127,10 @@ class KerasPilot(object):
         print('Freezing layers {}'.format(frozen_layers))
         return num_to_freeze
 
-    def model_type(self):
-        return type(self).__name__
+    def model_id(self):
+        if self.model is None:
+            return 'Model_not_set'
+        return self.model.name
 
 
 class KerasCategorical(KerasPilot):
@@ -199,7 +201,6 @@ class KerasSquarePlus(KerasLinear):
     input picture h x w ratio). With this the reduction in the first layer is
     larger hence the whole model only has 5 CNN layers.
     """
-
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
         self.size = kwargs.get('size', 'S').upper()
         self.model = linear_square_plus(input_shape, roi_crop, size=self.size)
@@ -209,9 +210,6 @@ class KerasSquarePlus(KerasLinear):
     def compile(self):
         self.model.compile(optimizer='adam', loss='mse',
                            loss_weights={'angle_out': 0.9, 'throttle_out': 0.1})
-
-    def model_type(self):
-        return super().model_type() + '-' + self.size
 
 
 class KerasSquarePlusImu(KerasSquarePlus):
@@ -238,9 +236,6 @@ class KerasSquarePlusImu(KerasSquarePlus):
         steering = outputs[0]
         throttle = outputs[1]
         return steering[0][0], throttle[0][0]
-
-    def model_type(self):
-        return super().model_type() + '-' + str(self.imu_dim)
 
 
 class KerasIMU(KerasPilot):
@@ -382,7 +377,8 @@ def default_categorical(input_shape=(120, 160, 3), roi_crop=(0, 0)):
     #continous output of throttle
     throttle_out = Dense(20, activation='softmax', name='throttle_out')(x)      # Reduce to 1 number, Positive number only
 
-    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out])
+    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out],
+                  name='KerasCategorical')
     return model
 
 
@@ -417,7 +413,7 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
     for i in range(num_outputs):
         outputs.append(Dense(1, activation='linear', name='n_outputs' + str(i))(x))
 
-    model = Model(inputs=[img_in], outputs=outputs)
+    model = Model(inputs=[img_in], outputs=outputs, name="KerasLinear")
 
     return model
 
@@ -480,7 +476,7 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0), size='S'):
     angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
     model = Model(inputs=[img_in], outputs=[angle_out, throttle_out],
-                  name='Square_Plus')
+                  name='SquarePlus_' + size)
     return model
 
 
@@ -513,7 +509,7 @@ def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
     angle_out = Dense(units=1, activation='linear', name='angle_out')(z)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(z)
     model = Model(inputs=[img_in, imu_in], outputs=[angle_out, throttle_out],
-                  name='Square_Plus_Imu')
+                  name='SquarePlusImu_' + size + '_' + str(imu_dim))
     return model
 
 
@@ -550,7 +546,7 @@ def default_imu(num_outputs, num_imu_inputs, input_shape):
     for i in range(num_outputs):
         outputs.append(Dense(1, activation='linear', name='out_' + str(i))(z))
 
-    model = Model(inputs=[img_in, imu_in], outputs=outputs)
+    model = Model(inputs=[img_in, imu_in], outputs=outputs, name="KerasIMU")
 
     return model
 
@@ -591,7 +587,8 @@ def default_bhv(num_outputs, num_bvh_inputs, input_shape):
     #continous output of throttle
     throttle_out = Dense(20, activation='softmax', name='throttle_out')(z)      # Reduce to 1 number, Positive number only
 
-    model = Model(inputs=[img_in, bvh_in], outputs=[angle_out, throttle_out])
+    model = Model(inputs=[img_in, bvh_in], outputs=[angle_out, throttle_out],
+                  name='KerasBehavioural')
 
     return model
 
@@ -629,7 +626,8 @@ def default_loc(num_locations, input_shape):
     #categorical output of location
     loc_out = Dense(num_locations, activation='softmax', name='loc')(z)
 
-    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out, loc_out])
+    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out, loc_out],
+                  name='KerasLocalizer')
 
     return model
 
@@ -678,7 +676,7 @@ def rnn_lstm(seq_length=3, num_outputs=2, image_shape=(120,160,3)):
     img_in = Input(batch_shape = img_seq_shape, name='img_in')
     drop_out = 0.3
 
-    x = Sequential()
+    x = Sequential(name='KerasLSTM')
     x.add(TD(Convolution2D(24, (5,5), strides=(2,2), activation='relu'), input_shape=img_seq_shape))
     x.add(TD(Dropout(drop_out)))
     x.add(TD(Convolution2D(32, (5,5), strides=(2,2), activation='relu')))
@@ -747,7 +745,7 @@ def build_3d_cnn(w, h, d, s, num_outputs):
     '''
     input_shape=(s, h, w, d)
 
-    model = Sequential()
+    model = Sequential(name='Keras3dCnn')
     #First layer
     #model.add(Cropping3D(cropping=((0,0), (50,10), (0,0)), input_shape=input_shape) ) #trim pixels off top
 
@@ -869,6 +867,6 @@ def default_latent(num_outputs, input_shape):
     for i in range(num_outputs):
         outputs.append(Dense(1, activation='linear', name='n_outputs' + str(i))(x))
 
-    model = Model(inputs=[img_in], outputs=outputs)
+    model = Model(inputs=[img_in], outputs=outputs, name='KerasLatent')
 
     return model

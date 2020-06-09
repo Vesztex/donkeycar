@@ -733,7 +733,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
 
 
 def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
-                   continuous, aug, exclude=None, dry=False):
+                   continuous, aug, exclude=None, replace=None, dry=False):
     '''
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -908,7 +908,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
 
 def multi_train(cfg, tub, model, transfer, model_type, continuous, aug,
-                exclude=None, dry=False):
+                exclude=None, replace=None, dry=False):
     '''
     choose the right regime for the given model type
     '''
@@ -917,7 +917,7 @@ def multi_train(cfg, tub, model, transfer, model_type, continuous, aug,
         train_fn = sequence_train
 
     train_fn(cfg, tub, model, transfer, model_type, continuous, aug, exclude,
-             dry)
+             replace, dry)
 
 
 def prune(model, validation_generator, val_steps, cfg):
@@ -1082,6 +1082,7 @@ if __name__ == "__main__":
     aug = args['--aug']
     nn_size = args['--nn_size']
     dry = args['--dry']
+    replace = args['--replace']
     if nn_size is not None:
         cfg.NN_SIZE = nn_size
 
@@ -1091,4 +1092,4 @@ if __name__ == "__main__":
         dirs.extend(tub_paths)
 
     multi_train(cfg, dirs, model, transfer, model_type, continuous, aug,
-                exclude, dry)
+                exclude, replace, dry)

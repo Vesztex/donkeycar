@@ -614,6 +614,7 @@ def make_pilot_databases(model_path):
                  ['tub_group_' + str(i) for i in range(len(multi_tubs))]))
     new_tubs = [d[tub] if tub in d else tub for tub in df_pilots['Tubs']]
     df_pilots['Tubs'] = new_tubs
+    df_pilots.sort_index(inplace=True)
     # pandas explode normalises multiplicity of arrays as entries in data frame
     df_tubs = pd.DataFrame(zip(d.values(), [k.split(',') for k in d.keys()]),
                            columns=['TubGroup', 'Tubs']).explode('Tubs')

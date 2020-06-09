@@ -18,7 +18,7 @@ Usage:
     [--type=(linear|latent|categorical|rnn|imu|behavior|3d|look_ahead|tensorrt_linear|tflite_linear|coral_tflite_linear)]
     [--figure_format=<figure_format>]
     [--nn_size=<nn_size>]
-    [--continuous] [--aug] [--dry]
+    [--continuous] [--aug] [--replace] [--dry]
 
 Options:
     -h --help              Show this screen.
@@ -304,7 +304,7 @@ def on_best_model(cfg, model, model_filename):
 
 
 def train(cfg, tub_names, model_name, transfer_model,
-          model_type, continuous, aug, exclude=None, dry=False):
+          model_type, continuous, aug, exclude=None, replace=None, dry=False):
     """
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -363,6 +363,7 @@ def train(cfg, tub_names, model_name, transfer_model,
     print('Training with model type', kl.model_id())
 
     if transfer_model:
+        assert(transfer_model[-3:] == '.h5')
         kl.load(transfer_model)
         print('Loading weights from model:', transfer_model, 'with ID:',
               kl.model_id())
@@ -373,12 +374,19 @@ def train(cfg, tub_names, model_name, transfer_model,
             num_freeze = kl.freeze_first_layers(num_last_layers)
             pilot_data['Freeze'] = num_freeze
         # if transfer is given but no tubs, use tubs from transfer pilot
+        transfer_num = None
         if not tub_names:
             transfer_pilot_json = transfer_model.replace('.h5', '.json')
             if os.path.exists(transfer_pilot_json):
                 with open(transfer_pilot_json, 'r') as f:
                     transfer_pilot = json.load(f)
                     tub_names = transfer_pilot['Tubs']
+                    transfer_num = transfer_pilot['Num']
+        # this will overwrite the transfer model file and database
+        if replace is not None:
+            model_name = transfer_model
+            if transfer_num is not None:
+                pilot_data['Num'] = pilot_num
 
     if cfg.OPTIMIZER:
         kl.set_optimizer(cfg.OPTIMIZER, cfg.LEARNING_RATE, cfg.LEARNING_RATE_DECAY)

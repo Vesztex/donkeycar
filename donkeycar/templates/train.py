@@ -372,6 +372,13 @@ def train(cfg, tub_names, model_name, transfer_model,
             num_last_layers = getattr(cfg, 'NUM_LAST_LAYERS_TO_TRAIN', None)
             num_freeze = kl.freeze_first_layers(num_last_layers)
             pilot_data['Freeze'] = num_freeze
+        # if transfer is given but no tubs, use tubs from transfer pilot
+        if not tub_names:
+            transfer_pilot_json = transfer_model.replace('.h5', '.json')
+            if os.path.exists(transfer_pilot_json):
+                with open(transfer_pilot_json, 'r') as f:
+                    transfer_pilot = json.load(f)
+                    tub_names = transfer_pilot['Tubs']
 
     if cfg.OPTIMIZER:
         kl.set_optimizer(cfg.OPTIMIZER, cfg.LEARNING_RATE, cfg.LEARNING_RATE_DECAY)
@@ -538,22 +545,19 @@ def train(cfg, tub_names, model_name, transfer_model,
 
     num_train = 0
     num_val = 0
-
     for key, _record in gen_records.items():
         if _record['train']:
             num_train += 1
         else:
             num_val += 1
 
-    print("train: %d, val: %d" % (num_train, num_val))
-    print('total records: %d' % total_records)
+    print('Total records: {}, train: {}, validate: {}'
+          .format(total_records, num_train, num_val))
 
     steps_per_epoch = 100 if continuous else num_train // cfg.BATCH_SIZE
     val_steps = num_val // cfg.BATCH_SIZE
-    print('steps_per_epoch', steps_per_epoch)
-
+    print('Steps_per_epoch', steps_per_epoch)
     cfg.model_type = model_type
-
     go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
              steps_per_epoch, val_steps, continuous, verbose, save_best)
 

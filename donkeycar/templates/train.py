@@ -384,6 +384,7 @@ def train(cfg, tub_names, model_name, transfer_model,
                     transfer_num = transfer_pilot['Num']
         # this will overwrite the transfer model file and database
         if replace is not None:
+            print('Replace transfer model:', replace)
             model_name = transfer_model
             if transfer_num is not None:
                 pilot_data['Num'] = pilot_num

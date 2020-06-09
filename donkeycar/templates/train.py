@@ -18,7 +18,7 @@ Usage:
     [--type=(linear|latent|categorical|rnn|imu|behavior|3d|look_ahead|tensorrt_linear|tflite_linear|coral_tflite_linear)]
     [--figure_format=<figure_format>]
     [--nn_size=<nn_size>]
-    [--continuous] [--aug] [--replace] [--dry]
+    [--continuous] [--aug] [--dry]
 
 Options:
     -h --help              Show this screen.
@@ -304,7 +304,7 @@ def on_best_model(cfg, model, model_filename):
 
 
 def train(cfg, tub_names, model_name, transfer_model,
-          model_type, continuous, aug, exclude=None, replace=None, dry=False):
+          model_type, continuous, aug, exclude=None, dry=False):
     """
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -374,20 +374,12 @@ def train(cfg, tub_names, model_name, transfer_model,
             num_freeze = kl.freeze_first_layers(num_last_layers)
             pilot_data['Freeze'] = num_freeze
         # if transfer is given but no tubs, use tubs from transfer pilot
-        transfer_num = None
         if not tub_names:
             transfer_pilot_json = transfer_model.replace('.h5', '.json')
             if os.path.exists(transfer_pilot_json):
                 with open(transfer_pilot_json, 'r') as f:
                     transfer_pilot = json.load(f)
                     tub_names = transfer_pilot['Tubs']
-                    transfer_num = transfer_pilot['Num']
-        # this will overwrite the transfer model file and database
-        if replace is not None:
-            print('Replace transfer model:', replace)
-            model_name = transfer_model
-            if transfer_num is not None:
-                pilot_data['Num'] = pilot_num
 
     if cfg.OPTIMIZER:
         kl.set_optimizer(cfg.OPTIMIZER, cfg.LEARNING_RATE, cfg.LEARNING_RATE_DECAY)
@@ -734,7 +726,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
 
 
 def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
-                   continuous, aug, exclude=None, replace=None, dry=False):
+                   continuous, aug, exclude=None, dry=False):
     '''
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -909,7 +901,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
 
 def multi_train(cfg, tub, model, transfer, model_type, continuous, aug,
-                exclude=None, replace=None, dry=False):
+                exclude=None, dry=False):
     '''
     choose the right regime for the given model type
     '''
@@ -918,7 +910,7 @@ def multi_train(cfg, tub, model, transfer, model_type, continuous, aug,
         train_fn = sequence_train
 
     train_fn(cfg, tub, model, transfer, model_type, continuous, aug, exclude,
-             replace, dry)
+             dry)
 
 
 def prune(model, validation_generator, val_steps, cfg):
@@ -1083,7 +1075,6 @@ if __name__ == "__main__":
     aug = args['--aug']
     nn_size = args['--nn_size']
     dry = args['--dry']
-    replace = args['--replace']
     if nn_size is not None:
         cfg.NN_SIZE = nn_size
 
@@ -1093,4 +1084,4 @@ if __name__ == "__main__":
         dirs.extend(tub_paths)
 
     multi_train(cfg, dirs, model, transfer, model_type, continuous, aug,
-                exclude, replace, dry)
+                exclude, dry)

@@ -599,10 +599,13 @@ def make_pilot_databases(model_path):
     files = os.listdir(model_path)
     j_data = []
     for d in files:
-        if '.json' in d:
+        if '.json' in d and d[0] is not '.':
             full_name = os.path.join(model_path, d)
             with open(full_name, 'r') as f:
                 j_data.append(json.load(f))
+    if not j_data:
+        print('No .json pilots found')
+        return pd.DataFrame(), pd.DataFrame()
     df_pilots = pd.DataFrame(j_data)
     df_pilots = df_pilots.set_index('Num')
     tubs = df_pilots['Tubs'].drop_duplicates()

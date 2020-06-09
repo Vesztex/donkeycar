@@ -389,9 +389,6 @@ def train(cfg, tub_names, model_name, transfer_model,
     extract_data_from_pickles(cfg, tub_names, exclude=exclude)
     records = gather_records(cfg, tub_names, exclude=exclude,
                              verbose=True, data_base=pilot_data)
-    # save model data
-    with open(model_name.replace('.h5', '.json'), 'w') as f:
-        json.dump(pilot_data, f)
 
     if dry:
         print("Dry run only - stop here.\n")
@@ -559,6 +556,11 @@ def train(cfg, tub_names, model_name, transfer_model,
 
     go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
              steps_per_epoch, val_steps, continuous, verbose, save_best)
+
+    pilot_data['Accuracy'] = save_best.best
+    # save model data
+    with open(model_name.replace('.h5', '.json'), 'w') as f:
+        json.dump(pilot_data, f)
 
 
 def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,

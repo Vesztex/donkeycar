@@ -625,7 +625,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
 
     duration_train = time.time() - start
     print("Training completed in %s." % str(datetime.timedelta(seconds=round(duration_train))) )
-    print("\n\n----------- Best Eval Loss :%f ---------" % save_best.best)
+    print("Best Eval Loss: %f" % save_best.best)
 
     if cfg.SHOW_PLOT:
         try:
@@ -664,7 +664,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
 
     # Save tflite, optionally in the int quant format for Coral TPU
     if "tflite" in cfg.model_type:
-        print("\n\n--------- Saving TFLite Model ---------")
+        print("--------- Saving TFLite Model ---------")
         tflite_fnm = model_path.replace(".h5", ".tflite")
         assert(".tflite" in tflite_fnm)
 

@@ -317,7 +317,6 @@ def train(cfg, tub_names, model_name, transfer_model,
         model_name += ".tflite" if "tflite" in model_type else ".uff" if \
             "tensorrt" in model_type else ".h5"
     pilot_data['Num'] = pilot_num
-    pilot_data['Date'] = datetime.datetime.now().date().isoformat()
 
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE
@@ -563,6 +562,7 @@ def train(cfg, tub_names, model_name, transfer_model,
              steps_per_epoch, val_steps, continuous, verbose, save_best)
 
     pilot_data['Accuracy'] = save_best.best
+    pilot_data['Date'] = datetime.datetime.now().date().isoformat()
     # save model data
     with open(model_name.replace('.h5', '.json'), 'w') as f:
         json.dump(pilot_data, f)

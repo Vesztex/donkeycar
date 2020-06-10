@@ -613,7 +613,7 @@ def make_pilot_databases(model_path):
     files = os.listdir(model_path)
     j_data = []
     for d in files:
-        if '.json' in d and d[0] is not '.':
+        if '.json' in d and d[0] != '.':
             full_name = os.path.join(model_path, d)
             with open(full_name, 'r') as f:
                 j_data.append(json.load(f))

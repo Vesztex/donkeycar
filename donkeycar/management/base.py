@@ -896,6 +896,7 @@ class PilotDatabases(BaseCommand):
         args = self.parse_args(args)
         df_pilots, df_tubs = make_pilot_databases(args.models)
         ll = '\n' + '-' * 120 + '\n'
+        pd.set_option('display.width', None)
         print(ll, df_pilots, ll, df_tubs, ll)
 
 

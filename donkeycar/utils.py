@@ -478,9 +478,12 @@ def get_model_by_type(model_type, cfg):
     if model_type == "tflite_linear":
         kl = TFLitePilot()
     elif model_type == "localizer" or cfg.TRAIN_LOCALIZER:
-        kl = KerasLocalizer(num_locations=cfg.NUM_LOCATIONS, input_shape=input_shape)
+        kl = KerasLocalizer(num_locations=cfg.NUM_LOCATIONS,
+                            input_shape=input_shape)
     elif model_type == "behavior" or cfg.TRAIN_BEHAVIORS:
-        kl = KerasBehavioral(num_outputs=2, num_behavior_inputs=len(cfg.BEHAVIOR_LIST), input_shape=input_shape)        
+        kl = KerasBehavioral(num_outputs=2,
+                             num_behavior_inputs=len(cfg.BEHAVIOR_LIST),
+                             input_shape=input_shape)
     elif model_type == "imu":
         kl = KerasIMU(num_outputs=2, num_imu_inputs=6, input_shape=input_shape)        
     elif model_type == "linear":
@@ -495,29 +498,40 @@ def get_model_by_type(model_type, cfg):
         kl = KerasSquarePlusImu(input_shape=input_shape, roi_crop=roi_crop,
                                 imu_dim=imu_dim, size=nn_size)
     elif model_type == "tensorrt_linear":
-        # Aggressively lazy load this. This module imports pycuda.autoinit which causes a lot of unexpected things
-        # to happen when using TF-GPU for training.
+        # Aggressively lazy load this. This module imports pycuda.autoinit which
+        # causes a lot of unexpected things to happen when using TF-GPU for
+        # training.
         from donkeycar.parts.tensorrt import TensorRTLinear
         kl = TensorRTLinear(cfg=cfg)
     elif model_type == "coral_tflite_linear":
         from donkeycar.parts.coral import CoralLinearPilot
         kl = CoralLinearPilot()
     elif model_type == "3d":
-        kl = Keras3D_CNN(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H, image_d=cfg.IMAGE_DEPTH, seq_length=cfg.SEQUENCE_LENGTH)
+        kl = Keras3D_CNN(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
+                         image_d=cfg.IMAGE_DEPTH,
+                         seq_length=cfg.SEQUENCE_LENGTH)
     elif model_type == "rnn":
-        kl = KerasRNN_LSTM(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H, image_d=cfg.IMAGE_DEPTH, seq_length=cfg.SEQUENCE_LENGTH)
+        kl = KerasRNN_LSTM(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
+                           image_d=cfg.IMAGE_DEPTH,
+                           seq_length=cfg.SEQUENCE_LENGTH)
     elif model_type == "categorical":
-        kl = KerasCategorical(input_shape=input_shape, throttle_range=cfg.MODEL_CATEGORICAL_MAX_THROTTLE_RANGE, roi_crop=roi_crop)
+        kl = KerasCategorical(input_shape=input_shape,
+                              throttle_range=cfg.MODEL_CATEGORICAL_MAX_THROTTLE_RANGE,
+                              roi_crop=roi_crop)
     elif model_type == "latent":
         kl = KerasLatent(input_shape=input_shape)
     elif model_type == "fastai":
         from donkeycar.parts.fastai import FastAiPilot
         kl = FastAiPilot()
     else:
-        model_types = ['tflite_linear', 'localizer', 'behavior', 'imu', 'linear', 'square_plus', 'square_plus_imu',
-                       'tensorrt_linear', 'coral_tflite_linear', '3d', 'rnn', 'categorical', 'latent', 'fastai']
-        raise ValueError("Unknown model type: '{:}', known types: {:}. Note for TFlite models pass 'tflite_linear' "
-                         "whatever the underlying model is.".format(model_type, model_types))
+        model_types = ['tflite_linear', 'localizer', 'behavior', 'imu',
+                       'linear', 'square_plus', 'square_plus_imu',
+                       'tensorrt_linear', 'coral_tflite_linear', '3d', 'rnn',
+                       'categorical', 'latent', 'fastai']
+        raise ValueError(
+            "Unknown model type: '{:}', known types: {:}. Note for TFlite "
+            "models pass 'tflite_linear' "
+            "whatever the underlying model is.".format(model_type, model_types))
 
     return kl
 

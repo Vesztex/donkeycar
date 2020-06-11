@@ -102,7 +102,7 @@ class CreateCar(BaseCommand):
         app_template_path = os.path.join(TEMPLATES_PATH, template+'.py')
         config_template_path = os.path.join(TEMPLATES_PATH, 'cfg_complete.py')
         myconfig_template_path = os.path.join(TEMPLATES_PATH, 'myconfig.py')
-        train_template_path = os.path.join(TEMPLATES_PATH, 'train.py')
+        train_template_path = os.path.join(TEMPLATES_PATH, 'train3.py')
         batch_train_template_path = os.path.join(SCRIPT_PATH, 'batch_train.sh')
         car_app_path = os.path.join(path, 'manage.py')
         car_config_path = os.path.join(path, 'config.py')

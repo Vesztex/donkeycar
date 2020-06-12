@@ -377,12 +377,11 @@ def expand_path_masks(paths, exclude=None):
             expanded_paths.append(path)
     # finally allow exclusion patterns on expanded paths
     if exclude is None:
-        exclude = []
-    elif type(exclude) is str:
-        exclude = [exclude]
+        return expanded_paths
+    exclude_list = exclude.split(',')
     filtered_paths = []
     for path in expanded_paths:
-        if not any([ex in path for ex in exclude]):
+        if not any([ex in path for ex in exclude_list]):
             filtered_paths.append(path)
     return filtered_paths
 

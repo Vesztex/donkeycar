@@ -11,7 +11,7 @@ Basic usage should feel familiar: python train.py --model models/mypilot
 
 Usage:
     train.py [--tub=<tub1,tub2,..tubn>]
-    [--exclude=<[pattern1, pattern2]>]
+    [--exclude=<pattern1,pattern2>]
     [--file=<file> ...]
     [--model=<model>]
     [--transfer=<model>]

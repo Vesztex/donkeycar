@@ -390,7 +390,7 @@ def train(cfg, tub_names, model_name, transfer_model,
 
     extract_data_from_pickles(cfg, tub_names, exclude=exclude)
     records = gather_records(cfg, tub_names, exclude=exclude,
-                             verbose=True, data_base=pilot_data)
+                             data_base=pilot_data)
 
     if dry:
         print("Dry run only - stop here.\n")

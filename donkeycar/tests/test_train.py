@@ -158,11 +158,10 @@ def test_train_TrainTestSplit_simple(tub_path):
     import donkeycar.templates.cfg_complete as cfg
 
     # Initial Setup
-    opts = {'categorical' : False}
-    opts['cfg'] = cfg
+    opts = {'categorical': False, 'cfg': cfg}
 
     orig_TRAIN_TEST_SPLIT = cfg.TRAIN_TEST_SPLIT
-    records = gather_records(cfg, tub_path, opts, verbose=True)
+    records = gather_records(cfg, tub_path, opts)
     assert len(records) == initial_records
 
     # Attempt a 50:50 split
@@ -185,6 +184,7 @@ def test_train_TrainTestSplit_simple(tub_path):
     ratio = calculate_TrainTestSplit(gen_records)
     assert ratio == cfg.TRAIN_TEST_SPLIT
 
+
 @pytest.mark.skipif(on_pi() == True, reason='Too slow on RPi')
 def test_train_TrainTestSplit_continuous(tub_path):
     # Check whether the Train-Test splitting is working correctly when a dataset is extended.
@@ -206,7 +206,7 @@ def test_train_TrainTestSplit_continuous(tub_path):
     print()
     print("Initial split of {} records to {} Test-Train split...".format(initial_records, opts['cfg'].TRAIN_TEST_SPLIT))
     print()
-    records = gather_records(cfg, tub_path, opts, verbose=True)
+    records = gather_records(cfg, tub_path, opts)
     assert len(records) == initial_records
     collate_records(records, gen_records, opts)
     ratio = calculate_TrainTestSplit(gen_records)
@@ -218,7 +218,7 @@ def test_train_TrainTestSplit_continuous(tub_path):
     print("Added an extra {} records, aiming for overall {} Test-Train split...".format(additional_records, opts['cfg'].TRAIN_TEST_SPLIT))
     print()
     create_sample_tub(tub_path, records=additional_records)
-    records = gather_records(cfg, tub_path, opts, verbose=True)
+    records = gather_records(cfg, tub_path, opts)
     assert len(records) == (initial_records + additional_records)
     collate_records(records, gen_records, opts)
     ratio = calculate_TrainTestSplit(gen_records)

@@ -606,10 +606,15 @@ Pilot management
 
 def make_pilot_databases(model_path):
     """
-    Return two dataframes containing pilot traingin info
-    :param model_path:
-    :return: pandas dataframe tuple
+    Return two dataframes containing pilot training info
+    :param model_path:  path to directory containing pilot data base (.json)
+                        files
+    :return:            pandas dataframe tuple of pilot data and tub group data
     """
+    def sorted_string(comma_separated_string):
+        """ Return sorted list of comma separated string list"""
+        return ','.join(sorted(comma_separated_string.split(',')))
+
     files = os.listdir(model_path)
     j_data = []
     for d in files:
@@ -624,9 +629,15 @@ def make_pilot_databases(model_path):
     df_pilots = df_pilots.set_index('Num')
     tubs = df_pilots['Tubs'].drop_duplicates()
     multi_tubs = [tub for tub in tubs if ',' in tub]
-    d = dict(zip(multi_tubs,
+    # We might still have 'duplicates in here as 'tub_1,tub2' and 'tub_2,
+    # tub_1' would be two different entries. Hence we need to compress these
+    multi_tub_set = set([sorted_string(tub) for tub in multi_tubs])
+    # Because set is only using unique entries we can now map each list to a
+    # group and give it a name
+    d = dict(zip(multi_tub_set,
                  ['tub_group_' + str(i) for i in range(len(multi_tubs))]))
-    new_tubs = [d[tub] if tub in d else tub for tub in df_pilots['Tubs']]
+    new_tubs = [d[sorted_string(tub)] if tub in multi_tubs
+                else tub for tub in df_pilots['Tubs']]
     df_pilots['Tubs'] = new_tubs
     df_pilots.sort_index(inplace=True)
     # pandas explode normalises multiplicity of arrays as entries in data frame

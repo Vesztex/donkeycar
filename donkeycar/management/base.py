@@ -10,6 +10,7 @@ import pandas as pd
 
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
+from donkeycar.parts.transform import ImuCombinerNormaliser
 from donkeycar.utils import *
 from donkeycar.management.tub import TubManager
 from donkeycar.management.joystick_creator import CreateJoystick
@@ -652,8 +653,10 @@ class ShowPredictionMetric(BaseCommand):
         X = np.zeros((num_records, cfg.IMAGE_H, cfg.IMAGE_W, cfg.IMAGE_DEPTH))
         angle = np.zeros(num_records)
         throttle = np.zeros(num_records)
+        imu = np.zeros((num_records, 6))
         bar = Bar('Concatenating data ', max=num_records)
         i = 0
+        imu_proc = ImuCombinerNormaliser(cfg)
         for record_path in records:
             with open(record_path, 'r') as fp:
                 record = json.load(fp)
@@ -662,12 +665,20 @@ class ShowPredictionMetric(BaseCommand):
             X[i] = img
             angle[i] = float(record["user/angle"])
             throttle[i] = float(record[throttle_key])
+            if use_speed:
+                throttle[i] /= cfg.MAX_SPEED
+            imu_i = imu_proc.run(record['car/accel'], record['car/gyro'])
+            imu[i] = np.ndarray(imu_i)
             i += 1
             bar.next()
 
         bar.finish()
         model.compile()
-        result = model.model.evaluate(x=X,
+        if 'imu' in model_type or 'Imu' in model.model_id():
+            x = [X, imu]
+        else:
+            x = X
+        result = model.model.evaluate(x=x,
                                       y=[np.array(angle), np.array(throttle)])
 
         pt = PrettyTable()

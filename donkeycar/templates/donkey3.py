@@ -134,9 +134,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         outputs = ['pilot/angle', pilot_throttle_var]
         if use_imu:
             print('Use IMU in pilot')
-            accel_factor = 1.0 / cfg.ACCEL_NORM
-            gyro_factor = 1.0 / cfg.GYRO_NORM
-            imu_prep = ImuCombinerNormaliser(cfg, accel_factor, gyro_factor)
+            imu_prep = ImuCombinerNormaliser(cfg)
             car.add(imu_prep, inputs=['car/accel', 'car/gyro'], outputs=[
                 'car/imu'])
             inputs.append('car/imu')

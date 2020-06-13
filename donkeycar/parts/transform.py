@@ -199,10 +199,10 @@ class ImgBrightnessNormaliser:
 
 
 class ImuCombinerNormaliser:
-    def __init__(self, cfg, accel_factor, gyro_factor):
+    def __init__(self, cfg):
         self.cfg = cfg
-        self.accel_factor = accel_factor
-        self.gyro_factor = gyro_factor
+        self.accel_factor = 1.0 / cfg.IMU_ACCEL_NORM
+        self.gyro_factor = 1.0 / cfg.IMU_GYRO_NORM
 
     def run(self, accel, gyro):
         combined = clamp_and_norm(accel, self.accel_factor) + \

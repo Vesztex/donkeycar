@@ -86,8 +86,9 @@ def collate_records(records, gen_records, opts):
     print('Collating %d records ...' % (len(records)))
     throttle_key = 'user/throttle'
     throttle_mult = 1.0
-    if hasattr(opts['cfg'], 'USE_SPEED_FOR_MODEL') \
-            and opts['cfg'].USE_SPEED_FOR_MODEL:
+    use_speed = hasattr(opts['cfg'], 'USE_SPEED_FOR_MODEL') \
+            and opts['cfg'].USE_SPEED_FOR_MODEL
+    if use_speed:
         throttle_key = 'car/speed'
         throttle_mult = 1.0 / opts['cfg'].MAX_SPEED
 
@@ -123,7 +124,9 @@ def collate_records(records, gen_records, opts):
 
         angle = float(json_data['user/angle'])
         # normalising throttle if it is speed
-        throttle = float(json_data[throttle_key]) * throttle_mult
+        throttle = float(json_data[throttle_key])
+        if use_speed:
+            throttle = min(1.0, throttle_mult * throttle)
 
         if opts['categorical']:
             r = opts['cfg'].MODEL_CATEGORICAL_MAX_THROTTLE_RANGE
@@ -325,13 +328,13 @@ def train(cfg, tub_names, model_name, transfer_model,
     extract_data_from_pickles(cfg, tub_names, exclude=exclude)
     records = gather_records(cfg, tub_names, exclude=exclude,
                              data_base=pilot_data)
-
     if dry:
         print("Dry run only - stop here.\n")
         return
 
     gen_records = {}
     collate_records(records, gen_records, opts)
+
     def generator(opts, data, batch_size, is_train_set=True):
         while True:
             batch_data = []
@@ -356,11 +359,11 @@ def train(cfg, tub_names, model_name, transfer_model,
             for key in keys:
                 if not key in data:
                     continue
-                _record = data[key]
-                if _record['train'] != is_train_set:
+                record = data[key]
+                if record['train'] != is_train_set:
                     continue
 
-                batch_data.append(_record)
+                batch_data.append(record)
                 if len(batch_data) == batch_size:
                     inputs_img = []
                     inputs_imu = []

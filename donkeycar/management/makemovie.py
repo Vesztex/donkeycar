@@ -15,6 +15,7 @@ except ImportError:
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
 from donkeycar.utils import *
+from donkeycar.parts.transform import ImuCombinerNormaliser
 
 ONE_OVER_INT = 1.0 / 255.0
 
@@ -69,6 +70,7 @@ class MakeMovie(object):
             self.keras_part.load(args.model)
             self.keras_part.compile()
             self.imu_model = 'imu' in args.model
+            self.imu_proc = ImuCombinerNormaliser(self.cfg)
             if args.salient:
                 self.do_salient = self.init_salient(self.keras_part.model)
 
@@ -150,11 +152,8 @@ class MakeMovie(object):
         height, width, _ = pred_img.shape
 
         length = height
-        if self.use_speed:
-            length /= self.cfg.MAX_SPEED
         a2 = angle * 45.0
         l2 = throttle * length
-
         mid = width // 2 - 1
 
         p2 = tuple((mid + 2, height - 1))
@@ -276,11 +275,7 @@ class MakeMovie(object):
         image = rec['cam/image_array']
         accel = rec.get('car/accel')
         gyro = rec.get('car/gyro')
-        imu = None
-        if accel is not None:
-            imu = accel
-        if gyro is not None:
-            imu = accel + gyro
+        imu = self.imu_proc.run(accel, gyro)
 
         if self.cfg.ROI_CROP_TOP != 0 or self.cfg.ROI_CROP_BOTTOM != 0:
             image = img_crop(image, self.cfg.ROI_CROP_TOP, self.cfg.ROI_CROP_BOTTOM)

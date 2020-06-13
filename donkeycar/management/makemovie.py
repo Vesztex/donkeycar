@@ -19,6 +19,8 @@ from donkeycar.parts.transform import ImuCombinerNormaliser
 
 ONE_OVER_INT = 1.0 / 255.0
 
+from tensorflow.python.framework.ops import disable_eager_execution
+disable_eager_execution()
 
 class MakeMovie(object):
     def __init__(self):

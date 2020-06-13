@@ -38,12 +38,12 @@ for size in s m l; do
       command_args="${command_args}  --exclude $exclude";
   fi
   # run training iteratively
-  for (( i=0; i<iter; i++))
-  do
+  for (( i=0; i<iter; i++)); do
       echo "Command args $command_args"
       train.py $command_args
   done
 
 done
+train.py convert
 
 exit 0

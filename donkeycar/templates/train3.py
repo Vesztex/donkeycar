@@ -10,7 +10,8 @@ Basic usage should feel familiar: python train.py --model models/mypilot
 
 
 Usage:
-    train.py [--tub=<tub1,tub2,..tubn>]
+    train.py [convert]
+    [--tub=<tub1,tub2,..tubn>]
     [--exclude=<pattern1,pattern2>]
     [--file=<file> ...]
     [--model=<model>]
@@ -33,13 +34,14 @@ import pickle
 import datetime
 from tqdm import tqdm
 from tensorflow.python import keras
-import tensorflow as tf
+from tensorflow.python.framework.ops import disable_eager_execution
 from tensorflow.keras.callbacks import TensorBoard
 from docopt import docopt
 
 import donkeycar as dk
 from donkeycar.parts.keras import KerasIMU, KerasCategorical, KerasBehavioral, \
     KerasLatent, KerasLocalizer, KerasSquarePlusImu
+from donkeycar.parts.tflite import keras_model_to_tflite
 from donkeycar.parts.augment import augment_image
 from donkeycar.utils import *
 
@@ -273,7 +275,6 @@ def train(cfg, tub_names, model_name, transfer_model,
     if aug:
         print("Using data augmentation")
 
-
     opts = {'cfg': cfg}
 
     if "linear" in model_type:
@@ -332,10 +333,7 @@ def train(cfg, tub_names, model_name, transfer_model,
     gen_records = {}
     collate_records(records, gen_records, opts)
     def generator(opts, data, batch_size, is_train_set=True):
-
-        num_records = len(data)
         while True:
-
             batch_data = []
             keys = list(data.keys())
             random.shuffle(keys)
@@ -494,122 +492,113 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
         car_dir = os.path.dirname(os.path.realpath(__file__))
         now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         log_dir = os.path.join(car_dir, "logs/fit/" + now)
-        tb_cb = tf.keras.callbacks.TensorBoard(log_dir=log_dir,
-                                               histogram_freq=1)
+        tb_cb = TensorBoard(log_dir=log_dir,histogram_freq=1)
         callbacks_list.append(tb_cb)
 
     history = kl.model.fit_generator(
-                    train_gen,
-                    steps_per_epoch=steps_per_epoch,
-                    epochs=epochs,
-                    verbose=cfg.VERBOSE_TRAIN,
-                    validation_data=val_gen,
-                    callbacks=callbacks_list,
-                    validation_steps=val_steps,
-                    workers=workers_count,
-                    use_multiprocessing=use_multiprocessing)
+                train_gen,
+                steps_per_epoch=steps_per_epoch,
+                epochs=epochs,
+                verbose=cfg.VERBOSE_TRAIN,
+                validation_data=val_gen,
+                callbacks=callbacks_list,
+                validation_steps=val_steps,
+                workers=workers_count,
+                use_multiprocessing=use_multiprocessing)
 
     duration_train = time.time() - start
     print("Training completed in %s."
           % str(datetime.timedelta(seconds=round(duration_train))))
     print("Best Eval Loss: %f" % save_best.best)
+    print('-' * 100, '\n')
 
     if cfg.SHOW_PLOT:
-        try:
-            if do_plot:
-                plt.figure(1)
+        make_train_plot(history, model_path, save_best)
 
-                # Only do accuracy if we have that data (categorical outputs)
-                if 'angle_out_acc' in history.history:
-                    plt.subplot(121)
 
-                # summarize history for loss
-                plt.plot(history.history['loss'])
-                plt.plot(history.history['val_loss'])
-                plt.title('model loss')
-                plt.ylabel('loss')
-                plt.xlabel('epoch')
-                plt.legend(['train', 'validate'], loc='upper right')
-
-                # summarize history for acc
-                if 'angle_out_acc' in history.history:
-                    plt.subplot(122)
-                    plt.plot(history.history['angle_out_acc'])
-                    plt.plot(history.history['val_angle_out_acc'])
-                    plt.title('model angle accuracy')
-                    plt.ylabel('acc')
-                    plt.xlabel('epoch')
-                    # plt.legend(['train', 'validate'], loc='upper left')
-
-                plt.savefig(model_path + '_loss_acc_%f.%s' % (save_best.best,
-                                                              figure_format))
-                plt.show(block=False)
-            else:
-                print("not saving loss graph because matplotlib not set up.")
-        except Exception as ex:
-            print("problems with loss graph: {}".format(ex))
-
+def convert_to_tflite(cfg, gen_records, model_path):
     # Save tflite, optionally in the int quant format for Coral TPU
-    if "tflite" in cfg.model_type:
-        print("--------- Saving TFLite Model ---------")
-        tflite_fnm = model_path.replace(".h5", ".tflite")
-        assert(".tflite" in tflite_fnm)
+    print("------------------- Saving TFLite Model -------------------")
+    tflite_fnm = model_path.replace(".h5", ".tflite")
+    assert (".tflite" in tflite_fnm)
 
-        prepare_for_coral = "coral" in cfg.model_type
+    prepare_for_coral = False #  "coral" in cfg.model_type
 
-        if prepare_for_coral:
-            # compile a list of records to calibrate the quantization
-            data_list = []
-            max_items = 1000
-            for key, _record in gen_records.items():
-                data_list.append(_record)
-                if len(data_list) == max_items:
-                    break
+    if prepare_for_coral:
+        # compile a list of records to calibrate the quantization
+        data_list = []
+        max_items = 1000
+        for key, _record in gen_records.items():
+            data_list.append(_record)
+            if len(data_list) == max_items:
+                break
 
-            stride = 1
-            num_calibration_steps = len(data_list) // stride
+        stride = 1
+        num_calibration_steps = len(data_list) // stride
 
-            # a generator function to help train the quantizer with the
-            # expected range of data from inputs
-            def representative_dataset_gen():
-                start = 0
-                end = stride
-                for _ in range(num_calibration_steps):
-                    batch_data = data_list[start:end]
-                    inputs = []
+        # a generator function to help train the quantizer with the
+        # expected range of data from inputs
+        def representative_dataset_gen():
+            start = 0
+            end = stride
+            for _ in range(num_calibration_steps):
+                batch_data = data_list[start:end]
+                inputs = []
 
-                    for record in batch_data:
-                        filename = record['image_path']
-                        img_arr = load_scaled_image_arr(filename, cfg)
-                        inputs.append(img_arr)
+                for record in batch_data:
+                    filename = record['image_path']
+                    img_arr = load_scaled_image_arr(filename, cfg)
+                    inputs.append(img_arr)
 
-                    start += stride
-                    end += stride
+                start += stride
+                end += stride
 
-                    # Get sample input data as a numpy array in a method of
-                    # your choosing.
-                    yield [np.array(inputs,
-                                    dtype=np.float32).reshape(stride,
-                                                              cfg.TARGET_H,
-                                                              cfg.TARGET_W,
-                                                              cfg.TARGET_D)]
-        else:
-            representative_dataset_gen = None
+                # Get sample input data as a numpy array in a method of
+                # your choosing.
+                yield [np.array(inputs,
+                                dtype=np.float32).reshape(stride,
+                                                          cfg.TARGET_H,
+                                                          cfg.TARGET_W,
+                                                          cfg.TARGET_D)]
+    else:
+        representative_dataset_gen = None
 
-        from donkeycar.parts.tflite import keras_model_to_tflite
-        keras_model_to_tflite(model_path, tflite_fnm, representative_dataset_gen)
-        print("Saved TFLite model:", tflite_fnm)
-        if prepare_for_coral:
-            print("compile for Coral w: edgetpu_compiler", tflite_fnm)
-            os.system("edgetpu_compiler " + tflite_fnm)
+    keras_model_to_tflite(model_path, tflite_fnm, representative_dataset_gen)
+    if prepare_for_coral:
+        print("Compile for Coral w: edgetpu_compiler", tflite_fnm)
+        os.system("edgetpu_compiler " + tflite_fnm)
+    print("Saved TFLite model:", tflite_fnm, "\n")
 
-    # Save tensorrt
-    if "tensorrt" in cfg.model_type:
-        print("\n\n--------- Saving TensorRT Model ---------")
-        # TODO RAHUL
-        # flatten model_path
-        # convert to uff
-        # print("Saved TensorRT model:", uff_filename)
+
+def make_train_plot(history, model_path, save_best):
+    if not do_plot:
+        return
+
+    plt.figure(1)
+    # Only do accuracy if we have that data (categorical outputs)
+    if 'angle_out_acc' in history.history:
+        plt.subplot(121)
+
+    # summarize history for loss
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'validate'], loc='upper right')
+
+    # summarize history for acc
+    if 'angle_out_acc' in history.history:
+        plt.subplot(122)
+        plt.plot(history.history['angle_out_acc'])
+        plt.plot(history.history['val_angle_out_acc'])
+        plt.title('model angle accuracy')
+        plt.ylabel('acc')
+        plt.xlabel('epoch')
+        # plt.legend(['train', 'validate'], loc='upper left')
+
+    plt.savefig(model_path + '_loss_acc_%f.%s' % (save_best.best,
+                                                  figure_format))
 
 
 def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
@@ -949,6 +938,7 @@ def auto_generate_model_name():
 if __name__ == "__main__":
     args = docopt(__doc__)
     cfg = dk.load_config()
+    convert = args['convert']
     tub = args['--tub']
     exclude = args['--exclude']
     model = args['--model']
@@ -962,9 +952,20 @@ if __name__ == "__main__":
     if nn_size is not None:
         cfg.NN_SIZE = nn_size
 
-    dirs = preprocessFileList(args['--file'])
-    if tub is not None:
-        tub_paths = [os.path.expanduser(n) for n in tub.split(',')]
-        dirs.extend(tub_paths)
+    if convert:
+        model_dir = os.path.join(os.getcwd(), 'models')
+        files = os.listdir(model_dir)
+        pilots_h5 = [os.path.join(model_dir, f) for f in files if f[-3:] ==
+                     '.h5']
+        for pilot_h5 in pilots_h5:
+            if os.path.exists(pilot_h5.replace('.h5', '.tflite')):
+                continue
+            convert_to_tflite(cfg, {}, pilot_h5)
 
-    multi_train(cfg, dirs, model, transfer, model_type, aug, exclude, dry)
+    else:
+        dirs = preprocessFileList(args['--file'])
+        if tub is not None:
+            tub_paths = [os.path.expanduser(n) for n in tub.split(',')]
+            dirs.extend(tub_paths)
+        disable_eager_execution()
+        multi_train(cfg, dirs, model, transfer, model_type, aug, exclude, dry)

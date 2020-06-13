@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import time
 from simple_pid import PID
-from PIL import ImageEnhance, ImageStat
 import numpy as np
+from donkeycar.utils import *
 
 from donkeycar.utils import normalize_and_crop, img_to_arr, arr_to_img
 
@@ -196,3 +196,18 @@ class ImgBrightnessNormaliser:
         # determine the average brightness
         brightness = img_arr.sum() / num
         return brightness
+
+
+class ImuCombinerNormaliser:
+    def __init__(self, cfg, accel_factor, gyro_factor):
+        self.cfg = cfg
+        self.accel_factor = accel_factor
+        self.gyro_factor = gyro_factor
+
+    def run(self, accel, gyro):
+        combined = clamp_and_norm(accel, self.accel_factor) + \
+                   clamp_and_norm(gyro, self.gyro_factor)
+        # crop to number of imu degrees to be used in model
+        if hasattr(self.cfg, 'IMU_DIM'):
+            combined = combined[:self.cfg.IMU_DIM]
+        return combined

@@ -4,13 +4,12 @@ import os
 
 from donkeycar.templates.train import multi_train
 from donkeycar.parts.datastore import Tub
-from donkeycar.parts.simulation import SquareBoxCamera, MovingSquareTelemetry
-
 from donkeycar.templates.train import gather_records, collate_records
 
 #fixtures
 from .setup import tub, tub_path, on_pi
 from .setup import create_sample_tub
+
 
 def cfg_defaults(cfg):
     cfg.MAX_EPOCHS = 1
@@ -24,7 +23,7 @@ def cfg_defaults(cfg):
     cfg.NUM_LOCATIONS = 10
 
 
-@pytest.mark.skipif(on_pi() == True, reason='Too slow on RPi')
+@pytest.mark.skipif(on_pi(), reason='Too slow on RPi')
 def test_train_cat(tub, tub_path):
     t = Tub(tub_path)
     assert t is not None
@@ -43,7 +42,7 @@ def test_train_cat(tub, tub_path):
     multi_train(cfg, tub, model, transfer, model_type, continuous, aug)
 
 
-@pytest.mark.skipif(on_pi() == True, reason='Too slow on RPi')
+@pytest.mark.skipif(on_pi(), reason='Too slow on RPi')
 def test_train_linear(tub, tub_path):
     t = Tub(tub_path)
     assert t is not None
@@ -52,7 +51,6 @@ def test_train_linear(tub, tub_path):
     tempfolder = tub_path[:-3]
     model_path = os.path.join(tempfolder, 'test.h5')
     cfg_defaults(cfg)
-
     tub = tub_path
     model = model_path
     transfer = None
@@ -62,7 +60,7 @@ def test_train_linear(tub, tub_path):
     multi_train(cfg, tub, model, transfer, model_type, continuous, aug)
 
 
-@pytest.mark.skipif(on_pi() == True, reason='Too slow on RPi')
+@pytest.mark.skipif(on_pi(), reason='Too slow on RPi')
 def test_train_localizer(tub, tub_path):
     t = Tub(tub_path)
     assert t is not None
@@ -108,6 +106,7 @@ def test_train_latent(tub, tub_path):
     multi_train(cfg, tub, model, transfer, model_type, continuous, aug)
 '''
 
+
 @pytest.mark.skipif(on_pi() == True, reason='Too slow on RPi')
 def test_train_seq(tub, tub_path):
     t = Tub(tub_path)
@@ -117,7 +116,6 @@ def test_train_seq(tub, tub_path):
     tempfolder = tub_path[:-3]
     model_path = os.path.join(tempfolder, 'test.h5')
     cfg_defaults(cfg)
-
     tub = tub_path
     model = model_path
     transfer = None
@@ -126,7 +124,9 @@ def test_train_seq(tub, tub_path):
     aug = True
     multi_train(cfg, tub, model, transfer, model_type, continuous, aug)
 
-# Helper function to calculate the Train-Test split (ratio) of a collated dataset
+
+# Helper function to calculate the Train-Test split (ratio) of a collated
+# dataset
 def calculate_TrainTestSplit(gen_records):
     train_recs = 0
     test_recs = 0
@@ -145,6 +145,7 @@ def calculate_TrainTestSplit(gen_records):
     print("Calculated Train-Test Split: {}".format(ratio))
     return ratio
 
+
 @pytest.mark.skipif(on_pi() == True, reason='Too slow on RPi')
 def test_train_TrainTestSplit_simple(tub_path):
     # Check whether the Train-Test splitting is working correctly on a dataset.
@@ -161,14 +162,15 @@ def test_train_TrainTestSplit_simple(tub_path):
     opts = {'categorical': False, 'cfg': cfg}
 
     orig_TRAIN_TEST_SPLIT = cfg.TRAIN_TEST_SPLIT
-    records = gather_records(cfg, tub_path, opts)
+    records = gather_records(cfg, tub_path)
     assert len(records) == initial_records
 
     # Attempt a 50:50 split
     gen_records = {}
     cfg.TRAIN_TEST_SPLIT = 0.5
     print()
-    print("Testing a {} Test-Train split...".format(opts['cfg'].TRAIN_TEST_SPLIT))
+    print("Testing a {} Test-Train split..."
+          .format(opts['cfg'].TRAIN_TEST_SPLIT))
     print()
     collate_records(records, gen_records, opts)
     ratio = calculate_TrainTestSplit(gen_records)
@@ -178,7 +180,8 @@ def test_train_TrainTestSplit_simple(tub_path):
     gen_records = {}
     cfg.TRAIN_TEST_SPLIT = orig_TRAIN_TEST_SPLIT
     print()
-    print("Testing a {} Test-Train split...".format(opts['cfg'].TRAIN_TEST_SPLIT))
+    print("Testing a {} Test-Train split..."
+          .format(opts['cfg'].TRAIN_TEST_SPLIT))
     print()
     collate_records(records, gen_records, opts)
     ratio = calculate_TrainTestSplit(gen_records)
@@ -187,7 +190,8 @@ def test_train_TrainTestSplit_simple(tub_path):
 
 @pytest.mark.skipif(on_pi() == True, reason='Too slow on RPi')
 def test_train_TrainTestSplit_continuous(tub_path):
-    # Check whether the Train-Test splitting is working correctly when a dataset is extended.
+    # Check whether the Train-Test splitting is working correctly when a dataset
+    # is extended.
     initial_records = 100
 
     # Setup the test data
@@ -199,26 +203,28 @@ def test_train_TrainTestSplit_continuous(tub_path):
 
     # Initial Setup
     gen_records = {}
-    opts = {'categorical' : False}
-    opts['cfg'] = cfg
+    opts = {'categorical': False, 'cfg': cfg}
 
     # Perform the initial split
     print()
-    print("Initial split of {} records to {} Test-Train split...".format(initial_records, opts['cfg'].TRAIN_TEST_SPLIT))
+    print("Initial split of {} records to {} Test-Train split..."
+          .format(initial_records, opts['cfg'].TRAIN_TEST_SPLIT))
     print()
-    records = gather_records(cfg, tub_path, opts)
+    records = gather_records(cfg, tub_path)
     assert len(records) == initial_records
     collate_records(records, gen_records, opts)
     ratio = calculate_TrainTestSplit(gen_records)
     assert ratio == cfg.TRAIN_TEST_SPLIT
 
-    # Add some more records and recheck the ratio (only the NEW records should be added)
+    # Add some more records and recheck the ratio (only the NEW records should
+    # be added)
     additional_records = 200
     print()
-    print("Added an extra {} records, aiming for overall {} Test-Train split...".format(additional_records, opts['cfg'].TRAIN_TEST_SPLIT))
+    print("Added an extra {} records, aiming for overall {} Test-Train split..."
+          .format(additional_records, opts['cfg'].TRAIN_TEST_SPLIT))
     print()
     create_sample_tub(tub_path, records=additional_records)
-    records = gather_records(cfg, tub_path, opts)
+    records = gather_records(cfg, tub_path)
     assert len(records) == (initial_records + additional_records)
     collate_records(records, gen_records, opts)
     ratio = calculate_TrainTestSplit(gen_records)

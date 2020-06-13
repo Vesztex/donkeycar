@@ -22,7 +22,7 @@ from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
 from donkeycar.parts.datastore import TubWiper, TubHandler
 from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.transform import SimplePidController, ImgPrecondition, \
-    ImgBrightnessNormaliser
+    ImgBrightnessNormaliser, ImuCombinerNormaliser
 from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
 from donkeycar.parts.imu import Mpu6050Ada
@@ -106,12 +106,13 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     car.add(rc_wiper, outputs=['user/wiper', 'user/wiper_on'])
 
     pilot_throttle_var = 'pilot/throttle'
+
+    class Rescaler:
+        def run(self, controller_input):
+            return controller_input * cfg.MAX_SPEED
+
     # if pid we want to convert throttle to speed
     if use_pid:
-        class Rescaler:
-            def run(self, controller_input):
-                return controller_input * cfg.MAX_SPEED
-
         car.add(Rescaler(), inputs=['user/throttle'], outputs=['user/speed'])
         pilot_throttle_var = 'pilot/speed'
 
@@ -133,17 +134,11 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         outputs = ['pilot/angle', pilot_throttle_var]
         if use_imu:
             print('Use IMU in pilot')
-
-            class ImuCombiner:
-                def run(self, accel, gyro):
-                    combined = accel + gyro
-                    # crop to number of imu degrees to be used in model
-                    if hasattr(cfg, 'IMU_DIM'):
-                        combined = combined[:cfg.IMU_DIM]
-                    return combined
-
-            car.add(ImuCombiner(), inputs=['car/accel', 'car/gyro'],
-                    outputs=['car/imu'])
+            accel_factor = 1.0 / cfg.ACCEL_NORM
+            gyro_factor = 1.0 / cfg.GYRO_NORM
+            imu_prep = ImuCombinerNormaliser(cfg, accel_factor, gyro_factor)
+            car.add(imu_prep, inputs=['car/accel', 'car/gyro'], outputs=[
+                'car/imu'])
             inputs.append('car/imu')
 
         if hasattr(cfg, 'IMG_BRIGHTNESS'):
@@ -152,6 +147,11 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
             car.add(img_norm, inputs=[CAM_IMG], outputs=[CAM_IMG])
 
         car.add(kl, inputs=inputs, outputs=outputs)
+        # pilot spits out speed in [0,1] transform back into real speed
+        if pilot_throttle_var == 'pilot/speed':
+            car.add(Rescaler(), inputs=pilot_throttle_var,
+                    outputs=pilot_throttle_var)
+
         # if driving w/ ai switch between user throttle or pilot throttle by
         # pressing chanel 3 on the remote control
         mode_switch = ModeSwitch(num_modes=2)

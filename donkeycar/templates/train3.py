@@ -83,11 +83,16 @@ def collate_records(records, gen_records, opts):
     '''
     print('Collating %d records ...' % (len(records)))
     throttle_key = 'user/throttle'
+    throttle_mult = 1.0
     if hasattr(opts['cfg'], 'USE_SPEED_FOR_MODEL') \
             and opts['cfg'].USE_SPEED_FOR_MODEL:
         throttle_key = 'car/speed'
+        throttle_mult = 1.0 / opts['cfg'].MAX_SPEED
 
     print('Using', throttle_key, 'for training')
+    accel_mult = 1.0 / opts['cfg'].IMU_ACCEL_NORM
+    gyro_mult = 1.0 / opts['cfg'].IMU_GYRO_NORM
+
     new_records = {}
 
     for record_path in tqdm(records):
@@ -115,7 +120,8 @@ def collate_records(records, gen_records, opts):
         sample["json_data"] = json_data
 
         angle = float(json_data['user/angle'])
-        throttle = float(json_data[throttle_key])
+        # normalising throttle if it is speed
+        throttle = float(json_data[throttle_key]) * throttle_mult
 
         if opts['categorical']:
             r = opts['cfg'].MODEL_CATEGORICAL_MAX_THROTTLE_RANGE
@@ -140,9 +146,9 @@ def collate_records(records, gen_records, opts):
             pass
 
         try:
-            accel = json_data['car/accel']
-            gyro = json_data['car/gyro']
-            sample['imu_array'] = np.array(accel + gyro)
+            accel = clamp_and_norm(json_data['car/accel'], accel_mult)
+            gyro = clamp_and_norm(json_data['car/gyro'], gyro_mult)
+            sample['imu_array'] = np.concatenate((accel, gyro))
         except KeyError:
             pass
 

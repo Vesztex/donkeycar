@@ -253,6 +253,29 @@ def map_range(x, X_min, X_max, Y_min, Y_max):
 
     return int(y)
 
+
+def clamp_and_norm(vec_in, factor=1.0, is_positive=False):
+    """
+    Normalise and clamp an input vector to [-1, 1] or [0, 1]
+    :param vec_in:  list or numpy array which is expected to be in the range
+                    of [-factor, factor] or [0, factor]
+    :param factor:  normalisation factor - expected to be 1/max of the value
+                    range for that array
+    :return:
+    """
+    if type(vec_in) is list:
+        out = [min(max(0.0 if is_positive else -1.0, vec_i * factor), 1.0)
+               for vec_i in vec_in]
+        return out
+    elif type(vec_in) is np.ndarray:
+        vec = vec_in * factor
+        np.clip(vec, 0.0 if is_positive else -1.0, 1.0, out=vec)
+        return vec
+    else:
+        raise TypeError("Only works for list or numpy arrays")
+
+
+
 '''
 ANGLES
 '''

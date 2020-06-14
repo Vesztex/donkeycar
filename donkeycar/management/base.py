@@ -668,17 +668,13 @@ class ShowPredictionMetric(BaseCommand):
             if use_speed:
                 throttle[i] /= cfg.MAX_SPEED
             imu_i = imu_proc.run(record['car/accel'], record['car/gyro'])
-            imu[i] = np.ndarray(imu_i)
+            imu[i] = np.array(imu_i)
             i += 1
             bar.next()
 
         bar.finish()
         model.compile()
-        if 'imu' in model_type or 'Imu' in model.model_id():
-            x = [X, imu]
-        else:
-            x = X
-        result = model.model.evaluate(x=x,
+        result = model.model.evaluate(x=[X, imu],
                                       y=[np.array(angle), np.array(throttle)])
 
         pt = PrettyTable()

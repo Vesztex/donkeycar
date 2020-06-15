@@ -642,6 +642,7 @@ class ShowPredictionMetric(BaseCommand):
             model_path = os.path.expanduser(model_path)
             model = dk.utils.get_model_by_type(model_type, cfg)
             model.load(model_path)
+            model.compile()
             models.append(model)
 
         records = gather_records(cfg, tub_paths)

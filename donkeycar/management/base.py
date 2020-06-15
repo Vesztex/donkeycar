@@ -642,7 +642,6 @@ class ShowPredictionMetric(BaseCommand):
             model_path = os.path.expanduser(model_path)
             model = dk.utils.get_model_by_type(model_type, cfg)
             model.load(model_path)
-            model.compile()
             models.append(model)
 
         records = gather_records(cfg, tub_paths)
@@ -681,6 +680,7 @@ class ShowPredictionMetric(BaseCommand):
         pt = PrettyTable()
         pt.field_names = ['Model Path', 'Model ID'] \
             + models[0].model.metrics_names
+        print(pt.field_names)
         for path, model in zip(model_paths, models):
             result = model.model.evaluate(x=[X, imu],
                                           y=[np.array(angle),

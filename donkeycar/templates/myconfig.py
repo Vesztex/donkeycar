@@ -59,6 +59,7 @@ RECORD_DURING_AI = False
 TRAIN_TEST_SPLIT = 0.9
 EARLY_STOP_PATIENCE = 10
 MAX_EPOCHS = 200
+MIN_DELTA = 0.00001
 USE_SPEED_FOR_MODEL = True
 # IMU_DIM = 2
 NN_SIZE = 'S'
@@ -68,7 +69,7 @@ FREEZE_LAYERS = False
 NUM_LAST_LAYERS_TO_TRAIN = None  # important to overwrite default of 7
 PACK_PATH = r'/Users/dirk/GoogleDrive/mycar/data'
 # EXCLUDE_SLOW_LAPS = 0.5
-SORT_LAPS_BY='lap_time'  # gyro_z, accel_x
+SORT_LAPS_BY = 'lap_time'  # gyro_z, accel_x
 # ROI_CROP_TOP = 36
 # USE_TENSORBOARD = True
 

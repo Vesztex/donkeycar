@@ -44,7 +44,6 @@ class TFLitePilot(object):
     Base class for TFlite models that will provide steering and throttle to guide a car.
     '''
     def __init__(self):
-        self.model = None
         self.interpreter = None
         self.input_details = None
         self.output_details = None

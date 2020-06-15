@@ -46,7 +46,9 @@ class KerasPilot(object):
         self.optimizer = "adam"
 
     def load(self, model_path):
+        prev = self.model_id()
         self.model = keras.models.load_model(model_path)
+        print("Load model: overwriting " + prev + " with " + self.model_id())
 
     def load_weights(self, model_path, by_name=True):
         self.model.load_weights(model_path, by_name=by_name)

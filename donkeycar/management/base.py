@@ -630,15 +630,19 @@ class ShowPredictionPlots(BaseCommand):
 
 class ShowPredictionMetric(BaseCommand):
 
-    def evaluate_predictions(self, cfg, tub_paths, model_path, limit, model_type):
+    def evaluate_predictions(self, cfg, tub_paths, model_paths, limit,
+                             model_type):
         '''
         Plot model predictions for angle and throttle against data from tubs.
         '''
         from progress.bar import Bar
 
-        model_path = os.path.expanduser(model_path)
-        model = dk.utils.get_model_by_type(model_type, cfg)
-        model.load(model_path)
+        models = []
+        for model_path in model_paths:
+            model_path = os.path.expanduser(model_path)
+            model = dk.utils.get_model_by_type(model_type, cfg)
+            model.load(model_path)
+            models.append(model)
 
         records = gather_records(cfg, tub_paths)
         records = records[:int(limit)]
@@ -673,13 +677,15 @@ class ShowPredictionMetric(BaseCommand):
             bar.next()
 
         bar.finish()
-        model.compile()
-        result = model.model.evaluate(x=[X, imu],
-                                      y=[np.array(angle), np.array(throttle)])
+        results = [model.model.evaluate(x=[X, imu],
+                                        y=[np.array(angle), np.array(throttle)])
+                   for model in models]
 
         pt = PrettyTable()
-        pt.field_names = model.model.metrics_names
-        pt.add_row(["%6.4f" % z for z in result])
+        pt.field_names = ['Model Path', 'Model ID'] \
+            + models[0].model.metrics_names
+        for path, model, result in zip(model_paths, models, results):
+            pt.add_row([path, model.model_id()] + ["%6.4f" % z for z in result])
         print(pt)
 
     def parse_args(self, args):
@@ -687,7 +693,7 @@ class ShowPredictionMetric(BaseCommand):
                                          usage='%(prog)s [options]')
         parser.add_argument('--tub', nargs='+',
                             help='paths to tubs')
-        parser.add_argument('--model', default=None,
+        parser.add_argument('--model', nargs='+', default=None,
                             help='path to calibrated model')
         parser.add_argument('--limit', default=1000,
                             help='how many records to process')
@@ -904,6 +910,7 @@ class PilotDatabases(BaseCommand):
         df_pilots, df_tubs = make_pilot_databases(args.models)
         ll = '\n' + '-' * 120 + '\n'
         pd.set_option('display.width', None)
+        pd.set_option('display.max_rows', 600)
         print(ll, df_pilots, ll, df_tubs, ll)
 
 

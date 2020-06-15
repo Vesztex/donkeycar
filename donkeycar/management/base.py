@@ -677,14 +677,13 @@ class ShowPredictionMetric(BaseCommand):
             bar.next()
 
         bar.finish()
-        results = [model.model.evaluate(x=[X, imu],
-                                        y=[np.array(angle), np.array(throttle)])
-                   for model in models]
-
         pt = PrettyTable()
         pt.field_names = ['Model Path', 'Model ID'] \
             + models[0].model.metrics_names
-        for path, model, result in zip(model_paths, models, results):
+        for path, model in zip(model_paths, models):
+            result = model.model.evaluate(x=[X, imu],
+                                          y=[np.array(angle),
+                                             np.array(throttle)])
             pt.add_row([path, model.model_id()] + ["%6.4f" % z for z in result])
         print(pt)
 

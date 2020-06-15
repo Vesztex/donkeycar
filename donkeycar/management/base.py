@@ -637,12 +637,6 @@ class ShowPredictionMetric(BaseCommand):
         '''
         from progress.bar import Bar
 
-        models = []
-        for model_path in model_paths:
-            model_path = os.path.expanduser(model_path)
-            model = dk.utils.get_model_by_type(model_type, cfg)
-            model.load(model_path)
-            models.append(model)
 
         records = gather_records(cfg, tub_paths)
         records = records[:int(limit)]
@@ -678,14 +672,18 @@ class ShowPredictionMetric(BaseCommand):
 
         bar.finish()
         pt = PrettyTable()
-        pt.field_names = ['Model Path', 'Model ID'] \
-            + models[0].model.metrics_names
-        print(pt.field_names)
-        for path, model in zip(model_paths, models):
+        for model_path in model_paths:
+            model_path = os.path.expanduser(model_path)
+            model = dk.utils.get_model_by_type(model_type, cfg)
+            model.load(model_path)
             result = model.model.evaluate(x=[X, imu],
                                           y=[np.array(angle),
                                              np.array(throttle)])
-            pt.add_row([path, model.model_id()] + ["%6.4f" % z for z in result])
+            if not pt.field_names:
+                pt.field_names = ['Model Path', 'Model ID'] \
+                                 + model.model.metrics_names
+            pt.add_row([model_path, model.model_id()]
+                       + ["%6.4f" % z for z in result])
         print(pt)
 
     def parse_args(self, args):

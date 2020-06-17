@@ -147,8 +147,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         car.add(kl, inputs=inputs, outputs=outputs)
         # pilot spits out speed in [0,1] transform back into real speed
         if pilot_throttle_var == 'pilot/speed':
-            car.add(Rescaler(), inputs=pilot_throttle_var,
-                    outputs=pilot_throttle_var)
+            car.add(Rescaler(), inputs=[pilot_throttle_var],
+                    outputs=[pilot_throttle_var])
 
         # if driving w/ ai switch between user throttle or pilot throttle by
         # pressing chanel 3 on the remote control

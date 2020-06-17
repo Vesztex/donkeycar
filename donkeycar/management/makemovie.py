@@ -65,12 +65,12 @@ class MakeMovie(object):
         self.scale = args.scale
         self.keras_part = None
         self.do_salient = False
+        self.imu_proc = ImuCombinerNormaliser(self.cfg)
         if args.model is not None:
             self.keras_part = get_model_by_type(args.type, cfg=self.cfg)
             self.keras_part.load(args.model)
             self.keras_part.compile()
             self.imu_model = 'imu' in args.model
-            self.imu_proc = ImuCombinerNormaliser(self.cfg)
             if args.salient:
                 self.do_salient = self.init_salient(self.keras_part.model)
 

@@ -148,7 +148,8 @@ class ImgPrecondition:
 
 class ImgBrightnessNormaliser:
     """
-    Donkey part to normalise the image brightness
+    Donkey part to normalise the image brightness, works on the original
+    image with 8-bit int values [0, 255]
     """
     def __init__(self, norm=100, proportional=True):
         """
@@ -162,8 +163,8 @@ class ImgBrightnessNormaliser:
     def run(self, img_arr):
         """
         Method to adjust the brightness level to given value using PIL
-        :param img_arr:     numpy input image array
-        :return:            numpy image array
+        :param img_arr:     numpy input image array of ints in [0, 255]
+        :return:            numpy image array of ints in [0, 255]
         """
         # determine the average brightness
         brightness = self.brightness(img_arr)
@@ -211,3 +212,36 @@ class ImuCombinerNormaliser:
         if hasattr(self.cfg, 'IMU_DIM'):
             combined = combined[:self.cfg.IMU_DIM]
         return combined
+
+
+class SpeedSwitch:
+    """ Class to switch between user speed or pilot speed """
+    def __init__(self, cfg):
+        self.throttle_mult = cfg.AI_THROTTLE_MULT
+
+    def run(self, user_mode, user_speed, pilot_speed):
+        if user_mode == 0:
+            return user_speed
+        else:
+            return pilot_speed * self.throttle_mult
+
+
+class SpeedRescaler:
+    """ Class to rescale normalised [0,1] speed to car speed """
+    def __init__(self, cfg):
+        self.max_speed = cfg.MAX_SPEED
+
+    def run(self, norm_speed):
+        return norm_speed * self.max_speed
+
+
+class RecordingCondition:
+    """ Class to switch recording based on static or dynamic condition """
+    def __init__(self, static_condition=None):
+        self.condition = static_condition
+
+    def run(self, dynamic_condition, throttle_val):
+        if self.condition is None:
+            return dynamic_condition and throttle_val > 0
+        else:
+            return self.condition and throttle_val > 0

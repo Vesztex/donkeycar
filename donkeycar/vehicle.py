@@ -94,11 +94,8 @@ class Vehicle:
         p = part
         print('Adding part {} with inputs {} and outputs {}'.format(
             p.__class__.__name__, inputs, outputs))
-        entry = {}
-        entry['part'] = p
-        entry['inputs'] = inputs
-        entry['outputs'] = outputs
-        entry['run_condition'] = run_condition
+        entry = {'part': p, 'inputs': inputs, 'outputs': outputs,
+                 'run_condition': run_condition}
 
         if threaded:
             t = Thread(target=part.update, args=())

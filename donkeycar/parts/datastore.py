@@ -364,8 +364,6 @@ class Tub(object):
                 del(json_data[d])
             json_data.update(unravel_dict)
 
-
-
         record_dict = self.make_record_paths_absolute(json_data)
         return record_dict
 

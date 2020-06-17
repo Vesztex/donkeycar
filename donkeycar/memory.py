@@ -17,7 +17,7 @@ class Memory:
         if type(key) is not tuple:
             print('tuples')
             key = (key,)
-            value=(value,)
+            value = (value,)
         
         for i, k in enumerate(key):
             self.d[k] = value[i]
@@ -42,8 +42,6 @@ class Memory:
         
         else:
             self.d[keys[0]] = inputs
-
-            
             
     def get(self, keys):
         result = [self.d.get(k) for k in keys]
@@ -57,4 +55,3 @@ class Memory:
     
     def items(self):
         return self.d.items()
-        

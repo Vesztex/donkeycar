@@ -337,10 +337,6 @@ class Tub(object):
         except FileNotFoundError:
             raise
 
-        # if record has user/mode but is not type user
-        if "user/mode" in json_data and json_data["user/mode"] != "user":
-            raise Exception(('Bad record: %d. "user/mode" should be "user" for '
-                            'recorded data. ' + err_add) % ix)
         # if negative throttle values are recorded
         if self.allow_reverse is False and json_data["user/throttle"] < 0.0:
             raise Exception(('Bad record: %d. "user/throttle" should be >0 for '
@@ -480,28 +476,32 @@ class Tub(object):
         if self.exclude:
             self.exclude.clear()
         df = self.make_lap_times()
+        all_laps = len(df)
         assert sort_by in df, "Cannot find column " + sort_by + " for sorting"
+        print('Tub {:}: '.format(self.path), end='')
         # remove laps that are too short
         if clean and 'lap_distances' in df:
             med_dist = df['lap_distances'].median()
-            df = df[df['lap_distances'] > 0.9 * med_dist]
+            df = df[(df['lap_distances'] > 0.9 * med_dist) &
+                    (df['lap_distances'] < 1.1 * med_dist)]
+            print('cleaned {} from {} laps. '.format(len(df), all_laps), end='')
 
         if keep_frac_or_seconds <= 1:
             df_sorted = df.sort_values(by=[sort_by])
             pct = (1.0 - keep_frac_or_seconds) * 100.0
-            text = 'the less than {:.1f}% of {:}'.format(pct, sort_by)
+            text = 'more than {:.1f}% quantile of {:}'.format(pct, sort_by)
             slowest_index = int(len(df) * keep_frac_or_seconds)
             laps_to_keep = df_sorted['lap'].iloc[:slowest_index]
 
         else:
             laps_to_keep = df.loc[df[sort_by] <= keep_frac_or_seconds]['lap']
-            text = 'all {:} less than {:.2f}s'.format(sort_by,
+            text = '{:} with values > {:.2f}s'.format(sort_by,
                                                       keep_frac_or_seconds)
 
         df_records = self.get_df()
         df_to_remove = df_records[~df_records['car/lap'].isin(laps_to_keep)]
         self.exclude = set(df_to_remove.index)
-        print('Excluding {:.2f}% of records which are {}'
+        print('Exclude {:.2f}% records which are {}'
               .format(len(self.exclude) / len(df_records) * 100.0, text))
         return laps_to_keep
 

@@ -1,0 +1,24 @@
+name: donkey2-cpu
+dependencies:
+
+- jupyter
+- h5py
+- pillow
+- tensorflow
+- opencv
+- matplotlib
+- tornado
+- docopt
+- pandas
+- pylint
+- pytest
+- pip
+- moviepy
+- paho-mqtt
+- PrettyTable
+- progress
+- tqdm
+- simple-pid
+- braceexpand
+- plotly
+- qgrid

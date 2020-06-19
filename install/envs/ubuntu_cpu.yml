@@ -18,7 +18,9 @@ dependencies:
 - PrettyTable
 - progress
 - tqdm
-- simple-pid
 - braceexpand
 - plotly
 - qgrid
+
+- pip:
+    - simple-pid

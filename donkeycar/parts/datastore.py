@@ -484,7 +484,8 @@ class Tub(object):
             med_dist = df['lap_distances'].median()
             df = df[(df['lap_distances'] > 0.9 * med_dist) &
                     (df['lap_distances'] < 1.1 * med_dist)]
-            print('cleaned {} from {} laps. '.format(len(df), all_laps), end='')
+            print('retained {} from {} laps. '.format(len(df), all_laps),
+                  end='')
 
         if keep_frac_or_seconds <= 1:
             df_sorted = df.sort_values(by=[sort_by])

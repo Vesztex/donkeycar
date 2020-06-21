@@ -607,8 +607,8 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
                                                histogram_freq=1)
         callbacks_list.append(tb_cb)
 
-    history = kl.model.fit_generator(
-                    train_gen,
+    history = kl.model.fit(
+                    x=train_gen,
                     steps_per_epoch=steps_per_epoch,
                     epochs=epochs,
                     verbose=cfg.VERBOSE_TRAIN,

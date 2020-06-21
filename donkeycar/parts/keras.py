@@ -100,8 +100,8 @@ class KerasPilot(object):
         if use_early_stop:
             callbacks_list.append(early_stop)
 
-        hist = self.model.fit_generator(
-                        train_gen,
+        hist = self.model.fit(
+                        x=train_gen,
                         steps_per_epoch=steps,
                         epochs=epochs,
                         verbose=1,

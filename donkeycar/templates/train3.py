@@ -498,8 +498,8 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
         tb_cb = TensorBoard(log_dir=log_dir,histogram_freq=1)
         callbacks_list.append(tb_cb)
 
-    history = kl.model.fit_generator(
-                train_gen,
+    history = kl.model.fit(
+                x=train_gen,
                 steps_per_epoch=steps_per_epoch,
                 epochs=epochs,
                 verbose=cfg.VERBOSE_TRAIN,
@@ -524,9 +524,9 @@ def convert_to_tflite(cfg, gen_records, model_path):
     print("------------------- Saving TFLite Model -------------------")
     tflite_fnm = model_path.replace(".h5", ".tflite")
     assert (".tflite" in tflite_fnm)
+    # "coral" in cfg.model_type
 
-    prepare_for_coral = False #  "coral" in cfg.model_type
-
+    prepare_for_coral = False
     if prepare_for_coral:
         # compile a list of records to calibrate the quantization
         data_list = []

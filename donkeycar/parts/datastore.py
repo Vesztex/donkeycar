@@ -758,6 +758,7 @@ class TubImageStacker(Tub):
                                             data_ch1[key],
                                             data[key])
                     val = np.array(img)
+                    data[key] = val
 
         return data
 

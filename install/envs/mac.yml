@@ -1,9 +1,9 @@
-name: donkey
+name: donkey2
 dependencies:
 
+- jupyter
 - h5py
 - pillow
-- tensorflow==1.13.1
 - opencv
 - matplotlib
 - tornado
@@ -12,8 +12,15 @@ dependencies:
 - pylint
 - pytest
 - pip
+- moviepy
+- paho-mqtt
+- PrettyTable
+- progress
+- tqdm
+- braceexpand
+- plotly
+- qgrid
 
 - pip:
-  - moviepy
-  - paho-mqtt
-  - PrettyTable
+    - simple-pid
+    - tensorflow==2.2.0

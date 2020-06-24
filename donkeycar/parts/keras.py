@@ -210,8 +210,7 @@ class KerasSquarePlus(KerasLinear):
         print('Created', self.__class__.__name__, 'NN size:', self.size)
 
     def compile(self):
-        self.model.compile(optimizer='adam', loss='mse',
-                           loss_weights={'angle_out': 0.9, 'throttle_out': 0.1})
+        self.model.compile(optimizer='adam', loss='mse')
 
 
 class KerasSquarePlusImu(KerasSquarePlus):

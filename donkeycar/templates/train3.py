@@ -233,7 +233,8 @@ class MyCPCallback(keras.callbacks.ModelCheckpoint):
         # if val_loss improved we save the pilot data base
         if self.best != current_best and self.pilot_data:
             self.pilot_data['Accuracy'] = self.best
-            self.pilot_data['Date'] = datetime.datetime.now().date().isoformat()
+            self.pilot_data['Date'] \
+                = datetime.datetime.now().isoformat(sep=' ', timespec='minutes')
             # save model data
             with open(self.filepath.replace('.h5', '.json'), 'w') as f:
                 json.dump(self.pilot_data, f)

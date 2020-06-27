@@ -8,7 +8,9 @@ and throttle of a vehicle. Pilots can include one or more
 models to help direct the vehicles motion.
 
 '''
-
+import copy
+import time
+from datetime import datetime
 
 import numpy as np
 
@@ -25,6 +27,7 @@ from tensorflow.python.keras.layers.wrappers import TimeDistributed as TD
 from tensorflow.python.keras.layers import Conv3D, MaxPooling3D, Cropping3D, Conv2DTranspose
 
 import donkeycar as dk
+from donkeycar.parts.tflite import TFLitePilot
 
 if tf.__version__ == '1.13.1':
     from tensorflow import ConfigProto, Session
@@ -133,6 +136,14 @@ class KerasPilot(object):
         if self.model is None:
             return 'Model_not_set'
         return self.model.name
+
+    def update(self, keras_pilot):
+        if keras_pilot is None:
+            return
+        assert isinstance(keras_pilot, KerasPilot), \
+            'Can only update KerasPilot from KerasPilot but not from ' \
+            + type(keras_pilot).__name__
+        self.model = keras_pilot.model
 
 
 class KerasCategorical(KerasPilot):
@@ -879,9 +890,7 @@ class KerasLatent(KerasPilot):
 
 
 def default_latent(num_outputs, input_shape):
-
     drop = 0.2
-
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
     x = Convolution2D(24, (5, 5), strides=(2, 2), activation='relu',
@@ -930,11 +939,64 @@ def default_latent(num_outputs, input_shape):
     x = Dropout(drop)(x)
 
     outputs = [y]
-
     for i in range(num_outputs):
         outputs.append(Dense(1, activation='linear',
                              name='n_outputs' + str(i))(x))
-
     model = Model(inputs=[img_in], outputs=outputs, name='KerasLatent')
-
     return model
+
+
+class ModelLoader:
+    """ This donkey part is meant to be continuously looking for an updated
+    pilot to overwrite the existing one"""
+
+    def __init__(self, keras_pilot, model_path):
+        assert isinstance(keras_pilot, KerasPilot) \
+            or isinstance(keras_pilot, TFLitePilot), \
+            'ModelLoader only works with KerasPilot or TFLitePilot'
+        self.remote_model = keras_pilot
+        self.model_path = model_path
+        self.update_trigger = False
+        self.is_updated = False
+        # make own copy of the model
+        self.model = copy.copy(keras_pilot)
+
+    def run_threaded(self, update):
+        """
+        Donkey part interface for threaded parts
+        :param bool update:
+            Should be true if the model file changed otherwise false. The
+            input here is expected to come from the output of the FileWatcher.
+        :return bool:
+            Indicator if the remote model was updated
+        """
+        if update:
+            # if FileWatcher recognises a new version of the file set the flag
+            self.update_trigger = True
+            return False
+        else:
+            # check pilot is loaded and we shove it into the remote object
+            if self.is_updated:
+                self.remote_model.update(self.model)
+                # reset update state to false so we don't update until
+                # the flag gets set to true by the file watcher again
+                self.is_updated = False
+                print('ModelLoader updated model.')
+                return True
+            # otherwise no updated model available - do nothing
+            else:
+                return False
+
+    def update(self):
+        """
+        Donkey parts interface
+        """
+        while True:
+            # self.update has been set by the FileWatcher in the loop
+            if self.update_trigger:
+                self.model.load(model_path=self.model_path)
+                self.update_trigger = False
+                self.is_updated = True
+            else:
+                # no update wait 1s
+                time.sleep(1.0)

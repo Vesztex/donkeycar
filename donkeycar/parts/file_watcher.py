@@ -1,5 +1,6 @@
 import os
 
+
 class FileWatcher(object):
     '''
     Watch a specific file and give a signal when it's modified

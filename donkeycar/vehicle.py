@@ -84,8 +84,8 @@ class Vehicle:
                 Channel names to save to memory.
             threaded : boolean
                 If a part should be run in a separate thread.
-            run_condition : boolean
-                If a part should be run or not
+            run_condition : str
+                Channel name if a part should be run or not
         """
         assert type(inputs) is list, "inputs is not a list: %r" % inputs
         assert type(outputs) is list, "outputs is not a list: %r" % outputs

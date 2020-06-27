@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Script to drive a donkey 2 car using the RC controller instead of the web
-controller and to do a calibration of the RC throttle and steering triggers.
+controller. Also provide a calibration of the RC throttle and
+steering triggers.
 
 Usage:
     manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web] \
@@ -21,6 +22,8 @@ from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
     RCReceiver, ModeSwitch
 from donkeycar.parts.datastore import TubWiper, TubHandler
 from donkeycar.parts.clock import Timestamp
+from donkeycar.parts.file_watcher import FileWatcher
+from donkeycar.parts.keras import ModelLoader
 from donkeycar.parts.transform import SimplePidController, ImgPrecondition, \
     ImgBrightnessNormaliser, ImuCombinerNormaliser, SpeedSwitch, \
     SpeedRescaler, RecordingCondition
@@ -149,6 +152,11 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         # pilot spits out speed in [0,1] transform back into real speed
         car.add(SpeedRescaler(cfg), inputs=['pilot/speed_norm'],
                 outputs=['pilot/speed'])
+        # add file watcher and model loader so model can be reloaded
+        f = FileWatcher(model_path)
+        car.add(f, outputs=['model/update'])
+        ml = ModelLoader(kl, model_path=model_path)
+        car.add(ml, inputs=['model/update'], outputs=['model/loaded'])
 
         # if driving w/ ai switch between user throttle or pilot throttle by
         # pressing channel 3 on the remote control

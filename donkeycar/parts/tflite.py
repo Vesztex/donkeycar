@@ -64,7 +64,7 @@ class TFLitePilot(object):
         self.input_shape_1 = None
         if len(self.input_details) > 1:
             self.input_shape_1 = self.input_details[1]['shape']
-        print('---- tflite input tensor details ----')
+        print('Load model with tflite input tensor details:')
         for l in self.input_details:
             print(l)
 
@@ -102,3 +102,14 @@ class TFLitePilot(object):
     def compile(self):
         pass
 
+    def update(self, tflite_pilot=None):
+        if tflite_pilot is None:
+            return
+        assert isinstance(tflite_pilot, TFLitePilot), \
+            'Can only update TFLitePilot from TFLitePilot but not from ' \
+            + type(tflite_pilot).__name__
+        self.interpreter = tflite_pilot.interpreter
+        self.input_details = tflite_pilot.input_details
+        self.output_details = tflite_pilot.output_details
+        self.input_shape_0 = tflite_pilot.input_shape_0
+        self.input_shape_1 = tflite_pilot.input_shape_1

@@ -123,7 +123,10 @@ def collate_records(records, gen_records, opts):
         sample["image_path"] = image_path
         sample["json_data"] = json_data
 
-        angle = float(json_data['user/angle'])
+        # use pilot angle if present and non-null, meaning the tub was driven
+        # by auto-pilot
+        angle = float(json_data['pilot/angle'] if 'pilot/angle' in json_data
+                      and json_data['pilot/angle'] else json_data['user/angle'])
         # normalising throttle if it is speed
         throttle = float(json_data[throttle_key])
         if use_speed:

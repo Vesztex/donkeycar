@@ -521,8 +521,8 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0), size='S'):
                   kernel_regularizer=regularizers.l2(l2),
                   name='dense' + str(i))(x)
 
-    angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
-    throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
+    angle_out = Dense(units=1, activation='linear', name='angle')(x)
+    throttle_out = Dense(units=1, activation='linear', name='throttle')(x)
     model = Model(inputs=[img_in], outputs=[angle_out, throttle_out],
                   name='SquarePlus_' + size)
     return model
@@ -554,8 +554,8 @@ def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
                   kernel_regularizer=regularizers.l2(l2),
                   name='dense' + str(i))(z)
 
-    angle_out = Dense(units=1, activation='linear', name='angle_out')(z)
-    throttle_out = Dense(units=1, activation='linear', name='throttle_out')(z)
+    angle_out = Dense(units=1, activation='linear', name='angle')(z)
+    throttle_out = Dense(units=1, activation='linear', name='throttle')(z)
     model = Model(inputs=[img_in, imu_in], outputs=[angle_out, throttle_out],
                   name='SquarePlusImu_' + size + '_' + str(imu_dim))
     return model

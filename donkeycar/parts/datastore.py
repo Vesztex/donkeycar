@@ -666,25 +666,35 @@ class TubHandler:
     def __init__(self, path):
         self.path = os.path.expanduser(path)
 
-    def get_tub_list(self, path):
-        folders = next(os.walk(path))[1]
+    def get_tub_list(self):
+        folders = next(os.walk(self.path))[1]
         return folders
 
-    def next_tub_number(self, path):
+    def get_last_tub(self, folders=None):
         def get_tub_num(tub_name):
             try:
-                num = int(tub_name.split('_')[1])
+                tub_name_split = tub_name.split('_')
+                num = int(tub_name_split[1])
+                date_str = tub_name_split[-1]
             except:
                 num = 0
-            return num
+                date_str = '00-00-00'
+            return num, date_str
 
-        folders = self.get_tub_list(path)
-        numbers = [get_tub_num(x) for x in folders]
-        next_number = max(numbers+[0]) + 1
-        return next_number
+        if not folders:
+            folders = self.get_tub_list()
+        folders = sorted(folders)
+        numbers = [get_tub_num(x)[0] for x in folders]
+        last_number = max(numbers)
+        last_tubs = [x for x in folders if get_tub_num(x)[0] == last_number]
+        return last_number, last_tubs[-1]
+
+    def next_tub_number(self):
+        last_number, _ = self.get_last_tub()
+        return  last_number + 1
 
     def create_tub_path(self):
-        tub_num = self.next_tub_number(self.path)
+        tub_num = self.next_tub_number()
         date = datetime.datetime.now().strftime('%y-%m-%d')
         name = '_'.join(['tub', str(tub_num), date])
         tub_path = os.path.join(self.path, name)

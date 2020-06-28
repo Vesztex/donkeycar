@@ -73,6 +73,9 @@ SORT_LAPS_BY = 'lap_time'  # gyro_z, accel_x
 # ROI_CROP_TOP = 36
 # USE_TENSORBOARD = True
 
+# PI DATA
+PI_HOSTNAME = 'donkeypi'
+
 # AUTOPILOT
 AI_THROTTLE_MULT = 1.0
 

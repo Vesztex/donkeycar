@@ -10,7 +10,7 @@ Basic usage should feel familiar: python train.py --model models/mypilot
 
 
 Usage:
-    train.py [convert]
+    train.py [convert|remote]
     [--tub=<tub1,tub2,..tubn>]
     [--exclude=<pattern1,pattern2>]
     [--file=<file> ...]
@@ -39,6 +39,7 @@ from tensorflow.keras.callbacks import TensorBoard
 from docopt import docopt
 
 import donkeycar as dk
+from donkeycar.parts.datastore import TubHandler
 from donkeycar.parts.keras import KerasIMU, KerasCategorical, KerasBehavioral, \
     KerasLatent, KerasLocalizer, KerasSquarePlusImu
 from donkeycar.parts.tflite import keras_model_to_tflite
@@ -571,7 +572,7 @@ def convert_to_tflite(cfg, gen_records, model_path):
     if prepare_for_coral:
         print("Compile for Coral w: edgetpu_compiler", tflite_fnm)
         os.system("edgetpu_compiler " + tflite_fnm)
-    print("Saved TFLite model:", tflite_fnm, "\n")
+    print("Saved TFLite model:", tflite_fnm)
 
 
 def make_train_plot(history, model_path, save_best):
@@ -939,10 +940,90 @@ def auto_generate_model_name():
     return new_pilot, new_pilot_num
 
 
+def train_for_remote(cfg, model_type):
+    """
+    Method for continuous training of live tub on the car. Assumes, that the
+    last tub is currently being live. The method will continuously cycle
+    through rsyncing the last tub, training the pilot and rsyncing the pilot
+    back to the car when training finished. The pilot will be named
+    pilot_continuous.tflite.
+
+    :param cfg: car configuration
+    :return:    None
+    """
+
+    pi_hostname = cfg.PI_HOSTNAME
+    pi_user = cfg.PI_USERNAME
+    remote_car_dir = cfg.PI_DONKEY_ROOT
+    remote_tub_dir = os.path.join(remote_car_dir, 'data')
+    local_file = 'donkey_tubs.list'
+    # get the remote dir listing as a local file
+    command = 'ssh ' + pi_user + '@' + pi_hostname + ' ls ' + remote_tub_dir \
+              + ' > ' + local_file
+    print('Executing', command)
+    out = os.system(command)
+    if out != 0:
+        print('Cannot ssh into ' + pi_hostname + ' with user ' + pi_user +
+              ' or directory ' + remote_tub_dir + ' does not exist.')
+        return
+    # now read tub list file
+    with open(local_file) as f:
+        tub_list = f.readlines()
+    # remove whitespace characters like `\n` at the end of each line
+    tub_list = [x.strip() for x in tub_list]
+    # find latest tub on the remote:
+    th = TubHandler('data')
+    last_tub_num, last_tub = th.get_last_tub(tub_list)
+
+    while True:
+        try:
+            # get tub from car
+            rsync_command = 'rsync -a ' + pi_user + '@' + pi_hostname + ':' + \
+                            os.path.join(remote_tub_dir,last_tub) + ' data'
+            res = rsync_success(rsync_command)
+            if not res:
+                break
+            pilot = 'models/pilot_continuous.h5'
+            transfer_model = pilot if os.path.exists(pilot) else None
+            # now train pilot
+            train(cfg, 'data/' + last_tub, pilot, transfer_model,
+                  model_type, aug=False, exclude=None, dry=False)
+            # convert to tflite
+            convert_to_tflite(cfg, {}, pilot)
+            pilot_tflite = pilot.replace('.h5', '.tflite')
+
+            # rsync back to pi
+            rsync_command = 'rsync ' + pilot_tflite + ' ' + pi_user + '@' + \
+                            pi_hostname + ':' \
+                            + os.path.join(remote_car_dir, pilot_tflite)
+            res = rsync_success(rsync_command)
+            if not res:
+                break
+
+        except KeyboardInterrupt:
+            print('')
+            break
+
+
+def rsync_success(command):
+    # allow 5 attempts otherwise give up
+    attempts = 5
+    for i in range(attempts):
+        print('Executing', command)
+        out = os.system(command)
+        if out == 0:
+            return True
+        print('Failed to rsync - trying again...')
+        if i == attempts - 1:
+            print('Giving up.')
+            return False
+
+
 if __name__ == "__main__":
     args = docopt(__doc__)
     cfg = dk.load_config()
     convert = args['convert']
+    remote = args['remote']
     tub = args['--tub']
     exclude = args['--exclude']
     model = args['--model']
@@ -965,6 +1046,9 @@ if __name__ == "__main__":
             if os.path.exists(pilot_h5.replace('.h5', '.tflite')):
                 continue
             convert_to_tflite(cfg, {}, pilot_h5)
+
+    elif remote:
+        train_for_remote(cfg, model_type=model_type)
 
     else:
         dirs = preprocessFileList(args['--file'])

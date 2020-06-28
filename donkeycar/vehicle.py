@@ -90,6 +90,9 @@ class Vehicle:
         assert type(inputs) is list, "inputs is not a list: %r" % inputs
         assert type(outputs) is list, "outputs is not a list: %r" % outputs
         assert type(threaded) is bool, "threaded is not a boolean: %r" % threaded
+        if run_condition:
+            assert type(run_condition) is str, \
+                "run_condition is not a str: %r" % threaded
 
         p = part
         print('Adding part {} with inputs {} and outputs {}'.format(

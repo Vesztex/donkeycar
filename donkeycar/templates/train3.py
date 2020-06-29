@@ -39,7 +39,7 @@ from tensorflow.keras.callbacks import TensorBoard
 from docopt import docopt
 
 import donkeycar as dk
-from donkeycar.parts.datastore import TubHandler
+from donkeycar.parts.datastore import TubHandler, Tub
 from donkeycar.parts.keras import KerasIMU, KerasCategorical, KerasBehavioral, \
     KerasLatent, KerasLocalizer, KerasSquarePlusImu
 from donkeycar.parts.tflite import keras_model_to_tflite
@@ -583,6 +583,7 @@ def make_train_plot(history, model_path, save_best):
         return
 
     plt.figure(1)
+    time_stamp = datetime.datetime.now().isoformat(sep='_', timespec='minutes')
     # Only do accuracy if we have that data (categorical outputs)
     if 'angle_out_acc' in history.history:
         plt.subplot(121)
@@ -596,17 +597,17 @@ def make_train_plot(history, model_path, save_best):
     plt.legend(['train', 'validate'], loc='upper right')
 
     # summarize history for acc
-    if 'angle_out_acc' in history.history:
+    if 'angle_acc' in history.history:
         plt.subplot(122)
-        plt.plot(history.history['angle_out_acc'])
-        plt.plot(history.history['val_angle_out_acc'])
+        plt.plot(history.history['angle_acc'])
+        plt.plot(history.history['val_angle_acc'])
         plt.title('model angle accuracy')
         plt.ylabel('acc')
         plt.xlabel('epoch')
         # plt.legend(['train', 'validate'], loc='upper left')
 
-    plt.savefig(model_path + '_loss_acc_%f.%s' % (save_best.best,
-                                                  figure_format))
+    plt.savefig(model_path + '_loss_acc_{:}.{:}'.format(time_stamp,
+                                                        figure_format))
 
 
 def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
@@ -982,44 +983,41 @@ def train_for_remote(cfg, model_type):
         try:
             # get tub from car
             rsync_command = 'rsync -a ' + pi_user + '@' + pi_hostname + ':' + \
-                            os.path.join(remote_tub_dir,last_tub) + ' data'
-            res = rsync_success(rsync_command)
-            if not res:
-                break
+                            os.path.join(remote_tub_dir, last_tub) + ' data'
+            rsync_success(rsync_command)
+
             pilot = 'models/pilot_continuous.h5'
             transfer_model = pilot if os.path.exists(pilot) else None
+            # tub check first
+            tub_path = os.path.join('data', last_tub)
+            tub = Tub(tub_path)
+            tub.check(fix=True)
             # now train pilot
-            train(cfg, 'data/' + last_tub, pilot, transfer_model,
-                  model_type, aug=False, exclude=None, dry=False)
+            train(cfg, tub_path, pilot, transfer_model, model_type)
             # convert to tflite
             convert_to_tflite(cfg, {}, pilot)
             pilot_tflite = pilot.replace('.h5', '.tflite')
 
             # rsync back to pi
-            rsync_command = 'rsync ' + pilot_tflite + ' ' + pi_user + '@' + \
-                            pi_hostname + ':' \
+            rsync_command = 'rsync ' + pilot_tflite + ' ' \
+                            + pi_user + '@' + pi_hostname + ':' \
                             + os.path.join(remote_car_dir, pilot_tflite)
-            res = rsync_success(rsync_command)
-            if not res:
-                break
+            rsync_success(rsync_command)
 
         except KeyboardInterrupt:
-            print('')
+            print('User interrupt')
+            break
+
+        except OSError as e:
+            print(e)
             break
 
 
 def rsync_success(command):
-    # allow 5 attempts otherwise give up
-    attempts = 5
-    for i in range(attempts):
-        print('Executing', command)
-        out = os.system(command)
-        if out == 0:
-            return True
-        print('Failed to rsync - trying again...')
-        if i == attempts - 1:
-            print('Giving up.')
-            return False
+    print('Executing', command)
+    out = os.system(command)
+    if out != 0:
+        raise OSError('Failed to rsync')
 
 
 if __name__ == "__main__":

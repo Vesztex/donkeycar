@@ -685,13 +685,13 @@ class TubHandler:
             folders = self.get_tub_list()
         folders = sorted(folders)
         numbers = [get_tub_num(x)[0] for x in folders]
-        last_number = max(numbers)
+        last_number = max(numbers) if numbers else -1
         last_tubs = [x for x in folders if get_tub_num(x)[0] == last_number]
-        return last_number, last_tubs[-1]
+        return last_number, last_tubs[-1] if last_tubs else None
 
     def next_tub_number(self):
         last_number, _ = self.get_last_tub()
-        return  last_number + 1
+        return last_number + 1
 
     def create_tub_path(self):
         tub_num = self.next_tub_number()

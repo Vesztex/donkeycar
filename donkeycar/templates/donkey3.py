@@ -231,6 +231,17 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         if model_path is None:
             tub_wiper = TubWiper(tub, num_records=car_frequency)
             car.add(tub_wiper, inputs=['user/wiper_on'])
+        elif record_on_ai:
+            class Combiner:
+                def run(self, signal, mode):
+                    """ Clean at switching back from auto pilot b/c there was a
+                    mistake """
+                    return signal and mode == 0
+            car.add(Combiner(), inputs=['user/wiper_on', 'user/mode'],
+                    outputs=['user/clean'])
+            # delete last two seconds when we go from pilot speed to manual
+            tub_wiper = TubWiper(tub, num_records=2 * car_frequency)
+            car.add(tub_wiper, inputs=['user/clean'])
 
     # run the vehicle
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS,

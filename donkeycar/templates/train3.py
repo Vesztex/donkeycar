@@ -993,7 +993,7 @@ def train_for_remote(cfg, model_type):
             tub = Tub(tub_path)
             tub.check(fix=True)
             # now train pilot
-            train(cfg, tub_path, pilot, transfer_model, model_type)
+            train(cfg, tub_path, pilot, transfer_model, model_type, aug=False)
             # convert to tflite
             convert_to_tflite(cfg, {}, pilot)
             pilot_tflite = pilot.replace('.h5', '.tflite')

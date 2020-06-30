@@ -1014,10 +1014,13 @@ def train_for_remote(cfg, model_type):
 
 
 def rsync_success(command):
-    print('Executing', command)
+    print('Executing', command, end='')
+    tic = time.time()
     out = os.system(command)
     if out != 0:
         raise OSError('Failed to rsync')
+    toc = time.time()
+    print(' ... in {:5.2f}s'.format(toc-tic))
 
 
 if __name__ == "__main__":

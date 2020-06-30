@@ -184,9 +184,28 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     steering = PWMSteering(controller=steering_controller,
                            left_pulse=cfg.STEERING_LEFT_PWM,
                            right_pulse=cfg.STEERING_RIGHT_PWM)
-    # feed signal which is either rc (user) or ai
-    steering_input = 'user/angle' if model_path is None else 'pilot/angle'
-    car.add(steering, inputs=[steering_input], threaded=True)
+    if model_path is None:
+        car.add(steering, inputs=['user/angle'], threaded=True)
+
+    else:
+        # feed signal which is either rc (user) or ai
+        class Dispatcher:
+            def run(self, user, user_on, pilot, mode):
+                # in user throttle / pilot steering mode we use pilot signal
+                # only if no rc user signal, otherwise overwrite with user
+                if mode == 0:
+                    if user_on:
+                        return user
+                    else:
+                        return pilot
+                # in full pilot mode we feed pilot only
+                elif mode == 1:
+                    return pilot
+
+        sd = Dispatcher()
+        car.add(sd, inputs=['user/angle', 'user/angle_on', 'pilot/angle',
+                            'user/mode'], outputs=['angle'])
+        car.add(steering, inputs=['angle'], threaded=True)
 
     # create and add the PWM throttle controller for esc
     throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL)

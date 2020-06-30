@@ -156,7 +156,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         f = FileWatcher(model_path)
         car.add(f, outputs=['model/update'])
         ml = ModelLoader(kl, model_path=model_path)
-        car.add(ml, inputs=['model/update'], outputs=['model/loaded'])
+        car.add(ml, inputs=['model/update'], outputs=['model/loaded'],
+                threaded=True)
 
         # if driving w/ ai switch between user throttle or pilot throttle by
         # pressing channel 3 on the remote control

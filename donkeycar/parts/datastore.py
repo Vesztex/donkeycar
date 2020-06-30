@@ -186,9 +186,6 @@ class Tub(object):
         :return:        new tub at new location
         """
         tub_path = self.path
-        # remove trailing slash if exits
-        if tub_path[-1] == '/':
-            tub_path = tub_path[:-1]
         head, tail = os.path.split(tub_path)
         tail_list = tail.split('_')
         length = len(tail_list)

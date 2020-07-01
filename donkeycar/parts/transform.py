@@ -220,10 +220,16 @@ class SpeedSwitch:
         self.throttle_mult = cfg.AI_THROTTLE_MULT
 
     def run(self, user_mode, user_speed, pilot_speed):
-        if user_mode == 0:
+        if user_mode < 2:
             return user_speed
         else:
             return pilot_speed * self.throttle_mult
+
+
+class SteeringSwitch:
+    """ Class to switch between user speed or pilot steering """
+    def run(self, user_angle, pilot_angle, user_mode):
+        return user_angle if user_mode == 0 else pilot_angle
 
 
 class SpeedRescaler:

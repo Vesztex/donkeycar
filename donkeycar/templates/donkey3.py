@@ -112,7 +112,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
     rc_throttle = RCReceiver(cfg.THROTTLE_RC_GPIO)
     rc_wiper = RCReceiver(cfg.DATA_WIPER_RC_GPIO, jitter=0.05, no_action=0)
-    car.add(rc_steering, outputs=['user/angle', 'user/steering_on'])
+    car.add(rc_steering, outputs=['user/angle', 'user/angle_on'])
     car.add(rc_throttle, outputs=['user/throttle', 'user/throttle_on'])
     car.add(rc_wiper, outputs=['user/wiper', 'user/wiper_on'])
 

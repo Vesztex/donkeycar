@@ -978,31 +978,44 @@ def train_for_remote(cfg, model_type):
     # find latest tub on the remote:
     th = TubHandler('data')
     last_tub_num, last_tub = th.get_last_tub(tub_list)
+    # local tub path
+    tub_path = os.path.join('data', last_tub)
+    # rsync get command
+    rsync_get = 'rsync -a ' + pi_user + '@' + pi_hostname + ':' + \
+                os.path.join(remote_tub_dir, last_tub) + ' data'
+    # hardcode pilot name for now
+    pilot = 'models/pilot_continuous.h5'
+    pilot_tflite = pilot.replace('.h5', '.tflite')
+    # rsync put command
+    rsync_put = 'rsync ' + pilot_tflite + ' ' \
+                + pi_user + '@' + pi_hostname + ':' \
+                + os.path.join(remote_car_dir, pilot_tflite)
+    # overwrite parameters for fast on-the-fly training
+    cfg.MAX_EPOCHS = 20
+    cfg.EARLY_STOP_PATIENCE = 5
 
     while True:
         try:
             # get tub from car
-            rsync_command = 'rsync -a ' + pi_user + '@' + pi_hostname + ':' + \
-                            os.path.join(remote_tub_dir, last_tub) + ' data'
-            rsync_success(rsync_command)
-
-            pilot = 'models/pilot_continuous.h5'
+            rsync_success(rsync_get)
+            # use previous result as transfer
             transfer_model = pilot if os.path.exists(pilot) else None
             # tub check first
-            tub_path = os.path.join('data', last_tub)
             tub = Tub(tub_path)
             tub.check(fix=True)
+            # for < 10k records wait a bit and try again
+            num_rec = tub.get_num_records()
+            if num_rec < 1e4:
+                print('Retrieved only {:} records, waiting for 30s and try '
+                      'again.'.format(num_rec))
+                time.sleep(30)
+                continue
             # now train pilot
             train(cfg, tub_path, pilot, transfer_model, model_type, aug=False)
             # convert to tflite
             convert_to_tflite(cfg, {}, pilot)
-            pilot_tflite = pilot.replace('.h5', '.tflite')
-
-            # rsync back to pi
-            rsync_command = 'rsync ' + pilot_tflite + ' ' \
-                            + pi_user + '@' + pi_hostname + ':' \
-                            + os.path.join(remote_car_dir, pilot_tflite)
-            rsync_success(rsync_command)
+            # put pilot back
+            rsync_success(rsync_put)
 
         except KeyboardInterrupt:
             print('User interrupt')
@@ -1020,7 +1033,7 @@ def rsync_success(command):
     if out != 0:
         raise OSError('Failed to rsync')
     toc = time.time()
-    print(' ... in {:5.2f}s'.format(toc-tic))
+    print(' ... in {:.1f}s'.format(toc-tic))
 
 
 if __name__ == "__main__":

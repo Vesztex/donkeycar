@@ -13,6 +13,8 @@ dependencies:
 - pylint
 - pytest
 - pip
+- scikit-image
+- tifffile
 - moviepy
 - paho-mqtt
 - PrettyTable

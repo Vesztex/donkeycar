@@ -43,12 +43,18 @@ class TFLitePilot(object):
     '''
     Base class for TFlite models that will provide steering and throttle to guide a car.
     '''
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.interpreter = None
         self.input_details = None
         self.output_details = None
         self.input_shape_0 = None
         self.input_shape_1 = None
+        self.img_seq = []
+        self.seq_length = kwargs.get('seq_length', 0)
+        txt = 'Created TFLitePilot'
+        if self.seq_length > 0:
+            txt += ' - LSTM with ' + str(self.seq_length) + ' sequence length'
+        print(txt)
 
     def load(self, model_path):
         # Load TFLite model and allocate tensors.
@@ -69,7 +75,19 @@ class TFLitePilot(object):
             print(l)
 
     def run(self, image, imu_in=None):
-        input_data = image.reshape(self.input_shape_0).astype('float32')
+        # if not lstm
+        if self.seq_length == 0:
+            input_data = image.reshape(self.input_shape_0).astype('float32')
+        # lstm
+        else:
+            while len(self.img_seq) < self.seq_length:
+                self.img_seq.append(image)
+            # pop oldest img from front and append current img at end
+            self.img_seq.pop(0)
+            self.img_seq.append(image)
+            input_data \
+                = np.array(self.img_seq).reshape(self.input_shape_0).astype('float32')
+
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
         if imu_in is not None:
             imu_arr = np.array(imu_in)

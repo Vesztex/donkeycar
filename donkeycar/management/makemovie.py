@@ -81,7 +81,10 @@ class MakeMovie(object):
         print('making movie', args.out, 'from', num_frames, 'images')
         clip = mpy.VideoClip(self.make_frame,
                              duration=((num_frames - 1) / self.cfg.DRIVE_LOOP_HZ))
-        clip.write_videofile(args.out, fps=self.cfg.DRIVE_LOOP_HZ)
+        try:
+            clip.write_videofile(args.out, fps=self.cfg.DRIVE_LOOP_HZ)
+        except OSError as e:
+            print('Error in write video occured:', e)
 
     def draw_user_input(self, record, img):
         '''
@@ -139,10 +142,10 @@ class MakeMovie(object):
             pred_img = pred_img.reshape(pred_img.shape + (1,))
             actual = pred_img.shape
 
-        if expected != actual:
-            print("expected input dim", expected,
-                  "didn't match actual dim", actual)
-            return
+        # if expected != actual:
+        #     print("expected input dim", expected,
+        #           "didn't match actual dim", actual)
+        #     return
 
         if self.imu_model:
             assert (imu is not None), "IMU model requires imu data"

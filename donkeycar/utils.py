@@ -499,6 +499,9 @@ def get_model_by_type(model_type, cfg):
 
     if model_type == "tflite_linear":
         kl = TFLitePilot()
+    elif model_type == "tflite_linear_lstm":
+        seq_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
+        kl = TFLitePilot(seq_length=seq_length)
     elif model_type == "localizer" or cfg.TRAIN_LOCALIZER:
         kl = KerasLocalizer(num_locations=cfg.NUM_LOCATIONS,
                             input_shape=input_shape)

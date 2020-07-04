@@ -17,7 +17,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python import keras
 from tensorflow.python.keras import regularizers
-from tensorflow.python.keras.layers import Input, Dense
+from tensorflow.python.keras.layers import Input, Dense, CuDNNLSTM
 from tensorflow.python.keras.models import Model, Sequential
 from tensorflow.python.keras.layers import Convolution2D, Conv2D, MaxPooling2D, AveragePooling2D, BatchNormalization
 from tensorflow.python.keras.layers import Activation, Dropout, Flatten, Cropping2D, Lambda
@@ -559,6 +559,10 @@ def square_plus_dense(size='S'):
 
 def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
                        size='S', seq_len=None):
+    # check for gpu
+    devices = tf.config.list_physical_devices('GPU')
+    lstm = CuDNNLSTM if devices else LSTM
+    # L2 regularisation
     l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
     if seq_len:
@@ -569,7 +573,7 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
     layers = square_plus_dense(size)
     for i, l in zip(range(len(layers)), layers):
         if seq_len:
-            x = LSTM(units=l, activation='relu',
+            x = lstm(units=l, activation='relu',
                      kernel_regularizer=regularizers.l2(l2),
                      name='lstm' + str(i),
                      return_sequences=(i != len(layers)-1))(x)

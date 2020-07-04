@@ -466,7 +466,7 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
     return model
 
 
-def linear_square_plus_cnn(x, size='S'):
+def linear_square_plus_cnn(x, size='S', is_seq=False):
     drop = 0.02
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
@@ -486,14 +486,25 @@ def linear_square_plus_cnn(x, size='S'):
 
     # build CNN layers with data as above and batch norm, pooling & dropout
     for i, f, k, s in zip(range(len(filters)), filters, kernels, strides):
-        x = Conv2D(filters=f, kernel_size=k, strides=s, padding='same',
-                   activation='relu', name='conv' + str(i))(x)
-        x = BatchNormalization(name='batch_norm' + str(i))(x)
-        x = AveragePooling2D(pool_size=(2, 2), padding='same',
-                             name='pool' + str(i))(x)
-        x = Dropout(rate=drop, name='drop' + str(i))(x)
+        conv = Conv2D(filters=f, kernel_size=k, strides=s, padding='same',
+                      activation='relu', name='conv' + str(i))
+        norm = BatchNormalization(name='batch_norm' + str(i))
+        pool = AveragePooling2D(pool_size=(2, 2), padding='same',
+                                name='pool' + str(i))
+        dropout = Dropout(rate=drop, name='drop' + str(i))
+        if is_seq:
+            x = TD(conv)(x)
+            x = TD(norm)(x)
+            x = TD(pool)(x)
+            x = TD(dropout)(x)
+        else:
+            x = conv(x)
+            x = norm(x)
+            x = pool(x)
+            x = dropout(x)
 
-    x = Flatten(name='flattened')(x)
+    flat = Flatten(name='flattened')
+    x = TD(flat)(x) if is_seq else flat(x)
     return x
 
 
@@ -509,22 +520,35 @@ def square_plus_dense(size='S'):
     return layers
 
 
-def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0), size='S'):
+def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
+                       size='S', seq_len=None):
     l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
+    if seq_len:
+        input_shape = (seq_len,) + input_shape
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
-    x = linear_square_plus_cnn(x, size)
+    x = linear_square_plus_cnn(x, size, seq_len is not None)
     layers = square_plus_dense(size)
     for i, l in zip(range(len(layers)), layers):
-        x = Dense(units=l, activation='relu',
-                  kernel_regularizer=regularizers.l2(l2),
-                  name='dense' + str(i))(x)
+        if seq_len:
+            x = LSTM(units=l, activation='relu',
+                     kernel_regularizer=regularizers.l2(l2),
+                     name='lstm' + str(i),
+                     return_sequences=(i != len(layers)-1))(x)
+        else:
+            x = Dense(units=l, activation='relu',
+                      kernel_regularizer=regularizers.l2(l2),
+                      name='dense' + str(i))(x)
 
-    angle_out = Dense(units=1, activation='linear', name='angle')(x)
-    throttle_out = Dense(units=1, activation='linear', name='throttle')(x)
-    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out],
-                  name='SquarePlus_' + size)
+    angle_dense = Dense(units=1, activation='linear', name='angle')
+    throttle_dense = Dense(units=1, activation='linear', name='throttle')
+    angle_out = TD(angle_dense)(x) if seq_len else angle_dense(x)
+    throttle_out = TD(throttle_dense)(x) if seq_len else throttle_dense(x)
+    name = 'SquarePlus_' + size
+    if seq_len:
+        name += '_' + str(seq_len) + '_lstm'
+    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out], name=name)
     return model
 
 

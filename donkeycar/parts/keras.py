@@ -573,7 +573,7 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
     layers = square_plus_dense(size)
     for i, l in zip(range(len(layers)), layers):
         if seq_len:
-            x = lstm(units=l, activation='relu',
+            x = lstm(units=l,
                      kernel_regularizer=regularizers.l2(l2),
                      name='lstm' + str(i),
                      return_sequences=(i != len(layers)-1))(x)

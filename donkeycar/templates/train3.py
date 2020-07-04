@@ -618,8 +618,10 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     trains models which take sequence of images
     '''
     print("Sequence of images training")
-
     kl = dk.utils.get_model_by_type(model_type=model_type, cfg=cfg)
+    if transfer_model:
+        assert(transfer_model[-3:] == '.h5')
+        kl.load(transfer_model)
     kl.compile()
     if cfg.PRINT_MODEL_SUMMARY:
         print(kl.model.summary())

@@ -10,21 +10,21 @@ models to help direct the vehicles motion.
 '''
 import copy
 import time
-from datetime import datetime
 
 import numpy as np
 
 import tensorflow as tf
 from tensorflow.python import keras
 from tensorflow.python.keras import regularizers
-from tensorflow.python.keras.layers import Input, Dense, CuDNNLSTM
+from tensorflow.python.keras.layers import Input, Dense
 from tensorflow.python.keras.models import Model, Sequential
-from tensorflow.python.keras.layers import Convolution2D, Conv2D, MaxPooling2D, AveragePooling2D, BatchNormalization
-from tensorflow.python.keras.layers import Activation, Dropout, Flatten, Cropping2D, Lambda
+from tensorflow.python.keras.layers import Convolution2D, Conv2D, MaxPooling2D,\
+    AveragePooling2D, BatchNormalization
+from tensorflow.python.keras.layers import Activation, Dropout, Flatten
 from tensorflow.python.keras.layers.merge import concatenate
 from tensorflow.python.keras.layers import LSTM
 from tensorflow.python.keras.layers.wrappers import TimeDistributed as TD
-from tensorflow.python.keras.layers import Conv3D, MaxPooling3D, Cropping3D, Conv2DTranspose
+from tensorflow.python.keras.layers import Conv3D, MaxPooling3D, Conv2DTranspose
 
 import donkeycar as dk
 from donkeycar.parts.tflite import TFLitePilot
@@ -42,7 +42,8 @@ if tf.__version__ == '1.13.1':
 
 class KerasPilot(object):
     '''
-    Base class for Keras models that will provide steering and throttle to guide a car.
+    Base class for Keras models that will provide steering and throttle to
+    guide a car.
     '''
     def __init__(self):
         self.model = None
@@ -559,9 +560,7 @@ def square_plus_dense(size='S'):
 
 def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
                        size='S', seq_len=None):
-    # check for gpu
-    devices = tf.config.list_physical_devices('GPU')
-    lstm = CuDNNLSTM if devices else LSTM
+
     # L2 regularisation
     l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
@@ -573,7 +572,7 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
     layers = square_plus_dense(size)
     for i, l in zip(range(len(layers)), layers):
         if seq_len:
-            x = lstm(units=l,
+            x = LSTM(units=l,
                      kernel_regularizer=regularizers.l2(l2),
                      name='lstm' + str(i),
                      return_sequences=(i != len(layers)-1))(x)

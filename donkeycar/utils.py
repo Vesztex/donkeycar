@@ -22,6 +22,7 @@ from io import BytesIO
 import numpy as np
 from PIL import Image
 
+
 '''
 IMAGES
 '''
@@ -485,12 +486,13 @@ def get_model_by_type(model_type, cfg):
     '''
     from donkeycar.parts.keras import KerasRNN_LSTM, KerasBehavioral, \
         KerasCategorical, KerasIMU, KerasLinear, KerasSquarePlus, \
-        KerasSquarePlusImu, Keras3D_CNN, KerasLocalizer, KerasLatent
+        KerasSquarePlusImu, KerasSquarePlusLstm, Keras3D_CNN, KerasLocalizer, \
+        KerasLatent
     from donkeycar.parts.tflite import TFLitePilot
  
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE
-    print("\"get_model_by_type\" model Type is: {}".format(model_type))
+    print("Get_model_by_type - model type is: {}".format(model_type))
 
     input_shape = (cfg.IMAGE_H, cfg.IMAGE_W, cfg.IMAGE_DEPTH)
     roi_crop = (cfg.ROI_CROP_TOP, cfg.ROI_CROP_BOTTOM)
@@ -508,15 +510,20 @@ def get_model_by_type(model_type, cfg):
         kl = KerasIMU(num_outputs=2, num_imu_inputs=6, input_shape=input_shape)        
     elif model_type == "linear":
         kl = KerasLinear(input_shape=input_shape, roi_crop=roi_crop)
-    elif model_type == "square_plus":
-        nn_size = cfg.NN_SIZE if hasattr(cfg, 'NN_SIZE') else 'S'
-        kl = KerasSquarePlus(input_shape=input_shape, roi_crop=roi_crop,
-                             size=nn_size)
     elif model_type == "square_plus_imu":
         imu_dim = cfg.IMU_DIM if hasattr(cfg, 'IMU_DIM') else 6
         nn_size = cfg.NN_SIZE if hasattr(cfg, 'NN_SIZE') else 'S'
         kl = KerasSquarePlusImu(input_shape=input_shape, roi_crop=roi_crop,
                                 imu_dim=imu_dim, size=nn_size)
+    elif "square_plus" in model_type:
+        nn_size = cfg.NN_SIZE if hasattr(cfg, 'NN_SIZE') else 'S'
+        if model_type == "square_plus_lstm":
+            seq_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
+            kl = KerasSquarePlusLstm(input_shape=input_shape, roi_crop=roi_crop,
+                                     size=nn_size, seq_length=seq_length)
+        else:
+            kl = KerasSquarePlus(input_shape=input_shape, roi_crop=roi_crop,
+                                 size=nn_size)
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit which
         # causes a lot of unexpected things to happen when using TF-GPU for
@@ -535,8 +542,8 @@ def get_model_by_type(model_type, cfg):
                            image_d=cfg.IMAGE_DEPTH,
                            seq_length=cfg.SEQUENCE_LENGTH)
     elif model_type == "categorical":
-        kl = KerasCategorical(input_shape=input_shape,
-                              throttle_range=cfg.MODEL_CATEGORICAL_MAX_THROTTLE_RANGE,
+        range = cfg.MODEL_CATEGORICAL_MAX_THROTTLE_RANGE,
+        kl = KerasCategorical(input_shape=input_shape, throttle_range=range,
                               roi_crop=roi_crop)
     elif model_type == "latent":
         kl = KerasLatent(input_shape=input_shape)
@@ -546,7 +553,8 @@ def get_model_by_type(model_type, cfg):
     else:
         model_types = ['tflite_linear', 'localizer', 'behavior', 'imu',
                        'linear', 'square_plus', 'square_plus_imu',
-                       'tensorrt_linear', 'coral_tflite_linear', '3d', 'rnn',
+                       'square_plus_lstm', 'tensorrt_linear',
+                       'coral_tflite_linear', '3d', 'rnn',
                        'categorical', 'latent', 'fastai']
         raise ValueError(
             "Unknown model type: '{:}', known types: {:}. Note for TFlite "

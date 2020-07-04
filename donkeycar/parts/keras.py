@@ -158,8 +158,9 @@ real numbers into a range of discreet values for training and runtime.
     The default ranges work for the default setup. But cars which go faster may want to
     enable a higher throttle range. And cars with larger steering throw may want more bins.
     '''
-    def __init__(self, input_shape=(120, 160, 3), throttle_range=0.5, roi_crop=(0, 0), *args, **kwargs):
-        super(KerasCategorical, self).__init__(*args, **kwargs)
+    def __init__(self, input_shape=(120, 160, 3), throttle_range=0.5,
+                 roi_crop=(0, 0), *args, **kwargs):
+        super().__init__()
         self.model = default_categorical(input_shape, roi_crop)
         self.compile()
         self.throttle_range = throttle_range
@@ -189,13 +190,14 @@ class KerasLinear(KerasPilot):
     Keras Dense layer with linear activation. One each for steering and throttle.
     The output is not bounded.
     '''
-    def __init__(self, num_outputs=2, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
-        super(KerasLinear, self).__init__(*args, **kwargs)
+    def __init__(self, num_outputs=2, input_shape=(120, 160, 3),
+                 roi_crop=(0, 0)):
+        super().__init__()
         self.model = default_n_linear(num_outputs, input_shape, roi_crop)
         self.compile()
 
     def compile(self):
-            self.model.compile(optimizer=self.optimizer, loss='mse')
+        self.model.compile(optimizer=self.optimizer, loss='mse')
 
     def run(self, img_arr):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
@@ -207,21 +209,56 @@ class KerasLinear(KerasPilot):
 
 class KerasSquarePlus(KerasLinear):
     """
-    Improved CNN over standard KerasLinear. The CNN translates into square
+    improved cnn over standard keraslinear. the cnn translates into square
     matrices from layer one on and uses batch normalisation, average pooling
-    & l2  regularisor instead of dropout in the perceptron layers. Because of
-    the square form the first layers stride need to be 3x4 (as this is the
-    input picture h x w ratio). With this the reduction in the first layer is
-    larger hence the whole model only has 5 CNN layers.
+    & l2  regularisor instead of dropout in the perceptron layers. because of
+    the square form, the first layers stride need to be 3x4 (as this is the
+    input picture h x w ratio). with this, the reduction in the first layer is
+    larger, hence the whole model only has 5 cnn layers.
     """
-    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
+    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
+                 *args, **kwargs):
         self.size = kwargs.get('size', 'S').upper()
-        self.model = linear_square_plus(input_shape, roi_crop, size=self.size)
+        self.model = self.make_model(input_shape, roi_crop)
         self.compile()
         print('Created', self.__class__.__name__, 'NN size:', self.size)
 
     def compile(self):
         self.model.compile(optimizer='adam', loss='mse')
+
+    def make_model(self, input_shape, roi_crop):
+        return linear_square_plus(input_shape, roi_crop, size=self.size)
+
+
+class KerasSquarePlusLstm(KerasSquarePlus):
+    """
+    LSTM version of square plus model
+    """
+    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
+                 *args, **kwargs):
+        self.seq_length = kwargs.get('seq_length', 3)
+        super().__init__(input_shape, roi_crop=roi_crop, *args, **kwargs)
+        self.img_seq = []
+
+    def make_model(self, input_shape, roi_crop):
+        return linear_square_plus(input_shape, roi_crop,
+                                  size=self.size,
+                                  seq_len=self.seq_length)
+
+    def run(self, img_arr):
+        # if buffer empty fill to length
+        while len(self.img_seq) < self.seq_length:
+            self.img_seq.append(img_arr)
+        # pop oldest img from front and append current img at end
+        self.img_seq.pop(0)
+        self.img_seq.append(img_arr)
+        # reshape and run model
+        new_shape = (1, self.seq_length, ) + img_arr.shape
+        img_arr = np.array(self.img_seq).reshape(new_shape)
+        outputs = self.model.predict(img_arr)
+        steering = outputs[0]
+        throttle = outputs[1]
+        return steering[0][0], throttle[0][0]
 
 
 class KerasSquarePlusImu(KerasSquarePlus):

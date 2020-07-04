@@ -620,6 +620,9 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     print("Sequence of images training")
 
     kl = dk.utils.get_model_by_type(model_type=model_type, cfg=cfg)
+    kl.compile()
+    if cfg.PRINT_MODEL_SUMMARY:
+        print(kl.model.summary())
     tubs = gather_tubs(cfg, tub_names, exclude)
     verbose = cfg.VERBOSE_TRAIN
     records = []
@@ -631,9 +634,10 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
         records += record_paths
 
     gen_records = {}
-    throttle_key = 'user/throttle'
-    if hasattr(cfg, 'USE_SPEED_FOR_MODEL') and cfg.USE_SPEED_FOR_MODEL:
-        throttle_key = 'car/speed'
+    use_speed = getattr(cfg, 'USE_SPEED_FOR_MODEL', True)
+    throttle_key = 'car/speed' if use_speed else 'user/throttle'
+    throttle_mult = 1.0 / cfg.MAX_SPEED
+
     if dry:
         print("Dry run only - stop here.\n")
         return
@@ -653,8 +657,11 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
         angle = float(json_data['user/angle'])
         throttle = float(json_data[throttle_key])
+        # normalising throttle if it is speed
+        if use_speed:
+            throttle = min(1.0, throttle_mult * throttle)
 
-        sample['target_output'] = np.array([angle, throttle])
+        sample['target_output'] = [angle, throttle]
         sample['angle'] = angle
         sample['throttle'] = throttle
         sample['img_data'] = None
@@ -665,11 +672,6 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     print('Collating sequences')
     sequences = []
     target_len = cfg.SEQUENCE_LENGTH
-    look_ahead = False
-
-    if model_type == "look_ahead":
-        target_len = cfg.SEQUENCE_LENGTH * 2
-        look_ahead = True
 
     for k, sample in gen_records.items():
         seq = []
@@ -679,10 +681,8 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
                 seq.append(gen_records[key])
             else:
                 continue
-
         if len(seq) != target_len:
             continue
-
         sequences.append(seq)
 
     print("Collated", len(sequences), "sequences of length", target_len)
@@ -690,7 +690,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     train_data, val_data \
         = train_test_split(sequences, test_size=(1 - cfg.TRAIN_TEST_SPLIT))
 
-    def generator(data, opt, batch_size=cfg.BATCH_SIZE):
+    def generator(data, cfg, batch_size=cfg.BATCH_SIZE):
         num_records = len(data)
         while True:
             # shuffle again for good measure
@@ -701,19 +701,13 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
                     break
 
                 b_inputs_img = []
-                b_vec_in = []
-                b_labels = []
+                y1 = []
+                y2 = []
 
                 for seq in batch_data:
                     inputs_img = []
-                    vec_in = []
-                    labels = []
-                    vec_out = []
+
                     num_images_target = len(seq)
-                    i_target_out = -1
-                    if opt['look_ahead']:
-                        num_images_target = cfg.SEQUENCE_LENGTH
-                        i_target_out = cfg.SEQUENCE_LENGTH - 1
 
                     for iRec, record in enumerate(seq):
                         # get image data if we don't already have it
@@ -730,52 +724,29 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
                                 img_arr = record['img_data']
 
                             inputs_img.append(img_arr)
+                        # add the latest angle / throttle to observation data
+                        if iRec == num_images_target - 1:
+                            y1.append(record['angle'])
+                            y2.append(record['throttle'])
 
-                        if iRec >= i_target_out:
-                            vec_out.append(record['angle'])
-                            vec_out.append(record['throttle'])
-                        else:
-                            vec_in.append(0.0)  # record['angle'])
-                            vec_in.append(0.0)  # record['throttle'])
-
-                    label_vec = seq[i_target_out]['target_output']
-
-                    if look_ahead:
-                        label_vec = np.array(vec_out)
-
-                    labels.append(label_vec)
                     b_inputs_img.append(inputs_img)
-                    b_vec_in.append(vec_in)
-                    b_labels.append(labels)
 
-                if look_ahead:
-                    X = [np.array(b_inputs_img).reshape(batch_size,
-                                                        cfg.TARGET_H,
-                                                        cfg.TARGET_W,
-                                                        cfg.SEQUENCE_LENGTH),
-                         np.array(b_vec_in)]
-                    y = np.array(b_labels).reshape(batch_size,
-                                                   (cfg.SEQUENCE_LENGTH + 1) * 2)
-                else:
-                    X = [np.array(b_inputs_img).reshape(batch_size,
-                                                        cfg.SEQUENCE_LENGTH,
-                                                        cfg.TARGET_H,
-                                                        cfg.TARGET_W,
-                                                        cfg.TARGET_D)]
-                    y = np.array(b_labels).reshape(batch_size, 2)
+                x_shape = (batch_size, cfg.SEQUENCE_LENGTH,
+                           cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
+                X = [np.array(b_inputs_img).reshape(x_shape)]
+                y = [np.array(y1), np.array(y2)]
 
                 yield X, y
 
-    opt = {'look_ahead': look_ahead, 'cfg': cfg}
-    train_gen = generator(train_data, opt)
-    val_gen = generator(val_data, opt)
+    train_gen = generator(train_data, cfg)
+    val_gen = generator(val_data, cfg)
     total_train = len(train_data)
     total_val = len(val_data)
 
-    print('train: %d, validation: %d' %(total_train, total_val))
     steps_per_epoch = total_train // cfg.BATCH_SIZE
     val_steps = total_val // cfg.BATCH_SIZE
-    print('steps_per_epoch', steps_per_epoch)
+    print('Train: %d, validation: %d steps_per_epoch: %d'
+          %(total_train, total_val, steps_per_epoch))
     if steps_per_epoch < 2:
         raise Exception("Too little data to train. Please record more records.")
 
@@ -790,7 +761,7 @@ def multi_train(cfg, tub, model, transfer, model_type, aug, exclude=None,
     choose the right regime for the given model type
     '''
     train_fn = train
-    if model_type in ('rnn', '3d', "look_ahead"):
+    if model_type in ('rnn', '3d', 'look_ahead', 'square_plus_lstm'):
         train_fn = sequence_train
     train_fn(cfg, tub, model, transfer, model_type, aug, exclude, dry)
 

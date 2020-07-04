@@ -7,6 +7,7 @@ from socket import *
 import os
 from threading import Thread
 import pandas as pd
+import stat
 
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
@@ -117,6 +118,7 @@ class CreateCar(BaseCommand):
         else:
             print("Copying car application template: {}".format(template))
             shutil.copyfile(app_template_path, car_app_path)
+            os.chmod(car_app_path, stat.S_IRWXU)
 
         if os.path.exists(car_config_path) and not overwrite:
             print('Car config already exists. Delete it and rerun createcar to '
@@ -132,6 +134,8 @@ class CreateCar(BaseCommand):
         else:
             print("Copying train script. Adjust these before starting your car.")
             shutil.copyfile(train_template_path, train_app_path)
+            os.chmod(train_app_path, stat.S_IRWXU)
+            print('Hurz')
 
         if not os.path.exists(mycar_config_path):
             print("Copying my car config overrides")
@@ -155,6 +159,7 @@ class CreateCar(BaseCommand):
         else:
             print("Copying batch_train.sh. Adjust before training.")
             shutil.copyfile(batch_train_template_path, batch_train_path)
+            os.chmod(batch_train_path, stat.S_IRWXU)
 
         print("Donkey setup complete.")
 
@@ -541,7 +546,6 @@ class ShowPredictionPlots(BaseCommand):
         Plot model predictions for angle and throttle against data from tubs.
         '''
         import matplotlib.pyplot as plt
-        import pandas as pd
         from progress.bar import Bar
 
         model_path = os.path.expanduser(model_path)

@@ -541,10 +541,8 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
                       kernel_regularizer=regularizers.l2(l2),
                       name='dense' + str(i))(x)
 
-    angle_dense = Dense(units=1, activation='linear', name='angle')
-    throttle_dense = Dense(units=1, activation='linear', name='throttle')
-    angle_out = TD(angle_dense)(x) if seq_len else angle_dense(x)
-    throttle_out = TD(throttle_dense)(x) if seq_len else throttle_dense(x)
+    angle_out = Dense(units=1, activation='linear', name='angle')
+    throttle_out = Dense(units=1, activation='linear', name='throttle')
     name = 'SquarePlus_' + size
     if seq_len:
         name += '_' + str(seq_len) + '_lstm'

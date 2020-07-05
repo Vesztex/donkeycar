@@ -126,6 +126,9 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
             model_type = '3d'
         elif '.tflite' in model_path:
             model_type = 'tflite_linear'
+            if 'lstm' in model_path:
+                model_type += '_lstm'
+
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)
 

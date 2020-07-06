@@ -531,10 +531,10 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
                                 name='pool' + str(i))
         dropout = Dropout(rate=drop, name='drop' + str(i))
         if is_seq:
-            x = TD(conv)(x)
-            x = TD(norm)(x)
-            x = TD(pool)(x)
-            x = TD(dropout)(x)
+            x = TD(conv, name='td_conv' + str(i))(x)
+            x = TD(norm, name='td_norm' + str(i))(x)
+            x = TD(pool, name='td_pool' + str(i))(x)
+            x = TD(dropout, name='td_drop' + str(i))(x)
         else:
             x = conv(x)
             x = norm(x)
@@ -542,7 +542,7 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
             x = dropout(x)
 
     flat = Flatten(name='flattened')
-    x = TD(flat)(x) if is_seq else flat(x)
+    x = TD(flat, name='td_flat')(x) if is_seq else flat(x)
     return x
 
 

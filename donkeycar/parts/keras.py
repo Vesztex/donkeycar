@@ -281,7 +281,7 @@ class KerasSquarePlusImu(KerasSquarePlus):
         if imu is None:
             imu_arr = np.zeros((1, 6))
         else:
-            imu_arr = np.array(imu)
+            imu_arr = np.array(imu).reshape(1, self.imu_dim)
         outputs = self.model.predict(x=[img_arr, imu_arr])
         steering = outputs[0]
         throttle = outputs[1]
@@ -514,7 +514,7 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
         if size == 'M':
             filters += [128]
             kernels += [(2, 2)]
-    if size == 'L':
+    else:  # size must be L
         filters = [20, 40, 80, 120, 160]
         kernels = [(9, 9), (7, 7), (5, 5), (3, 3), (2, 2)]
     if size == 'S':
@@ -547,15 +547,10 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
 
 
 def square_plus_dense(size='S'):
-    if size == 'S':
-        layers = [96] * 4 + [48]
-    elif size == 'M':
-        layers = [128] * 5 + [64]
-    elif size == 'L':
-        layers = [144] * 8
-    else:
-        raise ValueError('size must be S, M or L but was', size)
-    return layers
+    d = dict(S=[96] * 4 + [48], M=[128] * 5 + [64], L=[144] * 8)
+    if not size in d:
+        raise ValueError('size must be in', d.keys(), 'but was', size)
+    return d[size]
 
 
 def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
@@ -569,57 +564,63 @@ def linear_square_plus(input_shape=(120, 160, 3), roi_crop=(0, 0),
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
     x = linear_square_plus_cnn(x, size, seq_len is not None)
-    layers = square_plus_dense(size)
-    for i, l in zip(range(len(layers)), layers):
-        if seq_len:
-            x = LSTM(units=l,
-                     kernel_regularizer=regularizers.l2(l2),
-                     name='lstm' + str(i),
-                     return_sequences=(i != len(layers)-1))(x)
-        else:
-            x = Dense(units=l, activation='relu',
-                      kernel_regularizer=regularizers.l2(l2),
-                      name='dense' + str(i))(x)
-
-    angle_out = Dense(units=1, activation='linear', name='angle')(x)
-    throttle_out = Dense(units=1, activation='linear', name='throttle')(x)
-    name = 'SquarePlus_' + size
-    if seq_len:
-        name += '_' + str(seq_len) + '_lstm'
-    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out], name=name)
+    inputs = [img_in]
+    model = square_plus_output_layers(x, size, l2, inputs, imu_dim=None,
+                                      seq_len=seq_len)
     return model
 
 
 def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
-                           imu_dim=6, size='S'):
+                           imu_dim=6, size='S', seq_len=None):
     assert 0 < imu_dim <= 6, 'imu_dim must be number in [1,..,6]'
     l2 = 0.001
     input_shape = adjust_input_shape(input_shape, roi_crop)
+    imu_shape = (imu_dim,)
+    if seq_len:
+        input_shape = (seq_len,) + input_shape
+        imu_shape = (seq_len,) + imu_shape
     img_in = Input(shape=input_shape, name='img_in')
-    imu_in = Input(shape=(imu_dim,), name="imu_in")
+    imu_in = Input(shape=imu_shape, name="imu_in")
     x = img_in
-    x = linear_square_plus_cnn(x, size)
-
+    x = linear_square_plus_cnn(x, size, seq_len is not None)
     y = imu_in
-    units = 24
-    if size == 'M':
-        units = 36
-    elif size == 'L':
-        units = 48
-    y = Dense(units=units, activation='relu',
-              kernel_regularizer=regularizers.l2(l2),
-              name='dense_imu')(y)
+    imu_dense_size = dict(S=24, M=36, L=48)
+    imu_dense = Dense(units=imu_dense_size[size], activation='relu',
+                      kernel_regularizer=regularizers.l2(l2),
+                      name='dense_imu')
+    y = TD(imu_dense, name='td_imu_dense')(y) if seq_len else imu_dense(y)
     z = concatenate([x, y])
+    inputs = [img_in, imu_in]
+    model = square_plus_output_layers(z, size, l2, inputs, imu_dim, seq_len)
+    return model
+
+
+def square_plus_output_layers(in_tensor, size, l2, model_inputs,
+                              imu_dim=None, seq_len=None):
     layers = square_plus_dense(size)
+    z = in_tensor
     for i, l in zip(range(len(layers)), layers):
-        z = Dense(units=l, activation='relu',
-                  kernel_regularizer=regularizers.l2(l2),
-                  name='dense' + str(i))(z)
+        if seq_len:
+            z = LSTM(units=l,
+                     kernel_regularizer=regularizers.l2(l2),
+                     name='lstm' + str(i),
+                     return_sequences=(i != len(layers) - 1))(z)
+        else:
+            z = Dense(units=l, activation='relu',
+                      kernel_regularizer=regularizers.l2(l2),
+                      name='dense' + str(i))(z)
 
     angle_out = Dense(units=1, activation='linear', name='angle')(z)
     throttle_out = Dense(units=1, activation='linear', name='throttle')(z)
-    model = Model(inputs=[img_in, imu_in], outputs=[angle_out, throttle_out],
-                  name='SquarePlusImu_' + size + '_' + str(imu_dim))
+    if len(model_inputs) > 1:
+        name = 'SquarePlusImu_' + size + '_' + str(imu_dim)
+    else:
+        name = 'SquarePlus_' + size
+    if seq_len:
+        name += '_lstm_' + str(seq_len)
+    model = Model(inputs=model_inputs,
+                  outputs=[angle_out, throttle_out],
+                  name=name)
     return model
 
 

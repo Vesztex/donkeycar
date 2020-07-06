@@ -639,6 +639,9 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     use_speed = getattr(cfg, 'USE_SPEED_FOR_MODEL', True)
     throttle_key = 'car/speed' if use_speed else 'user/throttle'
     throttle_mult = 1.0 / cfg.MAX_SPEED
+    accel_mult = 1.0 / cfg.IMU_ACCEL_NORM
+    gyro_mult = 1.0 / cfg.IMU_GYRO_NORM
+    is_imu = 'imu' in model_type
 
     if dry:
         print("Dry run only - stop here.\n")
@@ -667,6 +670,11 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
         sample['angle'] = angle
         sample['throttle'] = throttle
         sample['img_data'] = None
+
+        if is_imu in json_data:
+            accel = clamp_and_norm(json_data['car/accel'], accel_mult)
+            gyro = clamp_and_norm(json_data['car/gyro'], gyro_mult)
+            sample['imu_array'] = np.concatenate((accel, gyro))
 
         key = make_key(sample)
         gen_records[key] = sample
@@ -703,11 +711,13 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
                     break
 
                 b_inputs_img = []
+                b_inputs_imu = []
                 y1 = []
                 y2 = []
 
                 for seq in batch_data:
                     inputs_img = []
+                    inputs_imu = []
 
                     num_images_target = len(seq)
 
@@ -726,16 +736,22 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
                                 img_arr = record['img_data']
 
                             inputs_img.append(img_arr)
+                            if is_imu:
+                                inputs_imu.append(record['imu_array'])
                         # add the latest angle / throttle to observation data
                         if iRec == num_images_target - 1:
                             y1.append(record['angle'])
                             y2.append(record['throttle'])
 
                     b_inputs_img.append(inputs_img)
+                    b_inputs_imu.append(inputs_imu)
 
                 x_shape = (batch_size, cfg.SEQUENCE_LENGTH,
                            cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
+                imu_shape = (batch_size, cfg.SEQUENCE_LENGTH, cfg.IMU_DIM)
                 X = [np.array(b_inputs_img).reshape(x_shape)]
+                if is_imu:
+                    X.append(np.array(b_inputs_imu).reshape(imu_shape))
                 y = [np.array(y1), np.array(y2)]
 
                 yield X, y

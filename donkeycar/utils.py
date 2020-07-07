@@ -513,20 +513,26 @@ def get_model_by_type(model_type, cfg):
         kl = KerasIMU(num_outputs=2, num_imu_inputs=6, input_shape=input_shape)        
     elif model_type == "linear":
         kl = KerasLinear(input_shape=input_shape, roi_crop=roi_crop)
-    elif model_type == "square_plus_imu":
-        imu_dim = cfg.IMU_DIM if hasattr(cfg, 'IMU_DIM') else 6
-        nn_size = cfg.NN_SIZE if hasattr(cfg, 'NN_SIZE') else 'S'
-        kl = KerasSquarePlusImu(input_shape=input_shape, roi_crop=roi_crop,
-                                imu_dim=imu_dim, size=nn_size)
     elif "square_plus" in model_type:
         nn_size = cfg.NN_SIZE if hasattr(cfg, 'NN_SIZE') else 'S'
-        if model_type == "square_plus_lstm":
-            seq_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
-            kl = KerasSquarePlusLstm(input_shape=input_shape, roi_crop=roi_crop,
-                                     size=nn_size, seq_length=seq_length)
-        else:
+        imu_dim = cfg.IMU_DIM if hasattr(cfg, 'IMU_DIM') else 6
+        seq_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
+        if model_type == "square_plus":
             kl = KerasSquarePlus(input_shape=input_shape, roi_crop=roi_crop,
                                  size=nn_size)
+        elif model_type == "square_plus_imu":
+            kl = KerasSquarePlusImu(input_shape=input_shape,
+                                        roi_crop=roi_crop,
+                                        imu_dim=imu_dim, size=nn_size)
+        elif model_type == "square_plus_lstm":
+            kl = KerasSquarePlusLstm(input_shape=input_shape,
+                                     roi_crop=roi_crop,
+                                     size=nn_size, seq_length=seq_length)
+        elif model_type == "square_plus_imu_lstm":
+            kl = KerasSquarePlusImuLstm(input_shape=input_shape,
+                                        roi_crop=roi_crop,
+                                        imu_dim=imu_dim, size=nn_size,
+                                        seq_length=seq_length)
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit which
         # causes a lot of unexpected things to happen when using TF-GPU for

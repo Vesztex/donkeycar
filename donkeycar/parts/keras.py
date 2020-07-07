@@ -221,8 +221,12 @@ class KerasSquarePlus(KerasLinear):
                  *args, **kwargs):
         self.size = kwargs.get('size', 'S').upper()
         self.model = self.make_model(input_shape, roi_crop)
+        print(self.text())
         self.compile()
-        print('Created', self.__class__.__name__, 'NN size:', self.size)
+
+    def text(self):
+        return 'Created ' + self.__class__.__name__ + ' NN size: ' \
+                   + str(self.size)
 
     def compile(self):
         self.model.compile(optimizer='adam', loss='mse')
@@ -238,13 +242,17 @@ class KerasSquarePlusLstm(KerasSquarePlus):
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
                  *args, **kwargs):
         self.seq_length = kwargs.get('seq_length', 3)
-        super().__init__(input_shape, roi_crop=roi_crop, *args, **kwargs)
+        super().__init__(input_shape, roi_crop=roi_crop,
+                         args=args, kwargs=kwargs)
         self.img_seq = []
 
     def make_model(self, input_shape, roi_crop):
         return linear_square_plus(input_shape, roi_crop,
                                   size=self.size,
                                   seq_len=self.seq_length)
+
+    def text(self):
+        return super().text() + ' Seq len: ' + str(self.seq_length)
 
     def run(self, img_arr):
         # if buffer empty fill to length
@@ -266,15 +274,20 @@ class KerasSquarePlusImu(KerasSquarePlus):
     """
     The model is a variation of the SquarePlus model that also uses imu data
     """
-    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0), *args, **kwargs):
+    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
+                 *args, **kwargs):
         self.imu_dim = kwargs.get('imu_dim', 6)
-        self.size = kwargs.get('size', 'S').upper()
-        self.model = linear_square_plus_imu(input_shape, roi_crop,
-                                            imu_dim=self.imu_dim,
-                                            size=self.size)
-        self.compile()
-        print('Created', self.__class__.__name__, 'imu_dim:', self.imu_dim,
-              'NN size:', self.size)
+        super().__init__(input_shape, roi_crop, args, kwargs)
+        self.imu_seq = []
+
+    def make_model(self, input_shape, roi_crop):
+        model = linear_square_plus_imu(input_shape, roi_crop,
+                                       imu_dim=self.imu_dim,
+                                       size=self.size)
+        return model
+
+    def text(self):
+        return super().text() + ' Imu dim' + self.imu_dim
 
     def run(self, img_arr, imu=None):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
@@ -283,6 +296,41 @@ class KerasSquarePlusImu(KerasSquarePlus):
         else:
             imu_arr = np.array(imu).reshape(1, self.imu_dim)
         outputs = self.model.predict(x=[img_arr, imu_arr])
+        steering = outputs[0]
+        throttle = outputs[1]
+        return steering[0][0], throttle[0][0]
+
+
+class KerasSquarePlusImuLstm(KerasSquarePlusLstm):
+    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
+                 *args, **kwargs):
+        self.imu_dim = kwargs.get('imu_dim', 6)
+        self.imu_seq = []
+        super().__init__(input_shape=input_shape, roi_crop=roi_crop,
+                         args=args, kwargs=kwargs)
+
+    def make_model(self, input_shape, roi_crop):
+        return linear_square_plus_imu(input_shape, roi_crop,
+                                      imu_dim=self.imu_dim,
+                                      size=self.size,
+                                      seq_len=self.seq_length)
+
+    def run(self, img_arr, imu_arr):
+        # if buffer empty fill to length
+        while len(self.img_seq) < self.seq_length:
+            self.img_seq.append(img_arr)
+            self.imu_seq.append(imu_arr)
+        # pop oldest img / imu from front and append current img / imu at end
+        self.img_seq.pop(0)
+        self.img_seq.append(img_arr)
+        self.imu_seq.pop(0)
+        self.imu_seq.append(img_arr)
+        # reshape and run model
+        new_shape = (1, self.seq_length, ) + img_arr.shape
+        img_arr = np.array(self.img_seq).reshape(new_shape)
+        new_imu_shape = (1, self.seq_length, ) + imu_arr.shape
+        imu_arr = np.array(self.img_seq).reshape(new_imu_shape)
+        outputs = self.model.predict([img_arr, imu_arr])
         steering = outputs[0]
         throttle = outputs[1]
         return steering[0][0], throttle[0][0]

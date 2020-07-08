@@ -287,7 +287,7 @@ class KerasSquarePlusImu(KerasSquarePlus):
         return model
 
     def text(self):
-        return super().text() + ' Imu dim' + self.imu_dim
+        return super().text() + ' Imu dim ' + str(self.imu_dim)
 
     def run(self, img_arr, imu=None):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
@@ -316,6 +316,9 @@ class KerasSquarePlusImuLstm(KerasSquarePlusLstm):
                                       seq_len=self.seq_length)
 
     def run(self, img_arr, imu_arr):
+        # convert imu python list into numpy array first, img_arr is already
+        # numpy array
+        imu_arr = np.array(imu_arr)
         # if buffer empty fill to length
         while len(self.img_seq) < self.seq_length:
             self.img_seq.append(img_arr)
@@ -324,12 +327,12 @@ class KerasSquarePlusImuLstm(KerasSquarePlusLstm):
         self.img_seq.pop(0)
         self.img_seq.append(img_arr)
         self.imu_seq.pop(0)
-        self.imu_seq.append(img_arr)
+        self.imu_seq.append(imu_arr)
         # reshape and run model
-        new_shape = (1, self.seq_length, ) + img_arr.shape
-        img_arr = np.array(self.img_seq).reshape(new_shape)
+        new_img_shape = (1, self.seq_length, ) + img_arr.shape
+        img_arr = np.array(self.img_seq).reshape(new_img_shape)
         new_imu_shape = (1, self.seq_length, ) + imu_arr.shape
-        imu_arr = np.array(self.img_seq).reshape(new_imu_shape)
+        imu_arr = np.array(self.imu_seq).reshape(new_imu_shape)
         outputs = self.model.predict([img_arr, imu_arr])
         steering = outputs[0]
         throttle = outputs[1]

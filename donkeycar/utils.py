@@ -22,6 +22,7 @@ from io import BytesIO
 import numpy as np
 from PIL import Image
 
+from donkeycar.parts.keras import KerasSquarePlusImuLstm
 
 '''
 IMAGES
@@ -514,16 +515,16 @@ def get_model_by_type(model_type, cfg):
     elif model_type == "linear":
         kl = KerasLinear(input_shape=input_shape, roi_crop=roi_crop)
     elif "square_plus" in model_type:
-        nn_size = cfg.NN_SIZE if hasattr(cfg, 'NN_SIZE') else 'S'
-        imu_dim = cfg.IMU_DIM if hasattr(cfg, 'IMU_DIM') else 6
+        nn_size = getattr(cfg, 'NN_SIZE', 'S')
+        imu_dim = getattr(cfg, 'IMU_DIM', 6)
         seq_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
         if model_type == "square_plus":
             kl = KerasSquarePlus(input_shape=input_shape, roi_crop=roi_crop,
                                  size=nn_size)
         elif model_type == "square_plus_imu":
             kl = KerasSquarePlusImu(input_shape=input_shape,
-                                        roi_crop=roi_crop,
-                                        imu_dim=imu_dim, size=nn_size)
+                                    roi_crop=roi_crop,
+                                    imu_dim=imu_dim, size=nn_size)
         elif model_type == "square_plus_lstm":
             kl = KerasSquarePlusLstm(input_shape=input_shape,
                                      roi_crop=roi_crop,

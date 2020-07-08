@@ -135,7 +135,6 @@ class CreateCar(BaseCommand):
             print("Copying train script. Adjust these before starting your car.")
             shutil.copyfile(train_template_path, train_app_path)
             os.chmod(train_app_path, stat.S_IRWXU)
-            print('Hurz')
 
         if not os.path.exists(mycar_config_path):
             print("Copying my car config overrides")

@@ -50,6 +50,7 @@ class TFLitePilot(object):
         self.input_shape_0 = None
         self.input_shape_1 = None
         self.img_seq = []
+        self.imu_seq = []
         self.seq_length = kwargs.get('seq_length', 0)
         txt = 'Created TFLitePilot'
         if self.seq_length > 0:
@@ -77,7 +78,7 @@ class TFLitePilot(object):
     def run(self, image, imu_in=None):
         # if not lstm
         if self.seq_length == 0:
-            input_data = image.reshape(self.input_shape_0).astype('float32')
+            input_data = image
         # lstm
         else:
             while len(self.img_seq) < self.seq_length:
@@ -85,15 +86,26 @@ class TFLitePilot(object):
             # pop oldest img from front and append current img at end
             self.img_seq.pop(0)
             self.img_seq.append(image)
-            input_data \
-                = np.array(self.img_seq).reshape(self.input_shape_0).astype('float32')
+            input_data = np.array(self.img_seq)
 
-        self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
+        img_tensor = input_data.reshape(self.input_shape_0).astype('float32')
+        self.interpreter.set_tensor(self.input_details[0]['index'], img_tensor)
+
         if imu_in is not None:
             imu_arr = np.array(imu_in)
-            imu_data = imu_arr.reshape(self.input_shape_1).astype('float32')
+            if self.seq_length == 0:
+                imu_data = imu_arr
+            else:  # lstm
+                while len(self.imu_seq) < self.seq_length:
+                    self.imu_seq.append(imu_arr)
+                # pop oldest imu data from front and append current imu at end
+                self.imu_seq.pop(0)
+                self.imu_seq.append(image)
+                imu_data = np.array(self.imu_seq)
+
+            imu_tensor = imu_data.reshape(self.input_shape_1).astype('float32')
             self.interpreter.set_tensor(self.input_details[1]['index'],
-                                        imu_data)
+                                        imu_tensor)
         self.interpreter.invoke()
 
         steering = 0.0

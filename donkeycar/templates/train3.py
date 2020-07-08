@@ -642,6 +642,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     accel_mult = 1.0 / cfg.IMU_ACCEL_NORM
     gyro_mult = 1.0 / cfg.IMU_GYRO_NORM
     is_imu = 'imu' in model_type
+    imu_dim = getattr(cfg, 'IMU_DIM', 6)
 
     if dry:
         print("Dry run only - stop here.\n")
@@ -671,7 +672,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
         sample['throttle'] = throttle
         sample['img_data'] = None
 
-        if is_imu in json_data:
+        if is_imu:
             accel = clamp_and_norm(json_data['car/accel'], accel_mult)
             gyro = clamp_and_norm(json_data['car/gyro'], gyro_mult)
             sample['imu_array'] = np.concatenate((accel, gyro))
@@ -748,7 +749,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
                 x_shape = (batch_size, cfg.SEQUENCE_LENGTH,
                            cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
-                imu_shape = (batch_size, cfg.SEQUENCE_LENGTH, cfg.IMU_DIM)
+                imu_shape = (batch_size, cfg.SEQUENCE_LENGTH, imu_dim)
                 X = [np.array(b_inputs_img).reshape(x_shape)]
                 if is_imu:
                     X.append(np.array(b_inputs_imu).reshape(imu_shape))
@@ -779,7 +780,8 @@ def multi_train(cfg, tub, model, transfer, model_type, aug, exclude=None,
     choose the right regime for the given model type
     '''
     train_fn = train
-    if model_type in ('rnn', '3d', 'look_ahead', 'square_plus_lstm'):
+    if model_type in ('rnn', '3d', 'look_ahead', 'square_plus_lstm',
+                      'square_plus_imu_lstm'):
         train_fn = sequence_train
     train_fn(cfg, tub, model, transfer, model_type, aug, exclude, dry)
 

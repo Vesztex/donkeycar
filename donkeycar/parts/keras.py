@@ -242,8 +242,7 @@ class KerasSquarePlusLstm(KerasSquarePlus):
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
                  *args, **kwargs):
         self.seq_length = kwargs.get('seq_length', 3)
-        super().__init__(input_shape, roi_crop=roi_crop,
-                         args=args, kwargs=kwargs)
+        super().__init__(input_shape, roi_crop=roi_crop, *args, **kwargs)
         self.img_seq = []
 
     def make_model(self, input_shape, roi_crop):
@@ -277,13 +276,12 @@ class KerasSquarePlusImu(KerasSquarePlus):
     def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
                  *args, **kwargs):
         self.imu_dim = kwargs.get('imu_dim', 6)
-        super().__init__(input_shape, roi_crop, args, kwargs)
+        super().__init__(input_shape, roi_crop, *args, **kwargs)
         self.imu_seq = []
 
     def make_model(self, input_shape, roi_crop):
         model = linear_square_plus_imu(input_shape, roi_crop,
-                                       imu_dim=self.imu_dim,
-                                       size=self.size)
+                                       imu_dim=self.imu_dim, size=self.size)
         return model
 
     def text(self):
@@ -307,7 +305,7 @@ class KerasSquarePlusImuLstm(KerasSquarePlusLstm):
         self.imu_dim = kwargs.get('imu_dim', 6)
         self.imu_seq = []
         super().__init__(input_shape=input_shape, roi_crop=roi_crop,
-                         args=args, kwargs=kwargs)
+                         *args, **kwargs)
 
     def make_model(self, input_shape, roi_crop):
         return linear_square_plus_imu(input_shape, roi_crop,
@@ -559,7 +557,7 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
     drop = 0.02
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
-    if size in ['S', 'M']:
+    if size in ['XS', 'S', 'M']:
         filters = [16, 32, 64, 96]
         kernels = [(7, 7), (5, 5), (3, 3), (2, 2)]
         if size == 'M':
@@ -568,7 +566,7 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
     else:  # size must be L
         filters = [20, 40, 80, 120, 160]
         kernels = [(9, 9), (7, 7), (5, 5), (3, 3), (2, 2)]
-    if size == 'S':
+    if size in ['XS', 'S']:
         strides = [(3, 4), (2, 2)] + [(1, 1)] * 2
     else:  # M or L
         strides = [(3, 4)] + [(1, 1)] * 4
@@ -598,7 +596,10 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
 
 
 def square_plus_dense(size='S'):
-    d = dict(S=[96] * 4 + [48], M=[128] * 5 + [64], L=[144] * 8)
+    d = dict(XS=[72] * 3 + [48],
+             S=[96] * 4 + [48],
+             M=[128] * 5 + [64],
+             L=[144] * 8)
     if not size in d:
         raise ValueError('size must be in', d.keys(), 'but was', size)
     return d[size]
@@ -635,7 +636,7 @@ def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
     x = img_in
     x = linear_square_plus_cnn(x, size, seq_len is not None)
     y = imu_in
-    imu_dense_size = dict(S=24, M=36, L=48)
+    imu_dense_size = dict(XS=20, S=24, M=36, L=48)
     imu_dense = Dense(units=imu_dense_size[size], activation='relu',
                       kernel_regularizer=regularizers.l2(l2),
                       name='dense_imu')
@@ -654,6 +655,7 @@ def square_plus_output_layers(in_tensor, size, l2, model_inputs,
         if seq_len:
             z = LSTM(units=l,
                      kernel_regularizer=regularizers.l2(l2),
+                     recurrent_regularizer=regularizers.l2(l2),
                      name='lstm' + str(i),
                      return_sequences=(i != len(layers) - 1))(z)
         else:

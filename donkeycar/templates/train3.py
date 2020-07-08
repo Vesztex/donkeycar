@@ -19,7 +19,7 @@ Usage:
     [--type=(linear|latent|categorical|rnn|imu|behavior|3d|look_ahead|tensorrt_linear|tflite_linear|coral_tflite_linear)]
     [--figure_format=<figure_format>]
     [--nn_size=<nn_size>]
-    [--continuous] [--aug] [--dry]
+    [--continuous] [--aug] [--frac=<training fraction>] [--dry]
 
 Options:
     -h --help              Show this screen.
@@ -185,13 +185,22 @@ def collate_records(records, gen_records, opts):
 
     # new_records now contains all our NEW samples - set a random selection
     # to be the training samples based on the ratio in CFG file
-    shufKeys = list(new_records.keys())
-    random.shuffle(shufKeys)
+    shuffled_keys = list(new_records.keys())
+    random.shuffle(shuffled_keys)
+    # only retain a faction of training entries if given
+    train_frac = opts['train_frac']
+    if train_frac:
+        new_length = int(len(shuffled_keys) * train_frac)
+        remove_list = shuffled_keys[new_length:]
+        for k in remove_list:
+            del new_records[k]
+        shuffled_keys = list(new_records.keys())
+
     trainCount = 0
     # Ratio of samples to use as training data, the remaining are used for
     # evaluation
-    targetTrainCount = int(opts['cfg'].TRAIN_TEST_SPLIT * len(shufKeys))
-    for key in shufKeys:
+    targetTrainCount = int(opts['cfg'].TRAIN_TEST_SPLIT * len(shuffled_keys))
+    for key in shuffled_keys:
         new_records[key]['train'] = True
         trainCount += 1
         if trainCount >= targetTrainCount:
@@ -245,7 +254,7 @@ class MyCPCallback(keras.callbacks.ModelCheckpoint):
 
 
 def train(cfg, tub_names, model_name, transfer_model,
-          model_type, aug, exclude=None, dry=False):
+          model_type, aug, exclude=None, train_frac=None, dry=False):
     """
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -329,6 +338,7 @@ def train(cfg, tub_names, model_name, transfer_model,
     pilot_data['ModelType'] = kl.model_id()
     opts['keras_pilot'] = kl
     opts['model_type'] = model_type
+    opts['train_frac'] = train_frac
 
     extract_data_from_pickles(cfg, tub_names, exclude=exclude)
     records = gather_records(cfg, tub_names, exclude=exclude,
@@ -611,7 +621,7 @@ def make_train_plot(history, model_path, save_best):
 
 
 def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
-                   aug, exclude=None, dry=False):
+                   aug, exclude=None, train_frac=None, dry=False):
     '''
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
@@ -696,6 +706,10 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
             continue
         sequences.append(seq)
 
+    if train_frac:
+        random.shuffle(sequences)
+        sequences = sequences[:int(train_frac * len(sequences))]
+
     print("Collated", len(sequences), "sequences of length", target_len)
     # shuffle and split the data
     train_data, val_data \
@@ -775,7 +789,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
 
 def multi_train(cfg, tub, model, transfer, model_type, aug, exclude=None,
-                dry=False):
+                train_frac=None, dry=False):
     '''
     choose the right regime for the given model type
     '''
@@ -783,7 +797,8 @@ def multi_train(cfg, tub, model, transfer, model_type, aug, exclude=None,
     if model_type in ('rnn', '3d', 'look_ahead', 'square_plus_lstm',
                       'square_plus_imu_lstm'):
         train_fn = sequence_train
-    train_fn(cfg, tub, model, transfer, model_type, aug, exclude, dry)
+    train_fn(cfg, tub, model, transfer, model_type, aug, exclude,
+             train_frac, dry)
 
 
 def prune(model, validation_generator, val_steps, cfg):
@@ -1041,6 +1056,7 @@ if __name__ == "__main__":
         figure_format = args['--figure_format']
     aug = args['--aug']
     nn_size = args['--nn_size']
+    train_frac = args['--frac']
     dry = args['--dry']
     if nn_size is not None:
         cfg.NN_SIZE = nn_size
@@ -1064,4 +1080,6 @@ if __name__ == "__main__":
             tub_paths = [os.path.expanduser(n) for n in tub.split(',')]
             dirs.extend(tub_paths)
         disable_eager_execution()
-        multi_train(cfg, dirs, model, transfer, model_type, aug, exclude, dry)
+        train_frac = float(train_frac) if train_frac else None
+        multi_train(cfg, dirs, model, transfer, model_type, aug, exclude,
+                    train_frac, dry)

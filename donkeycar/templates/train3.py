@@ -78,7 +78,7 @@ def make_next_key(sample, index_offset):
     return tub_path + str(index)
 
 
-def collate_records(records, gen_records, opts):
+def collate_records(records, gen_records, cfg, train_frac=None):
     '''
     open all the .json records from records list passed in, read their contents,
     add them to a list of gen_records, passed in. use the opts dict to
@@ -87,29 +87,25 @@ def collate_records(records, gen_records, opts):
     print('Collating %d records ...' % (len(records)))
     throttle_key = 'user/throttle'
     throttle_mult = 1.0
-    use_speed = hasattr(opts['cfg'], 'USE_SPEED_FOR_MODEL') \
-            and opts['cfg'].USE_SPEED_FOR_MODEL
+    use_speed = hasattr(cfg, 'USE_SPEED_FOR_MODEL') \
+            and cfg.USE_SPEED_FOR_MODEL
     if use_speed:
         throttle_key = 'car/speed'
-        throttle_mult = 1.0 / opts['cfg'].MAX_SPEED
+        throttle_mult = 1.0 / cfg.MAX_SPEED
 
     print('Using', throttle_key, 'for training')
-    accel_mult = 1.0 / opts['cfg'].IMU_ACCEL_NORM
-    gyro_mult = 1.0 / opts['cfg'].IMU_GYRO_NORM
+    accel_mult = 1.0 / cfg.IMU_ACCEL_NORM
+    gyro_mult = 1.0 / cfg.IMU_GYRO_NORM
 
     new_records = {}
-
     for record_path in tqdm(records):
 
         basepath = os.path.dirname(record_path)
         index = get_record_index(record_path)
         sample = {'tub_path': basepath, "index": index}
-
         key = make_key(sample)
-
         if key in gen_records:
             continue
-
         try:
             with open(record_path, 'r') as fp:
                 json_data = json.load(fp)
@@ -132,49 +128,15 @@ def collate_records(records, gen_records, opts):
         if use_speed:
             throttle = min(1.0, throttle_mult * throttle)
 
-        if opts['categorical']:
-            r = opts['cfg'].MODEL_CATEGORICAL_MAX_THROTTLE_RANGE
-            angle = dk.utils.linear_bin(angle)
-            throttle = dk.utils.linear_bin(throttle, N=20, offset=0, R=r)
-
         sample['angle'] = angle
         sample['throttle'] = throttle
 
-        try:
-            accl_x = float(json_data['imu/acl_x'])
-            accl_y = float(json_data['imu/acl_y'])
-            accl_z = float(json_data['imu/acl_z'])
-
-            gyro_x = float(json_data['imu/gyr_x'])
-            gyro_y = float(json_data['imu/gyr_y'])
-            gyro_z = float(json_data['imu/gyr_z'])
-
-            sample['imu_array'] = np.array([accl_x, accl_y, accl_z,
-                                            gyro_x, gyro_y, gyro_z])
-        except KeyError:
-            pass
-
-        try:
+        if 'car/accel' in json_data:
             accel = clamp_and_norm(json_data['car/accel'], accel_mult)
             gyro = clamp_and_norm(json_data['car/gyro'], gyro_mult)
             sample['imu_array'] = np.concatenate((accel, gyro))
-        except KeyError:
-            pass
-
-        try:
-            behavior_arr = np.array(json_data['behavior/one_hot_state_array'])
-            sample["behavior_arr"] = behavior_arr
-        except KeyError:
-            pass
-
-        try:
-            location_arr = np.array(json_data['location/one_hot_state_array'])
-            sample["location"] = location_arr
-        except KeyError:
-            pass
 
         sample['img_data'] = None
-
         # Initialise 'train' to False
         sample['train'] = False
 
@@ -183,12 +145,10 @@ def collate_records(records, gen_records, opts):
         # main records list (gen_records) yet.
         new_records[key] = sample
 
-    # new_records now contains all our NEW samples - set a random selection
-    # to be the training samples based on the ratio in CFG file
+    # random shuffle the records
     shuffled_keys = list(new_records.keys())
     random.shuffle(shuffled_keys)
     # only retain a faction of training entries if given
-    train_frac = opts['train_frac']
     if train_frac:
         new_length = int(len(shuffled_keys) * train_frac)
         remove_list = shuffled_keys[new_length:]
@@ -196,14 +156,14 @@ def collate_records(records, gen_records, opts):
             del new_records[k]
         shuffled_keys = list(new_records.keys())
 
-    trainCount = 0
+    train_count = 0
     # Ratio of samples to use as training data, the remaining are used for
     # evaluation
-    targetTrainCount = int(opts['cfg'].TRAIN_TEST_SPLIT * len(shuffled_keys))
+    target_train_count = int(cfg.TRAIN_TEST_SPLIT * len(shuffled_keys))
     for key in shuffled_keys:
         new_records[key]['train'] = True
-        trainCount += 1
-        if trainCount >= targetTrainCount:
+        train_count += 1
+        if train_count >= target_train_count:
             break
     # Finally add all the new records to the existing list
     gen_records.update(new_records)
@@ -348,7 +308,7 @@ def train(cfg, tub_names, model_name, transfer_model,
         return
 
     gen_records = {}
-    collate_records(records, gen_records, opts)
+    collate_records(records, gen_records, cfg, train_frac)
 
     def generator(opts, data, batch_size, is_train_set=True):
         while True:
@@ -366,7 +326,7 @@ def train(cfg, tub_names, model_name, transfer_model,
             has_bvh = type(kl) is KerasBehavioral
             img_out = type(kl) is KerasLatent
             loc_out = type(kl) is KerasLocalizer
-            imu_dim = cfg.IMU_DIM if hasattr(cfg, 'IMU_DIM') else 6
+            imu_dim = getattr(cfg, 'IMU_DIM', 6)
 
             if img_out:
                 import cv2

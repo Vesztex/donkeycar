@@ -64,6 +64,7 @@ USE_SPEED_FOR_MODEL = True
 # IMU_DIM = 2
 NN_SIZE = 'S'
 BATCH_SIZE = 1024
+
 CACHE_IMAGES = False
 FREEZE_LAYERS = False
 NUM_LAST_LAYERS_TO_TRAIN = None  # important to overwrite default of 7
@@ -72,6 +73,8 @@ PACK_PATH = r'/Users/dirk/GoogleDrive/mycar/data'
 SORT_LAPS_BY = 'lap_time'  # gyro_z, accel_x
 # ROI_CROP_TOP = 36
 # USE_TENSORBOARD = True
+SEQUENCE_LENGTH = 5
+SEQUENCE_TRAIN_STEP_SIZE = 1
 
 # PI DATA
 PI_HOSTNAME = 'donkeypi'

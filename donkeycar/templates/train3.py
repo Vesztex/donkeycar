@@ -639,11 +639,13 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     print('Collating sequences')
     sequences = []
     target_len = cfg.SEQUENCE_LENGTH
+    step_size = getattr(cfg, 'SEQUENCE_TRAIN_STEP_SIZE', 1)
+    assert type(step_size) is int, 'Sequence step size must be integer.'
 
     for k, sample in gen_records.items():
         seq = []
         for i in range(target_len):
-            key = make_next_key(sample, i)
+            key = make_next_key(sample, i * step_size)
             if key in gen_records:
                 seq.append(gen_records[key])
             else:

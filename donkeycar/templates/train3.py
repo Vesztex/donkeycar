@@ -78,31 +78,25 @@ def make_next_key(sample, index_offset):
     return tub_path + str(index)
 
 
-def collate_records(records, gen_records, cfg, train_frac=None):
+def collate_records(records, gen_records, cfg):
     '''
     open all the .json records from records list passed in, read their contents,
     add them to a list of gen_records, passed in. use the opts dict to
     specify config choices
     '''
     print('Collating %d records ...' % (len(records)))
-    throttle_key = 'user/throttle'
-    throttle_mult = 1.0
-    use_speed = hasattr(cfg, 'USE_SPEED_FOR_MODEL') \
-            and cfg.USE_SPEED_FOR_MODEL
-    if use_speed:
-        throttle_key = 'car/speed'
-        throttle_mult = 1.0 / cfg.MAX_SPEED
-
-    print('Using', throttle_key, 'for training')
+    use_speed = getattr(cfg, 'USE_SPEED_FOR_MODEL', True)
+    throttle_key = 'car/speed' if use_speed else 'user/throttle'
+    throttle_mult = 1.0 / cfg.MAX_SPEED
     accel_mult = 1.0 / cfg.IMU_ACCEL_NORM
     gyro_mult = 1.0 / cfg.IMU_GYRO_NORM
 
-    new_records = {}
+    print('Collating records, using', throttle_key, 'for training:')
     for record_path in tqdm(records):
 
-        basepath = os.path.dirname(record_path)
+        base_path = os.path.dirname(record_path)
         index = get_record_index(record_path)
-        sample = {'tub_path': basepath, "index": index}
+        sample = dict(index=index, tub_path=base_path, record_path=record_path)
         key = make_key(sample)
         if key in gen_records:
             continue
@@ -112,17 +106,16 @@ def collate_records(records, gen_records, cfg, train_frac=None):
         except:
             continue
 
-        image_filename = json_data["cam/image_array"]
-        image_path = os.path.join(basepath, image_filename)
-
-        sample['record_path'] = record_path
-        sample["image_path"] = image_path
         sample["json_data"] = json_data
+        image_filename = json_data["cam/image_array"]
+        image_path = os.path.join(base_path, image_filename)
+        sample["image_path"] = image_path
 
-        # use pilot angle if present and non-null, meaning the tub was driven
-        # by auto-pilot
-        angle = float(json_data['pilot/angle'] if 'pilot/angle' in json_data
-                      and json_data['pilot/angle'] else json_data['user/angle'])
+        # use pilot angle if present and non-null (in json null <-> None),
+        # meaning the tub was driven by auto-pilot
+        is_ai = 'pilot/angle' in json_data and json_data['pilot/angle']
+        angle = float(json_data['pilot/angle'] if is_ai
+                      else json_data['user/angle'])
         # normalising throttle if it is speed
         throttle = float(json_data[throttle_key])
         if use_speed:
@@ -130,47 +123,16 @@ def collate_records(records, gen_records, cfg, train_frac=None):
 
         sample['angle'] = angle
         sample['throttle'] = throttle
+        sample['img_data'] = None
 
         if 'car/accel' in json_data:
             accel = clamp_and_norm(json_data['car/accel'], accel_mult)
             gyro = clamp_and_norm(json_data['car/gyro'], gyro_mult)
             sample['imu_array'] = np.concatenate((accel, gyro))
 
-        sample['img_data'] = None
         # Initialise 'train' to False
         sample['train'] = False
-
-        # We need to maintain the correct train - validate ratio across the
-        # dataset, even if continous training so don't add this sample to the
-        # main records list (gen_records) yet.
-        new_records[key] = sample
-
-    # random shuffle the records
-    shuffled_keys = list(new_records.keys())
-    random.shuffle(shuffled_keys)
-    # only retain a faction of training entries if given
-    if train_frac:
-        new_length = int(len(shuffled_keys) * train_frac)
-        remove_list = shuffled_keys[new_length:]
-        for k in remove_list:
-            del new_records[k]
-        shuffled_keys = list(new_records.keys())
-
-    count = 0
-    # Ratio of samples to use as training data, the remaining are used for
-    # evaluation
-    train_count = int(cfg.TRAIN_TEST_SPLIT * len(shuffled_keys))
-    for key in shuffled_keys:
-        new_records[key]['train'] = True
-        count += 1
-        if count >= train_count:
-            break
-    # Finally add all the new records to the existing list
-    gen_records.update(new_records)
-    total_records = len(gen_records)
-    print('Total records: {}, train: {}, validate: {}'
-          .format(total_records, train_count, total_records - train_count))
-    return train_count
+        gen_records[key] = sample
 
 
 def save_json_and_weights(model, filename):
@@ -405,11 +367,34 @@ def train(cfg, tub_names, model_name, transfer_model,
         return
 
     gen_records = {}
-    num_train = collate_records(records, gen_records, cfg, train_frac)
-    num_val = len(gen_records) - num_train
+    collate_records(records, gen_records, cfg)
+    # random shuffle the records and reduce to size
+    rec_list = list(gen_records.items())
+    random.shuffle(rec_list)
+    if train_frac:
+        rec_list = rec_list[:int(train_frac * len(rec_list))]
+
+    gen_records = dict(rec_list)
+    shuffled_keys = list(gen_records.keys())
+    count = 0
+    # Ratio of samples to use as training data, the remaining are used for
+    # evaluation
+    train_count = int(cfg.TRAIN_TEST_SPLIT * len(shuffled_keys))
+    for key in shuffled_keys:
+        gen_records[key]['train'] = True
+        count += 1
+        if count >= train_count:
+            break
+
+    total_records = len(gen_records)
+    print('Total records: {}, train: {}, validate: {}'
+          .format(total_records, train_count, total_records - train_count))
+
+    num_val = len(gen_records) - train_count
     train_gen = generator(kl, gen_records, cfg, True)
     val_gen = generator(kl, gen_records, cfg, False)
-    steps_per_epoch = num_train // cfg.BATCH_SIZE
+
+    steps_per_epoch = train_count // cfg.BATCH_SIZE
     val_steps = num_val // cfg.BATCH_SIZE
     assert val_steps > 0, "val steps > 0 required, please decrease batch " \
                           "size below {}".format(num_val)
@@ -566,6 +551,64 @@ def make_train_plot(history, model_path, save_best):
                                                         figure_format))
 
 
+def sequence_generator(data, cfg):
+    num_records = len(data)
+    batch_size = cfg.BATCH_SIZE
+    is_imu = False
+    while True:
+        for offset in range(0, num_records, batch_size):
+            batch_data = data[offset:offset+batch_size]
+            if len(batch_data) != batch_size:
+                break
+
+            b_inputs_img = []
+            b_inputs_imu = []
+            y1 = []
+            y2 = []
+
+            for seq in batch_data:
+                inputs_img = []
+                inputs_imu = []
+                num_images_target = len(seq)
+
+                for iRec, record in enumerate(seq):
+                    # get image data if we don't already have it
+                    if len(inputs_img) < num_images_target:
+                        if record['img_data'] is None:
+                            img_arr = load_scaled_image_arr(record['image_path'], cfg)
+                            if img_arr is None:
+                                break
+                            if aug:
+                                img_arr = augment_image(img_arr)
+                            if cfg.CACHE_IMAGES:
+                                record['img_data'] = img_arr
+                        else:
+                            img_arr = record['img_data']
+
+                        inputs_img.append(img_arr)
+                        if 'imu_array' in record:
+                            inputs_imu.append(record['imu_array'])
+                            is_imu = True
+                    # add the latest angle / throttle to observation data
+                    if iRec == num_images_target - 1:
+                        y1.append(record['angle'])
+                        y2.append(record['throttle'])
+
+                b_inputs_img.append(inputs_img)
+                b_inputs_imu.append(inputs_imu)
+
+            x_shape = (batch_size, cfg.SEQUENCE_LENGTH,
+                       cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
+            imu_dim = getattr(cfg, 'IMU_DIM', 6)
+            imu_shape = (batch_size, cfg.SEQUENCE_LENGTH, imu_dim)
+            X = [np.array(b_inputs_img).reshape(x_shape)]
+            if is_imu:
+                X.append(np.array(b_inputs_imu).reshape(imu_shape))
+            y = [np.array(y1), np.array(y2)]
+
+            yield X, y
+
+
 def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
                    aug, exclude=None, train_frac=None, dry=False):
     '''
@@ -591,136 +634,24 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
         record_paths.sort(key=get_record_index)
         records += record_paths
 
-    gen_records = {}
-    use_speed = getattr(cfg, 'USE_SPEED_FOR_MODEL', True)
-    throttle_key = 'car/speed' if use_speed else 'user/throttle'
-    throttle_mult = 1.0 / cfg.MAX_SPEED
-    accel_mult = 1.0 / cfg.IMU_ACCEL_NORM
-    gyro_mult = 1.0 / cfg.IMU_GYRO_NORM
-    is_imu = 'imu' in model_type
-    imu_dim = getattr(cfg, 'IMU_DIM', 6)
-
     if dry:
         print("Dry run only - stop here.\n")
         return
 
-    print('Collating records, using', throttle_key, 'for training:')
-    for record_path in tqdm(records):
-
-        with open(record_path, 'r') as fp:
-            json_data = json.load(fp)
-
-        basepath = os.path.dirname(record_path)
-        image_filename = json_data["cam/image_array"]
-        image_path = os.path.join(basepath, image_filename)
-        sample = {'record_path': record_path, 'image_path': image_path,
-                  'json_data': json_data, "tub_path": basepath,
-                  "index": get_image_index(image_filename)}
-
-        angle = float(json_data['user/angle'])
-        throttle = float(json_data[throttle_key])
-        # normalising throttle if it is speed
-        if use_speed:
-            throttle = min(1.0, throttle_mult * throttle)
-
-        sample['target_output'] = [angle, throttle]
-        sample['angle'] = angle
-        sample['throttle'] = throttle
-        sample['img_data'] = None
-
-        if is_imu:
-            accel = clamp_and_norm(json_data['car/accel'], accel_mult)
-            gyro = clamp_and_norm(json_data['car/gyro'], gyro_mult)
-            sample['imu_array'] = np.concatenate((accel, gyro))
-
-        key = make_key(sample)
-        gen_records[key] = sample
-
-    print('Collating sequences')
-    sequences = []
-    target_len = cfg.SEQUENCE_LENGTH
-    step_size = getattr(cfg, 'SEQUENCE_TRAIN_STEP_SIZE', 1)
-    assert type(step_size) is int, 'Sequence step size must be integer.'
-
-    for k, sample in gen_records.items():
-        seq = []
-        for i in range(target_len):
-            key = make_next_key(sample, i * step_size)
-            if key in gen_records:
-                seq.append(gen_records[key])
-            else:
-                continue
-        if len(seq) != target_len:
-            continue
-        sequences.append(seq)
-
+    gen_records = {}
+    collate_records(records, gen_records, cfg)
+    sequences = collating_sequences(cfg, gen_records)
     if train_frac:
         random.shuffle(sequences)
         sequences = sequences[:int(train_frac * len(sequences))]
 
-    print("Collated", len(sequences), "sequences of length", target_len)
+    print("Collated", len(sequences), "sequences of length", cfg.SEQUENCE_LENGTH)
     # shuffle and split the data
     train_data, val_data \
         = train_test_split(sequences, test_size=(1 - cfg.TRAIN_TEST_SPLIT))
 
-    def generator(data, cfg, batch_size=cfg.BATCH_SIZE):
-        num_records = len(data)
-        while True:
-            # shuffle again for good measure
-            random.shuffle(data)
-            for offset in range(0, num_records, batch_size):
-                batch_data = data[offset:offset+batch_size]
-                if len(batch_data) != batch_size:
-                    break
-
-                b_inputs_img = []
-                b_inputs_imu = []
-                y1 = []
-                y2 = []
-
-                for seq in batch_data:
-                    inputs_img = []
-                    inputs_imu = []
-
-                    num_images_target = len(seq)
-
-                    for iRec, record in enumerate(seq):
-                        # get image data if we don't already have it
-                        if len(inputs_img) < num_images_target:
-                            if record['img_data'] is None:
-                                img_arr = load_scaled_image_arr(record['image_path'], cfg)
-                                if img_arr is None:
-                                    break
-                                if aug:
-                                    img_arr = augment_image(img_arr)
-                                if cfg.CACHE_IMAGES:
-                                    record['img_data'] = img_arr
-                            else:
-                                img_arr = record['img_data']
-
-                            inputs_img.append(img_arr)
-                            if is_imu:
-                                inputs_imu.append(record['imu_array'])
-                        # add the latest angle / throttle to observation data
-                        if iRec == num_images_target - 1:
-                            y1.append(record['angle'])
-                            y2.append(record['throttle'])
-
-                    b_inputs_img.append(inputs_img)
-                    b_inputs_imu.append(inputs_imu)
-
-                x_shape = (batch_size, cfg.SEQUENCE_LENGTH,
-                           cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
-                imu_shape = (batch_size, cfg.SEQUENCE_LENGTH, imu_dim)
-                X = [np.array(b_inputs_img).reshape(x_shape)]
-                if is_imu:
-                    X.append(np.array(b_inputs_imu).reshape(imu_shape))
-                y = [np.array(y1), np.array(y2)]
-
-                yield X, y
-
-    train_gen = generator(train_data, cfg)
-    val_gen = generator(val_data, cfg)
+    train_gen = sequence_generator(train_data, cfg)
+    val_gen = sequence_generator(val_data, cfg)
     total_train = len(train_data)
     total_val = len(val_data)
 
@@ -734,6 +665,26 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     cfg.model_type = model_type
     go_train(kl, cfg, train_gen, val_gen, model_name,
              steps_per_epoch, val_steps, pilot_data=None, verbose=verbose)
+
+
+def collating_sequences(cfg, gen_records):
+    print('Collating sequences')
+    sequences = []
+    target_len = cfg.SEQUENCE_LENGTH
+    step_size = getattr(cfg, 'SEQUENCE_TRAIN_STEP_SIZE', 1)
+    assert type(step_size) is int, 'Sequence step size must be integer.'
+    for k, sample in gen_records.items():
+        seq = []
+        for i in range(target_len):
+            key = make_next_key(sample, i * step_size)
+            if key in gen_records:
+                seq.append(gen_records[key])
+            else:
+                continue
+        if len(seq) != target_len:
+            continue
+        sequences.append(seq)
+    return sequences
 
 
 def multi_train(cfg, tub, model, transfer, model_type, aug, exclude=None,

@@ -668,12 +668,13 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
 
 def collating_sequences(cfg, gen_records):
-    print('Collating sequences')
     sequences = []
     target_len = cfg.SEQUENCE_LENGTH
     step_size = getattr(cfg, 'SEQUENCE_TRAIN_STEP_SIZE', 1)
     assert type(step_size) is int, 'Sequence step size must be integer.'
-    for k, sample in gen_records.items():
+    print('Collating {:} sequences with step size {:}'.format(len(
+        gen_records), step_size))
+    for k, sample in tqdm(gen_records.items()):
         seq = []
         for i in range(target_len):
             key = make_next_key(sample, i * step_size)

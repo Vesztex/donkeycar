@@ -156,17 +156,21 @@ def collate_records(records, gen_records, cfg, train_frac=None):
             del new_records[k]
         shuffled_keys = list(new_records.keys())
 
-    train_count = 0
+    count = 0
     # Ratio of samples to use as training data, the remaining are used for
     # evaluation
-    target_train_count = int(cfg.TRAIN_TEST_SPLIT * len(shuffled_keys))
+    train_count = int(cfg.TRAIN_TEST_SPLIT * len(shuffled_keys))
     for key in shuffled_keys:
         new_records[key]['train'] = True
-        train_count += 1
-        if train_count >= target_train_count:
+        count += 1
+        if count >= train_count:
             break
     # Finally add all the new records to the existing list
     gen_records.update(new_records)
+    total_records = len(gen_records)
+    print('Total records: {}, train: {}, validate: {}'
+          .format(total_records, train_count, total_records - train_count))
+    return train_count
 
 
 def save_json_and_weights(model, filename):
@@ -213,6 +217,104 @@ class MyCPCallback(keras.callbacks.ModelCheckpoint):
                 json.dump(self.pilot_data, f)
 
 
+def generator(kl, data, cfg, is_train_set=True):
+    batch_size = cfg.BATCH_SIZE
+    while True:
+        batch_data = []
+        keys = list(data.keys())
+        random.shuffle(keys)
+
+        if type(kl.model.output) is list:
+            model_out_shape = (2, 1)
+        else:
+            model_out_shape = kl.model.output.shape
+
+        has_imu = type(kl) is KerasIMU or type(kl) is KerasSquarePlusImu
+        has_bvh = type(kl) is KerasBehavioral
+        img_out = type(kl) is KerasLatent
+        loc_out = type(kl) is KerasLocalizer
+        imu_dim = getattr(cfg, 'IMU_DIM', 6)
+
+        if img_out:
+            import cv2
+
+        for key in keys:
+            if not key in data:
+                continue
+            record = data[key]
+            if record['train'] != is_train_set:
+                continue
+            batch_data.append(record)
+
+            if len(batch_data) == batch_size:
+                inputs_img = []
+                inputs_imu = []
+                inputs_bvh = []
+                angles = []
+                throttles = []
+                out_img = []
+                out_loc = []
+                out = []
+
+                for record in batch_data:
+                    # get image data if we don't already have it
+                    if record['img_data'] is None:
+                        filename = record['image_path']
+                        img_arr = load_scaled_image_arr(filename, cfg)
+                        if img_arr is None:
+                            break
+                        if aug:
+                            img_arr = augment_image(img_arr)
+                        if cfg.CACHE_IMAGES:
+                            record['img_data'] = img_arr
+                    else:
+                        img_arr = record['img_data']
+
+                    if img_out:
+                        rz_img_arr = cv2.resize(img_arr, (127, 127)) \
+                                     * DIV_ONE_BYTE
+                        out_img.append(rz_img_arr[:, :, 0]
+                                       .reshape((127, 127, 1)))
+                    if loc_out:
+                        out_loc.append(record['location'])
+                    if has_imu:
+                        inputs_imu.append(record['imu_array'][:imu_dim])
+                    if has_bvh:
+                        inputs_bvh.append(record['behavior_arr'])
+
+                    inputs_img.append(img_arr)
+                    angles.append(record['angle'])
+                    throttles.append(record['throttle'])
+                    out.append([record['angle'], record['throttle']])
+
+                if img_arr is None:
+                    continue
+
+                shape = (batch_size, cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
+                img_arr = np.array(inputs_img).reshape(shape)
+
+                if has_imu:
+                    X = [img_arr, np.array(inputs_imu)]
+                elif has_bvh:
+                    X = [img_arr, np.array(inputs_bvh)]
+                else:
+                    X = [img_arr]
+
+                if img_out:
+                    y = [out_img, np.array(angles), np.array(throttles)]
+                elif out_loc:
+                    y = [np.array(angles), np.array(throttles),
+                         np.array(out_loc)]
+                elif model_out_shape[1] == 2:
+                    y = [np.array([out]).reshape(batch_size, 2)]
+                else:
+                    y = [np.array(angles), np.array(throttles)]
+
+                yield X, y
+
+                batch_data = []
+
+
 def train(cfg, tub_names, model_name, transfer_model,
           model_type, aug, exclude=None, train_frac=None, dry=False):
     """
@@ -252,8 +354,6 @@ def train(cfg, tub_names, model_name, transfer_model,
     if aug:
         print("Using data augmentation")
 
-    opts = {'cfg': cfg}
-
     if "linear" in model_type:
         train_type = "linear"
     elif "square_plus_imu" in model_type:
@@ -264,7 +364,6 @@ def train(cfg, tub_names, model_name, transfer_model,
         train_type = model_type
 
     kl = get_model_by_type(train_type, cfg=cfg)
-    opts['categorical'] = type(kl) in [KerasCategorical, KerasBehavioral]
     print('Training with model type', kl.model_id())
 
     if transfer_model:
@@ -285,21 +384,19 @@ def train(cfg, tub_names, model_name, transfer_model,
                 with open(transfer_pilot_json, 'r') as f:
                     transfer_pilot = json.load(f)
                     tub_names = transfer_pilot['Tubs']
+            else:
+                print("Can't train w/o tubs or transfer model data base.")
+                return
 
     if cfg.OPTIMIZER:
         kl.set_optimizer(cfg.OPTIMIZER, cfg.LEARNING_RATE,
                          cfg.LEARNING_RATE_DECAY)
-
     kl.compile()
     if cfg.PRINT_MODEL_SUMMARY:
         print(kl.model.summary())
 
     print('Training new pilot:', model_name)
     pilot_data['ModelType'] = kl.model_id()
-    opts['keras_pilot'] = kl
-    opts['model_type'] = model_type
-    opts['train_frac'] = train_frac
-
     extract_data_from_pickles(cfg, tub_names, exclude=exclude)
     records = gather_records(cfg, tub_names, exclude=exclude,
                              data_base=pilot_data)
@@ -308,132 +405,21 @@ def train(cfg, tub_names, model_name, transfer_model,
         return
 
     gen_records = {}
-    collate_records(records, gen_records, cfg, train_frac)
-
-    def generator(opts, data, batch_size, is_train_set=True):
-        while True:
-            batch_data = []
-            keys = list(data.keys())
-            random.shuffle(keys)
-
-            kl = opts['keras_pilot']
-            if type(kl.model.output) is list:
-                model_out_shape = (2, 1)
-            else:
-                model_out_shape = kl.model.output.shape
-
-            has_imu = type(kl) is KerasIMU or type(kl) is KerasSquarePlusImu
-            has_bvh = type(kl) is KerasBehavioral
-            img_out = type(kl) is KerasLatent
-            loc_out = type(kl) is KerasLocalizer
-            imu_dim = getattr(cfg, 'IMU_DIM', 6)
-
-            if img_out:
-                import cv2
-
-            for key in keys:
-                if not key in data:
-                    continue
-                record = data[key]
-                if record['train'] != is_train_set:
-                    continue
-
-                batch_data.append(record)
-                if len(batch_data) == batch_size:
-                    inputs_img = []
-                    inputs_imu = []
-                    inputs_bvh = []
-                    angles = []
-                    throttles = []
-                    out_img = []
-                    out_loc = []
-                    out = []
-
-                    for record in batch_data:
-                        # get image data if we don't already have it
-                        if record['img_data'] is None:
-                            filename = record['image_path']
-                            img_arr = load_scaled_image_arr(filename, cfg)
-                            if img_arr is None:
-                                break
-                            if aug:
-                                img_arr = augment_image(img_arr)
-                            if cfg.CACHE_IMAGES:
-                                record['img_data'] = img_arr
-                        else:
-                            img_arr = record['img_data']
-
-                        if img_out:
-                            rz_img_arr = cv2.resize(img_arr, (127, 127)) \
-                                         * DIV_ONE_BYTE
-                            out_img.append(rz_img_arr[:, :, 0]
-                                           .reshape((127, 127, 1)))
-                        if loc_out:
-                            out_loc.append(record['location'])
-                        if has_imu:
-                            inputs_imu.append(record['imu_array'][:imu_dim])
-                        if has_bvh:
-                            inputs_bvh.append(record['behavior_arr'])
-
-                        inputs_img.append(img_arr)
-                        angles.append(record['angle'])
-                        throttles.append(record['throttle'])
-                        out.append([record['angle'], record['throttle']])
-
-                    if img_arr is None:
-                        continue
-
-                    img_arr = np.array(inputs_img)\
-                        .reshape(batch_size, cfg.TARGET_H, cfg.TARGET_W,
-                                 cfg.TARGET_D)
-
-                    if has_imu:
-                        X = [img_arr, np.array(inputs_imu)]
-                    elif has_bvh:
-                        X = [img_arr, np.array(inputs_bvh)]
-                    else:
-                        X = [img_arr]
-
-                    if img_out:
-                        y = [out_img, np.array(angles), np.array(throttles)]
-                    elif out_loc:
-                        y = [np.array(angles), np.array(throttles),
-                             np.array(out_loc)]
-                    elif model_out_shape[1] == 2:
-                        y = [np.array([out]).reshape(batch_size, 2) ]
-                    else:
-                        y = [np.array(angles), np.array(throttles)]
-
-                    yield X, y
-
-                    batch_data = []
-
-    train_gen = generator(opts, gen_records, cfg.BATCH_SIZE, True)
-    val_gen = generator(opts, gen_records, cfg.BATCH_SIZE, False)
-    total_records = len(gen_records)
-
-    num_train = 0
-    num_val = 0
-    for key, _record in gen_records.items():
-        if _record['train']:
-            num_train += 1
-        else:
-            num_val += 1
-
-    print('Total records: {}, train: {}, validate: {}'
-          .format(total_records, num_train, num_val))
-
+    num_train = collate_records(records, gen_records, cfg, train_frac)
+    num_val = len(gen_records) - num_train
+    train_gen = generator(kl, gen_records, cfg, True)
+    val_gen = generator(kl, gen_records, cfg, False)
     steps_per_epoch = num_train // cfg.BATCH_SIZE
     val_steps = num_val // cfg.BATCH_SIZE
     assert val_steps > 0, "val steps > 0 required, please decrease batch " \
                           "size below {}".format(num_val)
     print('Steps_per_epoch', steps_per_epoch)
     cfg.model_type = model_type
-    go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
+    go_train(kl, cfg, train_gen, val_gen, model_name,
              steps_per_epoch, val_steps, pilot_data, verbose)
 
 
-def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
+def go_train(kl, cfg, train_gen, val_gen, model_name,
              steps_per_epoch, val_steps, pilot_data, verbose):
 
     start = time.time()
@@ -470,7 +456,7 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
         car_dir = os.path.dirname(os.path.realpath(__file__))
         now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         log_dir = os.path.join(car_dir, "logs/fit/" + now)
-        tb_cb = TensorBoard(log_dir=log_dir,histogram_freq=1)
+        tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=1)
         callbacks_list.append(tb_cb)
 
     history = kl.model.fit(
@@ -744,7 +730,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
         raise Exception("Too little data to train. Please record more records.")
 
     cfg.model_type = model_type
-    go_train(kl, cfg, train_gen, val_gen, gen_records, model_name,
+    go_train(kl, cfg, train_gen, val_gen, model_name,
              steps_per_epoch, val_steps, pilot_data=None, verbose=verbose)
 
 

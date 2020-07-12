@@ -915,7 +915,7 @@ class PilotDatabases(BaseCommand):
         print(ll, df_pilots, ll, df_tubs, ll)
 
 
-async def execute_from_command_line():
+def execute_from_command_line():
     """
     This is the function linked to the "donkey" terminal command.
     """
@@ -946,7 +946,7 @@ async def execute_from_command_line():
     if len(args) > 1 and args[1] in commands.keys():
         command = commands[args[1]]
         c = command()
-        await c.run(args[2:])
+        c.run(args[2:])
     else:
         dk.utils.eprint('Usage: The available commands are:')
         dk.utils.eprint(list(commands.keys()))

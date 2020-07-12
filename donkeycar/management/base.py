@@ -915,7 +915,7 @@ class PilotDatabases(BaseCommand):
         print(ll, df_pilots, ll, df_tubs, ll)
 
 
-def execute_from_command_line():
+async def execute_from_command_line():
     """
     This is the function linked to the "donkey" terminal command.
     """

@@ -220,7 +220,8 @@ class SpeedSwitch:
         self.throttle_mult = cfg.AI_THROTTLE_MULT
 
     def run(self, user_mode, user_speed, pilot_speed):
-        if user_mode < 2:
+        # currently assume 2 modes 0 = user, 1 = pilot
+        if user_mode < 1:
             return user_speed
         else:
             return pilot_speed * self.throttle_mult

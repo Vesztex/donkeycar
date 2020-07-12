@@ -45,6 +45,7 @@ class TypePrinter:
 
 # define some strings that are used in the vehicle data flow
 CAM_IMG = 'cam/image_array'
+CAM_BRIGHT = 'cam/brightness_normalised'
 CAM_IMG_NORM = 'cam/normalized/cropped'
 
 
@@ -132,12 +133,16 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)
 
-        # image brightness normalisation ---------------------------------------
+        # image brightness normalisation and precondition (clip and [0, 1]
+        # normalisation)
+        img_in = CAM_IMG
         if hasattr(cfg, 'IMG_BRIGHTNESS'):
             is_prop = getattr(cfg, 'IMG_BRIGHTNESS_PROPORTIONAL', True)
             img_norm = ImgBrightnessNormaliser(cfg.IMG_BRIGHTNESS, is_prop)
-            car.add(img_norm, inputs=[CAM_IMG], outputs=[CAM_IMG])
-
+            car.add(img_norm, inputs=[CAM_IMG], outputs=[CAM_BRIGHT])
+            img_in = CAM_BRIGHT
+        # image normalisation to [0,1] plus cropping and sending to AI pilot ---
+        car.add(ImgPrecondition(cfg), inputs=[img_in], outputs=[CAM_IMG_NORM])
         # imu transformation and addition AI input -----------------------------
         kl_inputs = [CAM_IMG_NORM]
         use_imu = 'imu' in model_path
@@ -148,8 +153,6 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
                     outputs=['car/imu'])
             kl_inputs.append('car/imu')
 
-        # image normalisation to [0,1] plus cropping and sending to AI pilot ---
-        car.add(ImgPrecondition(cfg), inputs=[CAM_IMG], outputs=[CAM_IMG_NORM])
         kl_outputs = ['pilot/angle', 'pilot/speed_norm']
         car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
         # pilot spits out speed in [0,1] transform back into real speed
@@ -166,7 +169,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
         # pressing channel 3 on the remote control we have 3 modes,
         # user/steering + user/speed, pilot/steering + user/speed,
         # pilot/steering + pilot/speed
-        mode_switch = ModeSwitch(num_modes=3)
+        mode_switch = ModeSwitch(num_modes=2)
         car.add(mode_switch, inputs=['user/wiper_on'], outputs=['user/mode'])
 
         # This part dispatches between user or ai depending on the switch state
@@ -189,13 +192,9 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     steering = PWMSteering(controller=steering_controller,
                            left_pulse=cfg.STEERING_LEFT_PWM,
                            right_pulse=cfg.STEERING_RIGHT_PWM)
-    if model_path is None:
-        car.add(steering, inputs=['user/angle'], threaded=True)
-    else:
-        sw = SteeringSwitch()
-        car.add(sw, inputs=['user/angle', 'pilot/angle', 'user/mode'],
-                outputs=['angle'])
-        car.add(steering, inputs=['angle'], threaded=True)
+
+    steering_in = 'pilot/angle' if  model_path else 'user/angle'
+    car.add(steering, inputs=[steering_in], threaded=True)
 
     # create and add the PWM throttle controller for esc
     throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL)

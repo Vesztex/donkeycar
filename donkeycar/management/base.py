@@ -879,7 +879,7 @@ class TubAugment(BaseCommand):
         else:
             return [tub.copy(self.tub_str) for tub in tubs]
 
-    async def run(self, args):
+    def run(self, args):
         args = self.parse_args(args)
         tubs = self.make_tubs(args.tubs, args.inplace)
         for tub in tubs:

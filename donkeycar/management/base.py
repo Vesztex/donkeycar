@@ -869,8 +869,8 @@ class TubAugment(BaseCommand):
         parsed_args = parser.parse_args(args)
         return parsed_args
 
-    async def process(self, tub):
-        await tub.augment_images()
+    def process(self, tub):
+        tub.augment_images()
 
     def make_tubs(self, tub_paths, inplace=False):
         tubs = gather_tubs(self.cfg, tub_paths)
@@ -879,11 +879,11 @@ class TubAugment(BaseCommand):
         else:
             return [tub.copy(self.tub_str) for tub in tubs]
 
-    async def run(self, args):
+    def run(self, args):
         args = self.parse_args(args)
         tubs = self.make_tubs(args.tubs, args.inplace)
         for tub in tubs:
-            await self.process(tub)
+            self.process(tub)
 
 
 class TubNormBrightness(TubAugment):
@@ -894,8 +894,8 @@ class TubNormBrightness(TubAugment):
         assert hasattr(self.cfg, 'IMG_BRIGHTNESS'), \
             'IMG_BRIGHTNESS needs to be defined in the config'
 
-    async def process(self, tub):
-        await tub.normalize_brightness_in_images(self.cfg.IMG_BRIGHTNESS)
+    def process(self, tub):
+        tub.normalize_brightness_in_images(self.cfg.IMG_BRIGHTNESS)
 
 
 class PilotDatabases(BaseCommand):

@@ -879,7 +879,7 @@ class TubAugment(BaseCommand):
         else:
             return [tub.copy(self.tub_str) for tub in tubs]
 
-    def run(self, args):
+    async def run(self, args):
         args = self.parse_args(args)
         tubs = self.make_tubs(args.tubs, args.inplace)
         for tub in tubs:
@@ -946,7 +946,7 @@ def execute_from_command_line():
     if len(args) > 1 and args[1] in commands.keys():
         command = commands[args[1]]
         c = command()
-        c.run(args[2:])
+        await c.run(args[2:])
     else:
         dk.utils.eprint('Usage: The available commands are:')
         dk.utils.eprint(list(commands.keys()))

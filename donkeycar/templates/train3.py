@@ -290,6 +290,7 @@ def train(cfg, tub_names, model_name, transfer_model,
         model_name, pilot_num = auto_generate_model_name()
         model_name += ".h5"
     pilot_data['Num'] = pilot_num
+    pilot_data['SeqStep'] = getattr(cfg,'SEQUENCE_TRAIN_STEP_SIZE', 1)
 
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE

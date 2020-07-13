@@ -192,8 +192,10 @@ class Tub(object):
         tail_list.insert(length - 1, suffix)
         new_tail = '_'.join(tail_list)
         new_path = os.path.join(head, new_tail)
+        print('Copy tub', tub_path, 'to', new_path, '...', end='')
         # copy whole tub to new location
         shutil.copytree(self.path, new_path)
+        print(' done.')
         new_tub = Tub(new_path)
         return new_tub
 

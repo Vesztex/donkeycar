@@ -883,7 +883,9 @@ class TubAugment(BaseCommand):
         args = self.parse_args(args)
         tubs = self.make_tubs(args.tubs, args.inplace)
         for tub in tubs:
-            self.process(tub)
+            t = Thread(target=self.process, args=(tub,))
+            t.start()
+        print('Starting', len(tubs), 'threads.')
 
 
 class TubNormBrightness(TubAugment):
@@ -953,4 +955,6 @@ def execute_from_command_line():
 
 
 if __name__ == "__main__":
+    import os
+    os.environ["OMP_NUM_THREADS"] = "12"
     execute_from_command_line()

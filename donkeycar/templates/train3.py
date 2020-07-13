@@ -288,27 +288,11 @@ def train(cfg, tub_names, model_name, transfer_model,
     pilot_data = {}
     if model_name is None:
         model_name, pilot_num = auto_generate_model_name()
-        model_name += ".tflite" if "tflite" in model_type else ".uff" if \
-            "tensorrt" in model_type else ".h5"
+        model_name += ".h5"
     pilot_data['Num'] = pilot_num
 
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE
-
-    if "tflite" in model_type:
-        # even though we are passed the .tflite output file, we train with an
-        # intermediate .h5 output and then convert to final .tflite at the end.
-        assert(".tflite" in model_name)
-        # we only support linear or square+ model type right now for tflite
-        assert("linear" in model_type or "square_plus")
-        model_name = model_name.replace(".tflite", ".h5")
-    elif "tensorrt" in model_type:
-        # even though we are passed the .uff output file, we train with an
-        # intermediate .h5 output and then convert to final .uff at the end.
-        assert(".uff" in model_name)
-        # we only support the linear model type right now for tensorrt
-        assert("linear" in model_type)
-        model_name = model_name.replace(".uff", ".h5")
 
     if model_name and not '.h5' == model_name[-3:]:
         raise Exception("Model filename should end with .h5")
@@ -316,39 +300,9 @@ def train(cfg, tub_names, model_name, transfer_model,
     if aug:
         print("Using data augmentation")
 
-    if "linear" in model_type:
-        train_type = "linear"
-    elif "square_plus_imu" in model_type:
-        train_type = "square_plus_imu"
-    elif "square_plus" in model_type:
-        train_type = "square_plus"
-    else:
-        train_type = model_type
-
-    kl = get_model_by_type(train_type, cfg=cfg)
+    kl = get_model_by_type(model_type, cfg=cfg)
     print('Training with model type', kl.model_id())
-
-    if transfer_model:
-        assert(transfer_model[-3:] == '.h5')
-        kl.load(transfer_model)
-        print('Loading weights from model:', transfer_model, 'with ID:',
-              kl.model_id())
-        pilot_data['TransferModel'] = os.path.basename(transfer_model)
-        # when transfering models, should we freeze all but the last N layers?
-        if cfg.FREEZE_LAYERS:
-            num_last_layers = getattr(cfg, 'NUM_LAST_LAYERS_TO_TRAIN', None)
-            num_freeze = kl.freeze_first_layers(num_last_layers)
-            pilot_data['Freeze'] = num_freeze
-        # if transfer is given but no tubs, use tubs from transfer pilot
-        if not tub_names:
-            transfer_pilot_json = transfer_model.replace('.h5', '.json')
-            if os.path.exists(transfer_pilot_json):
-                with open(transfer_pilot_json, 'r') as f:
-                    transfer_pilot = json.load(f)
-                    tub_names = transfer_pilot['Tubs']
-            else:
-                print("Can't train w/o tubs or transfer model data base.")
-                return
+    tub_names = handle_transfer(cfg, kl, pilot_data, transfer_model, tub_names)
 
     if cfg.OPTIMIZER:
         kl.set_optimizer(cfg.OPTIMIZER, cfg.LEARNING_RATE,
@@ -402,6 +356,30 @@ def train(cfg, tub_names, model_name, transfer_model,
     cfg.model_type = model_type
     go_train(kl, cfg, train_gen, val_gen, model_name,
              steps_per_epoch, val_steps, pilot_data, verbose)
+
+
+def handle_transfer(cfg, kl, pilot_data, transfer_model, tub_names):
+    if not transfer_model:
+        return tub_names
+    assert (transfer_model[-3:] == '.h5')
+    kl.load(transfer_model)
+    print('Loading weights from model:', transfer_model, 'with ID:',
+          kl.model_id())
+    pilot_data['TransferModel'] = os.path.basename(transfer_model)
+    # when transfering models, should we freeze all but the last N layers?
+    if cfg.FREEZE_LAYERS:
+        num_last_layers = getattr(cfg, 'NUM_LAST_LAYERS_TO_TRAIN', None)
+        num_freeze = kl.freeze_first_layers(num_last_layers)
+        pilot_data['Freeze'] = num_freeze
+    # if transfer is given but no tubs, use tubs from transfer pilot
+    if not tub_names:
+        transfer_pilot_json = transfer_model.replace('.h5', '.json')
+        assert os.path.exists(transfer_pilot_json), \
+            "Can't train w/o tubs or transfer model data base."
+        with open(transfer_pilot_json, 'r') as f:
+            transfer_pilot = json.load(f)
+            tub_names = transfer_pilot['Tubs']
+    return tub_names
 
 
 def go_train(kl, cfg, train_gen, val_gen, model_name,
@@ -617,10 +595,15 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     trains models which take sequence of images
     '''
     print("Sequence of images training")
+    pilot_num = 0
+    pilot_data = {}
+    if model_name is None:
+        model_name, pilot_num = auto_generate_model_name()
+        model_name += ".h5"
+    pilot_data['Num'] = pilot_num
+
     kl = dk.utils.get_model_by_type(model_type=model_type, cfg=cfg)
-    if transfer_model:
-        assert(transfer_model[-3:] == '.h5')
-        kl.load(transfer_model)
+    tub_names = handle_transfer(cfg, kl, pilot_data, transfer_model, tub_names)
     kl.compile()
     if cfg.PRINT_MODEL_SUMMARY:
         print(kl.model.summary())
@@ -979,7 +962,8 @@ if __name__ == "__main__":
         if tub is not None:
             tub_paths = [os.path.expanduser(n) for n in tub.split(',')]
             dirs.extend(tub_paths)
-        disable_eager_execution()
+        # switched off b/c of incompatibility with Lstm
+        # disable_eager_execution()
         train_frac = float(train_frac) if train_frac else None
         multi_train(cfg, dirs, model, transfer, model_type, aug, exclude,
                     train_frac, dry)

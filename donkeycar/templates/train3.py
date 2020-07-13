@@ -290,7 +290,7 @@ def train(cfg, tub_names, model_name, transfer_model,
         model_name, pilot_num = auto_generate_model_name()
         model_name += ".h5"
     pilot_data['Num'] = pilot_num
-    pilot_data['SeqStep'] = getattr(cfg,'SEQUENCE_TRAIN_STEP_SIZE', 1)
+
 
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE
@@ -595,13 +595,15 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     saves the output trained model as model_name
     trains models which take sequence of images
     '''
-    print("Sequence of images training")
+    seq_step = getattr(cfg,'SEQUENCE_TRAIN_STEP_SIZE', 1)
+    print("Sequence of images training, using step size", seq_step)
     pilot_num = 0
     pilot_data = {}
     if model_name is None:
         model_name, pilot_num = auto_generate_model_name()
         model_name += ".h5"
     pilot_data['Num'] = pilot_num
+    pilot_data['SeqStep'] = seq_step
 
     kl = dk.utils.get_model_by_type(model_type=model_type, cfg=cfg)
     tub_names = handle_transfer(cfg, kl, pilot_data, transfer_model, tub_names)

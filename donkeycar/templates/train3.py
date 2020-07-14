@@ -291,7 +291,6 @@ def train(cfg, tub_names, model_name, transfer_model,
         model_name += ".h5"
     pilot_data['Num'] = pilot_num
 
-
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE
 
@@ -608,18 +607,15 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     kl = dk.utils.get_model_by_type(model_type=model_type, cfg=cfg)
     tub_names = handle_transfer(cfg, kl, pilot_data, transfer_model, tub_names)
     kl.compile()
+    print('Training new pilot:', model_name)
+    pilot_data['ModelType'] = kl.model_id()
+
     if cfg.PRINT_MODEL_SUMMARY:
         print(kl.model.summary())
     tubs = gather_tubs(cfg, tub_names, exclude)
     verbose = cfg.VERBOSE_TRAIN
-    records = []
-
-    for tub in tubs:
-        record_paths = glob.glob(os.path.join(tub.path, 'record_*.json'))
-        print("Tub:", tub.path, "has", len(record_paths), 'records')
-        record_paths.sort(key=get_record_index)
-        records += record_paths
-
+    records = gather_records(cfg, tub_names, exclude=exclude,
+                             data_base=pilot_data)
     if dry:
         print("Dry run only - stop here.\n")
         return
@@ -650,7 +646,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
     cfg.model_type = model_type
     go_train(kl, cfg, train_gen, val_gen, model_name,
-             steps_per_epoch, val_steps, pilot_data=None, verbose=verbose)
+             steps_per_epoch, val_steps, pilot_data=pilot_data, verbose=verbose)
 
 
 def collating_sequences(cfg, gen_records):

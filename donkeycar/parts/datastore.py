@@ -19,7 +19,7 @@ from tqdm import tqdm
 import shutil
 
 from donkeycar.parts.augment import augment_pil_image
-from donkeycar.utils import arr_to_img
+from donkeycar.utils import arr_to_img, get_record_index
 from donkeycar.parts.transform import ImgBrightnessNormaliser
 
 
@@ -379,11 +379,11 @@ class Tub(object):
         return data
 
     def gather_records(self):
-        ri = lambda fnm: int(os.path.basename(fnm).split('_')[1].split('.')[0])
         record_paths = glob.glob(os.path.join(self.path, 'record_*.json'))
         if len(self.exclude) > 0:
-            record_paths = [f for f in record_paths if ri(f) not in self.exclude]
-        record_paths.sort(key=ri)
+            record_paths = [f for f in record_paths if get_record_index(f)
+                            not in self.exclude]
+        record_paths.sort(key=get_record_index)
         return record_paths
 
     def make_file_name(self, key, ext='.png', ix=None):

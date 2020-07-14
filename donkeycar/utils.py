@@ -21,6 +21,7 @@ from io import BytesIO
 
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 
 from donkeycar.parts.keras import KerasSquarePlusImuLstm
 
@@ -601,13 +602,11 @@ def train_test_split(data_list, shuffle=True, test_size=0.2):
     '''
     assert shuffle
     train_data = []
-    target_train_size = len(data_list) * (1. - test_size)
-    i_sample = 0
-
-    while i_sample < target_train_size and len(data_list) > 1:
+    target_train_size = int(len(data_list) * (1. - test_size))
+    print('Train / test split with test size: {:3.1f}%'.format(100 * test_size))
+    for _ in tqdm(range(target_train_size)):
         i_choice = random.randint(0, len(data_list) - 1)
         train_data.append(data_list.pop(i_choice))
-        i_sample += 1
 
     # remainder of the original list is the validation set
     val_data = data_list

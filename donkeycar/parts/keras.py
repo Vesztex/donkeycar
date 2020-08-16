@@ -647,7 +647,7 @@ def linear_square_plus_imu(input_shape=(120, 160, 3), roi_crop=(0, 0),
     x = img_in
     x = linear_square_plus_cnn(x, size, seq_len is not None)
     y = imu_in
-    imu_dense_size = dict(XS=20, S=24, M=36, L=48)
+    imu_dense_size = dict(XS=20, S=24, M=36, L=48, R=36)
     imu_dense = Dense(units=imu_dense_size[size], activation='relu',
                       kernel_regularizer=regularizers.l2(l2),
                       name='dense_imu')

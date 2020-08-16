@@ -563,20 +563,27 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
         if size == 'M':
             filters += [128]
             kernels += [(2, 2)]
-    else:  # size must be L
+    elif size == 'L':  #
         filters = [20, 40, 80, 120, 160]
         kernels = [(9, 9), (7, 7), (5, 5), (3, 3), (2, 2)]
+    else:  # size is R
+        filters = [24, 32, 48, 64, 80]
+        kernels = [(3, 3)] * 5
     if size in ['XS', 'S']:
         strides = [(3, 4), (2, 2)] + [(1, 1)] * 2
-    else:  # M or L
+    elif size in ['M', 'L']:  # M or L
         strides = [(3, 4)] + [(1, 1)] * 4
+    elif size == 'R':  # size is R
+        strides = [(2, 2)] * 2 + [(1, 1)] * 3
+    else:
+        raise ValueError('Size must be in XS, X, M, L, R not ' + str(size))
 
     # build CNN layers with data as above and batch norm, pooling & dropout
     for i, f, k, s in zip(range(len(filters)), filters, kernels, strides):
         conv = Conv2D(filters=f, kernel_size=k, strides=s, padding='same',
                       activation='relu', name='conv' + str(i))
         norm = BatchNormalization(name='batch_norm' + str(i))
-        pool = AveragePooling2D(pool_size=(2, 2), padding='same',
+        pool = MaxPooling2D(pool_size=(2, 2), padding='same',
                                 name='pool' + str(i))
         dropout = Dropout(rate=drop, name='drop' + str(i))
         if is_seq:
@@ -586,9 +593,12 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
             x = TD(dropout, name='td_drop' + str(i))(x)
         else:
             x = conv(x)
-            x = norm(x)
-            x = pool(x)
-            x = dropout(x)
+            if size != 'R':
+                x = norm(x)
+                x = pool(x)
+                x = dropout(x)
+            elif i > 1:
+                x = pool(x)
 
     flat = Flatten(name='flattened')
     x = TD(flat, name='td_flat')(x) if is_seq else flat(x)
@@ -599,7 +609,8 @@ def square_plus_dense(size='S'):
     d = dict(XS=[72] * 3 + [48],
              S=[96] * 4 + [48],
              M=[128] * 5 + [64],
-             L=[144] * 8)
+             L=[144] * 8,
+             R=[128] * 5 + [64])
     if not size in d:
         raise ValueError('size must be in', d.keys(), 'but was', size)
     return d[size]

@@ -597,8 +597,12 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
                 x = norm(x)
                 x = pool(x)
                 x = dropout(x)
-            elif i > 1:
-                x = pool(x)
+            else:
+                if 1 < i < 4:
+                    x = pool(x)
+                elif i == 4:
+                    x = MaxPooling2D(pool_size=(3, 3), padding='same',
+                                     name='pool' + str(i))(x)
 
     flat = Flatten(name='flattened')
     x = TD(flat, name='td_flat')(x) if is_seq else flat(x)

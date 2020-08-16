@@ -611,7 +611,7 @@ def square_plus_dense(size='S'):
              M=[128] * 5 + [64],
              L=[144] * 8,
              R=[128] * 5 + [64])
-    if not size in d:
+    if size not in d:
         raise ValueError('size must be in', d.keys(), 'but was', size)
     return d[size]
 

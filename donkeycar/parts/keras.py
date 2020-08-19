@@ -567,14 +567,14 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
         filters = [20, 40, 80, 120, 160]
         kernels = [(9, 9), (7, 7), (5, 5), (3, 3), (2, 2)]
     else:  # size is R
-        filters = [24, 32, 48, 64, 80]
+        filters = [16, 32, 48, 64, 80]
         kernels = [(3, 3)] * 5
     if size in ['XS', 'S']:
         strides = [(3, 4), (2, 2)] + [(1, 1)] * 2
     elif size in ['M', 'L']:  # M or L
         strides = [(3, 4)] + [(1, 1)] * 4
     elif size == 'R':  # size is R
-        strides = [(2, 2)] * 2 + [(1, 1)] * 3
+        strides = [(2, 2)] + [(1, 1)] * 4
     else:
         raise ValueError('Size must be in XS, X, M, L, R not ' + str(size))
 
@@ -584,7 +584,7 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
                       activation='relu', name='conv' + str(i))
         norm = BatchNormalization(name='batch_norm' + str(i))
         pool = MaxPooling2D(pool_size=(2, 2), padding='same',
-                                name='pool' + str(i))
+                            name='pool' + str(i))
         dropout = Dropout(rate=drop, name='drop' + str(i))
         if is_seq:
             x = TD(conv, name='td_conv' + str(i))(x)
@@ -598,9 +598,9 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
                 x = pool(x)
                 x = dropout(x)
             else:
-                if 1 < i < 4:
+                if i < 3:
                     x = pool(x)
-                elif i == 4:
+                elif i == 3:
                     x = MaxPooling2D(pool_size=(3, 3), padding='same',
                                      name='pool' + str(i))(x)
 

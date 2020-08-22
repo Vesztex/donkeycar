@@ -337,6 +337,43 @@ class KerasSquarePlusImuLstm(KerasSquarePlusLstm):
         return steering[0][0], throttle[0][0]
 
 
+class KerasWorld(KerasSquarePlus):
+    """
+    World model for pilot. Uses pre-trained encoder which breaks down images
+    into latent vectors.
+    """
+
+    def __init__(self, input_shape=(144, 192, 3), roi_crop=(0, 0),
+                 encoder_path='models/encoder.h5', *args, **kwargs):
+        self.encoder = tf.keras.models.load_model(encoder_path)
+        self.latent_dim = self.encoder.outputs[0].shape[1]
+        self.encoder.trainable = False
+        super().__init__(input_shape, roi_crop, size='R', *args, **kwargs)
+
+    def make_controller(self):
+        l2 = 0.001
+        latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
+        x = latent_input
+        for i in range(3):
+            x = Dense(units=self.latent_dim / 2, activation='relu',
+                      kernel_regularizer=regularizers.l2(l2),
+                      name='dense' + str(i))(x)
+        angle_out = Dense(units=1, activation='linear', name='angle')(x)
+        throttle_out = Dense(units=1, activation='linear', name='throttle')(x)
+        controller = Model(inputs=latent_input,
+                           outputs=[angle_out, throttle_out],
+                           name='controller')
+        return controller
+
+    def make_model(self, input_shape, roi_crop):
+        controller = self.make_controller()
+        pilot_input = keras.Input(shape=input_shape)
+        encoded_img = self.encoder(pilot_input)
+        [angle, throttle] = controller(encoded_img)
+        model = Model(pilot_input, [angle, throttle], name="world_pilot")
+        return model
+
+
 class KerasIMU(KerasPilot):
     '''
     A Keras part that take an image and IMU vector as input,

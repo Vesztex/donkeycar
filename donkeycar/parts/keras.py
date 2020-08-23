@@ -277,7 +277,6 @@ class KerasSquarePlusImu(KerasSquarePlus):
                  *args, **kwargs):
         self.imu_dim = kwargs.get('imu_dim', 6)
         super().__init__(input_shape, roi_crop, *args, **kwargs)
-        self.imu_seq = []
 
     def make_model(self, input_shape, roi_crop):
         model = linear_square_plus_imu(input_shape, roi_crop,
@@ -371,6 +370,45 @@ class KerasWorld(KerasSquarePlus):
         encoded_img = self.encoder(pilot_input)
         [angle, throttle] = controller(encoded_img)
         model = Model(pilot_input, [angle, throttle], name="world_pilot")
+        return model
+
+
+class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
+    """
+    World model for pilot. Uses pre-trained encoder which breaks down images
+    into latent vectors.
+    """
+
+    def __init__(self, input_shape=(144, 192, 3), roi_crop=(0, 0),
+                 encoder_path='models/encoder.h5', *args, **kwargs):
+        super().__init__(input_shape, roi_crop, encoder_path=encoder_path,
+                         *args, **kwargs)
+
+    def make_controller(self):
+        l2 = 0.001
+        latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
+        imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
+        x = concatenate([latent_input, imu_input])
+        for i in range(3):
+            x = Dense(units=self.latent_dim / 2, activation='relu',
+                      kernel_regularizer=regularizers.l2(l2),
+                      name='dense' + str(i))(x)
+        angle_out = Dense(units=1, activation='linear', name='angle')(x)
+        throttle_out = Dense(units=1, activation='linear', name='throttle')(x)
+        controller = Model(inputs=[latent_input, imu_input],
+                           outputs=[angle_out, throttle_out],
+                           name='controller')
+        return controller
+
+    def make_model(self, input_shape, roi_crop):
+        controller = self.make_controller()
+        pilot_input = keras.Input(shape=input_shape, name='img_in')
+        encoded_img = self.encoder(pilot_input)
+        imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
+        [angle, throttle] = controller([encoded_img, imu_input])
+        model = Model(inputs=[pilot_input, imu_input],
+                      outputs=[angle, throttle],
+                      name="world_pilot_imu")
         return model
 
 

@@ -4,11 +4,15 @@ import numpy as np
 
 def keras_model_to_tflite(in_filename, out_filename, data_gen=None):
     verStr = tf.__version__
-    if verStr.find('1.1')  == 0: # found MAJOR.MINOR match for version 1.1x.x
+    # found MAJOR.MINOR match for version 1.1x.x
+    if verStr.find('1.1') == 0:
         converter = tf.lite.TFLiteConverter.from_keras_model_file(in_filename)
-    if verStr.find('2.')  == 0: # found MAJOR.MINOR match for version 2.x.x
-        new_model= tf.keras.models.load_model(in_filename) #filepath="keras_model.h5")
+    # found MAJOR.MINOR match for version 2.x.x
+    if verStr.find('2.') == 0:
+        new_model = tf.keras.models.load_model(in_filename)
         converter = tf.lite.TFLiteConverter.from_keras_model(new_model)
+        converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS]
+
     if data_gen is not None:
         #when we have a data_gen that is the trigger to use it to 
         #create integer weights and calibrate them. Warning: this model will

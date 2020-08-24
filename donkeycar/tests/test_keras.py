@@ -3,6 +3,7 @@ import pytest
 from donkeycar.parts.keras import *
 from donkeycar.utils import *
 import numpy as np
+import pathlib
 
 
 @pytest.fixture
@@ -75,7 +76,8 @@ def test_localizer():
 
 
 def test_world():
-    path = './encoder.h5'
+    this_dir = pathlib.Path(__file__).parent.absolute()
+    path = os.path.join(this_dir, 'encoder.h5')
     k = KerasWorldImu(encoder_path=path)
     print(k.model.summary())
     img = get_test_img(k.model)

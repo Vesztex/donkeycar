@@ -16,10 +16,10 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python import keras
 from tensorflow.python.keras import regularizers
-from tensorflow.python.keras.layers import Input, Dense
+from tensorflow.python.keras.layers import Input, Dense, Reshape
 from tensorflow.python.keras.models import Model, Sequential
 from tensorflow.python.keras.layers import Convolution2D, Conv2D, MaxPooling2D,\
-    AveragePooling2D, BatchNormalization
+    AveragePooling2D, BatchNormalization, UpSampling2D
 from tensorflow.python.keras.layers import Activation, Dropout, Flatten
 from tensorflow.python.keras.layers.merge import concatenate
 from tensorflow.python.keras.layers import LSTM
@@ -410,6 +410,64 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
                       outputs=[angle, throttle],
                       name="world_pilot_imu")
         return model
+
+
+class AutoEncoder:
+    def __init__(self, input_shape=(144, 192, 3), latent_dim=256):
+        self.input_shape = input_shape
+        self.output_shape = None
+        self.latent_dim = latent_dim
+        self.filters = [16, 32, 48, 64, 80]
+        self.kernel = (3, 3)
+        self.strides = [(2, 2)] + [(1, 1)] * 4
+        self.encoder = self.make_encoder()
+        self.decoder = self.make_decoder()
+        img_input = keras.Input(shape=(144, 192, 3))
+        encoded_img = self.encoder(img_input)
+        decoded_img = self.decoder(encoded_img)
+        self.autoencoder = keras.Model(img_input, decoded_img,
+                                       name="autoencoder")
+        self.autoencoder.summary()
+
+    def make_encoder(self):
+        encoder_input = keras.Input(self.input_shape, name='img_in')
+        x = encoder_input
+        for i, f, s in zip(range(len(self.filters)), self.filters,
+                           self.strides):
+            conv = Conv2D(filters=f, kernel_size=self.kernel, strides=s,
+                          padding='same', activation='relu',
+                          name='conv' + str(i))
+            x = conv(x)
+            if i < 4:
+                x = MaxPooling2D(pool_size=(3, 3) if i == 3 else (2, 2),
+                                 padding='same',
+                                 name='pool' + str(i))(x)
+            self.output_shape = conv.output_shape
+
+        x = Flatten()(x)
+        latent = Dense(self.latent_dim, name="latent")(x)
+        encoder = keras.Model(encoder_input, latent, name="encoder")
+        print(encoder.summary())
+        return encoder
+
+    def make_decoder(self):
+        latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
+        x = Dense(np.prod(self.output_shape), activation="relu")(latent_input)
+        x = Reshape(self.output_shape)(x)
+        for i, f, s in zip(reversed(range(len(self.filters))),
+                           reversed(self.filters),reversed(self.strides)):
+            if i < 4:
+                x = UpSampling2D((3, 3) if i == 3 else (2, 2))(x)
+            x = Conv2DTranspose(f, self.kernel, activation="relu",
+                                strides=s, padding="same",
+                                name='deconv' + str(i))(x)
+        decoder_output = Conv2DTranspose(3, (3, 3), strides=(2, 2),
+                                         activation="sigmoid",
+                                         padding="same",
+                                         name='deconv_convert')(x)
+        decoder = keras.Model(latent_input, decoder_output, name="decoder")
+        print(decoder.summary())
+        return decoder
 
 
 class KerasIMU(KerasPilot):

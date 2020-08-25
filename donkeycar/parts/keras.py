@@ -419,7 +419,7 @@ class AutoEncoder:
         self.latent_dim = latent_dim
         self.filters = [16, 32, 48, 64, 80]
         self.kernel = (3, 3)
-        self.strides = [(2, 2)] + [(1, 1)] * 4
+        self.strides = [(2, 2)] + [(1, 1)] * 5
         self.encoder = self.make_encoder()
         self.decoder = self.make_decoder()
         img_input = keras.Input(shape=(144, 192, 3))
@@ -442,8 +442,9 @@ class AutoEncoder:
                 x = MaxPooling2D(pool_size=(3, 3) if i == 3 else (2, 2),
                                  padding='same',
                                  name='pool' + str(i))(x)
-            self.output_shape = conv.output_shape
 
+        # remove first entry from (, a, b, c)
+        self.output_shape = tuple(conv.output_shape[1:])
         x = Flatten()(x)
         latent = Dense(self.latent_dim, name="latent")(x)
         encoder = keras.Model(encoder_input, latent, name="encoder")
@@ -452,16 +453,18 @@ class AutoEncoder:
 
     def make_decoder(self):
         latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
-        x = Dense(np.prod(self.output_shape), activation="relu")(latent_input)
+        dim = np.prod(self.output_shape)
+        x = Dense(dim, activation="relu")(latent_input)
         x = Reshape(self.output_shape)(x)
         for i, f, s in zip(reversed(range(len(self.filters))),
-                           reversed(self.filters),reversed(self.strides)):
+                           reversed(self.filters), reversed(self.strides)):
             if i < 4:
                 x = UpSampling2D((3, 3) if i == 3 else (2, 2))(x)
             x = Conv2DTranspose(f, self.kernel, activation="relu",
                                 strides=s, padding="same",
                                 name='deconv' + str(i))(x)
-        decoder_output = Conv2DTranspose(3, (3, 3), strides=(2, 2),
+        decoder_output = Conv2DTranspose(3, self.kernel,
+                                         strides=self.strides[0],
                                          activation="sigmoid",
                                          padding="same",
                                          name='deconv_convert')(x)

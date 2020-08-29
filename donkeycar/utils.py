@@ -489,7 +489,7 @@ def get_model_by_type(model_type, cfg):
     from donkeycar.parts.keras import KerasRNN_LSTM, KerasBehavioral, \
         KerasCategorical, KerasIMU, KerasLinear, KerasSquarePlus, \
         KerasSquarePlusImu, KerasSquarePlusLstm, Keras3D_CNN, KerasLocalizer, \
-        KerasLatent, KerasWorld
+        KerasLatent, KerasWorld, KerasWorldImu
     from donkeycar.parts.tflite import TFLitePilot
  
     if model_type is None:
@@ -539,6 +539,10 @@ def get_model_by_type(model_type, cfg):
         kl = KerasWorld(input_shape=input_shape,
                         encoder_path=getattr(cfg, 'ENCODER_PATH',
                                              'models/encoder.h5'))
+    elif model_type == 'worldimu':
+        kl = KerasWorldImu(input_shape=input_shape,
+                           encoder_path=getattr(cfg, 'ENCODER_PATH',
+                                                'models/encoder.h5'))
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit which
         # causes a lot of unexpected things to happen when using TF-GPU for

@@ -344,6 +344,7 @@ class KerasWorld(KerasSquarePlus):
 
     def __init__(self, input_shape=(144, 192, 3), roi_crop=(0, 0),
                  encoder_path='models/encoder.h5', *args, **kwargs):
+        self.encoder_path = encoder_path
         self.encoder = tf.keras.models.load_model(encoder_path)
         self.latent_dim = self.encoder.outputs[0].shape[1]
         self.encoder.trainable = False
@@ -371,6 +372,9 @@ class KerasWorld(KerasSquarePlus):
         [angle, throttle] = controller(encoded_img)
         model = Model(pilot_input, [angle, throttle], name="world_pilot")
         return model
+
+    def text(self):
+        return super().text() + ' with encoder: ' + str(self.encoder_path)
 
 
 class KerasWorldImu(KerasWorld, KerasSquarePlusImu):

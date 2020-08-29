@@ -41,7 +41,7 @@ from docopt import docopt
 import donkeycar as dk
 from donkeycar.parts.datastore import TubHandler, Tub
 from donkeycar.parts.keras import KerasIMU, KerasCategorical, KerasBehavioral, \
-    KerasLatent, KerasLocalizer, KerasSquarePlusImu
+    KerasLatent, KerasLocalizer, KerasSquarePlusImu, KerasWorldImu
 from donkeycar.parts.tflite import keras_model_to_tflite
 from donkeycar.parts.augment import augment_image
 from donkeycar.utils import *
@@ -191,7 +191,7 @@ def generator(kl, data, cfg, is_train_set=True):
         else:
             model_out_shape = kl.model.output.shape
 
-        has_imu = type(kl) is KerasIMU or type(kl) is KerasSquarePlusImu
+        has_imu = type(kl) in [KerasIMU, KerasSquarePlusImu, KerasWorldImu]
         has_bvh = type(kl) is KerasBehavioral
         img_out = type(kl) is KerasLatent
         loc_out = type(kl) is KerasLocalizer

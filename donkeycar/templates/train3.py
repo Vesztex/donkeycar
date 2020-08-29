@@ -446,6 +446,7 @@ def go_train(kl, cfg, train_gen, val_gen, model_name,
 def convert_to_tflite(cfg, gen_records, model_path):
     # Save tflite, optionally in the int quant format for Coral TPU
     print("------------------- Saving TFLite Model -------------------")
+    print('Reading pilot', model_path)
     tflite_fnm = model_path.replace(".h5", ".tflite")
     assert (".tflite" in tflite_fnm)
     # "coral" in cfg.model_type

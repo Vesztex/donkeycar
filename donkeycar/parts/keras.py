@@ -417,15 +417,18 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
 
 
 class AutoEncoder:
-    def __init__(self, input_shape=(144, 192, 3), latent_dim=256):
+    def __init__(self, input_shape=(144, 192, 3), latent_dim=256,
+                 encoder_path=None, decoder_path=None):
         self.input_shape = input_shape
         self.output_shape = None
         self.latent_dim = latent_dim
         self.filters = [16, 32, 48, 64, 80]
         self.kernel = (3, 3)
         self.strides = [(2, 2)] + [(1, 1)] * 5
-        self.encoder = self.make_encoder()
-        self.decoder = self.make_decoder()
+        self.encoder = keras.models.load_model(encoder_path) if encoder_path \
+            else self.make_encoder()
+        self.decoder = keras.models.load_model(decoder_path) if decoder_path \
+            else self.make_decoder()
         img_input = keras.Input(shape=(144, 192, 3))
         encoded_img = self.encoder(img_input)
         decoded_img = self.decoder(encoded_img)

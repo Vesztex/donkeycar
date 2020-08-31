@@ -491,11 +491,16 @@ def convert_to_tflite(cfg, gen_records, model_path):
     else:
         representative_dataset_gen = None
 
-    keras_model_to_tflite(model_path, tflite_fnm, representative_dataset_gen)
-    if prepare_for_coral:
-        print("Compile for Coral w: edgetpu_compiler", tflite_fnm)
-        os.system("edgetpu_compiler " + tflite_fnm)
-    print("Saved TFLite model:", tflite_fnm)
+    try:
+        keras_model_to_tflite(model_path, tflite_fnm, representative_dataset_gen)
+        if prepare_for_coral:
+            print("Compile for Coral w: edgetpu_compiler", tflite_fnm)
+            os.system("edgetpu_compiler " + tflite_fnm)
+        print("Saved TFLite model:", tflite_fnm)
+    except Exception as e:
+        print('Conversion of', model_path, 'failed because:', e)
+    finally:
+        pass
 
 
 def make_train_plot(history, model_path, save_best):

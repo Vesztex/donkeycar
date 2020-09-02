@@ -536,13 +536,9 @@ def get_model_by_type(model_type, cfg):
                                         imu_dim=imu_dim, size=nn_size,
                                         seq_length=seq_length)
     elif model_type == 'world':
-        kl = KerasWorld(input_shape=input_shape,
-                        encoder_path=getattr(cfg, 'ENCODER_PATH',
-                                             'models/encoder.h5'))
+        kl = KerasWorld(input_shape=input_shape)
     elif model_type == 'worldimu':
-        kl = KerasWorldImu(input_shape=input_shape,
-                           encoder_path=getattr(cfg, 'ENCODER_PATH',
-                                                'models/encoder.h5'))
+        kl = KerasWorldImu(input_shape=input_shape)
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit which
         # causes a lot of unexpected things to happen when using TF-GPU for

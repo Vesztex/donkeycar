@@ -338,17 +338,28 @@ class KerasSquarePlusImuLstm(KerasSquarePlusLstm):
 
 class KerasWorld(KerasSquarePlus):
     """
-    World model for pilot. Uses pre-trained encoder which breaks down images
-    into latent vectors.
+    World model for pilot. Allows pre-trained model from which it only takes
+    the encoder that transforms images into latent vectors.
     """
 
     def __init__(self, input_shape=(144, 192, 3), roi_crop=(0, 0),
-                 encoder_path='models/encoder.h5', *args, **kwargs):
-        self.encoder_path = encoder_path
-        self.encoder = tf.keras.models.load_model(encoder_path)
+                 pre_trained_path=None, *args, **kwargs):
+        self.pre_trained_path = pre_trained_path
+        self.encoder = self.make_encoder()
         self.latent_dim = self.encoder.outputs[0].shape[1]
-        self.encoder.trainable = False
+        self.encoder.trainable = self.pre_trained_path is None
         super().__init__(input_shape, roi_crop, size='R', *args, **kwargs)
+
+    def make_encoder(self):
+        if self.pre_trained_path is None:
+            return AutoEncoder(latent_dim=128).encoder
+        else:
+            # load full world model
+            k_world = tf.keras.models.load_model(self.pre_trained_path)
+            # return layer 1 which is the encoder
+            encoder = k_world.layers[1]
+            self.encoder_checks(encoder)
+            return encoder
 
     def make_controller(self):
         l2 = 0.001
@@ -374,7 +385,28 @@ class KerasWorld(KerasSquarePlus):
         return model
 
     def text(self):
-        return super().text() + ' with encoder: ' + str(self.encoder_path)
+        text = super().text()
+        if self.pre_trained_path is not None:
+            text += ' with encoder from : ' + str(self.pre_trained_path)
+        return text
+
+    def load(self, model_path):
+        print('Loading encoder from', model_path, 'into world model...', end='')
+        model = keras.models.load_model(model_path)
+        encoder = model.layers[1]
+        self.encoder_checks(encoder)
+        self.encoder = encoder
+        self.latent_dim = self.encoder.outputs[0].shape[1]
+        self.encoder.trainable = False
+        input_shape = encoder.inputs[0].shape[1:]
+        self.model = self.make_model(input_shape=input_shape, roi_crop=(0, 0))
+        print("done - encoder is not trainable now")
+
+    def encoder_checks(self, encoder):
+        assert type(encoder) is tf.python.keras.engine.training.Model, \
+            'first layer of model needs to be a model'
+        assert encoder.name == 'encoder', \
+            'first layer model should have name "encoder"'
 
 
 class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
@@ -384,9 +416,9 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
     """
 
     def __init__(self, input_shape=(144, 192, 3), roi_crop=(0, 0),
-                 encoder_path='models/encoder.h5', *args, **kwargs):
-        super().__init__(input_shape, roi_crop, encoder_path=encoder_path,
-                         *args, **kwargs)
+                 pre_trained_path=None, *args, **kwargs):
+        super().__init__(input_shape, roi_crop,
+                         pre_trained_path=pre_trained_path, *args, **kwargs)
 
     def make_controller(self):
         l2 = 0.001
@@ -434,7 +466,6 @@ class AutoEncoder:
         decoded_img = self.decoder(encoded_img)
         self.autoencoder = keras.Model(img_input, decoded_img,
                                        name="autoencoder")
-        self.autoencoder.summary()
 
     def make_encoder(self):
         encoder_input = keras.Input(self.input_shape, name='img_in')
@@ -455,7 +486,6 @@ class AutoEncoder:
         x = Flatten()(x)
         latent = Dense(self.latent_dim, name="latent")(x)
         encoder = keras.Model(encoder_input, latent, name="encoder")
-        print(encoder.summary())
         return encoder
 
     def make_decoder(self):
@@ -476,7 +506,6 @@ class AutoEncoder:
                                          padding="same",
                                          name='deconv_convert')(x)
         decoder = keras.Model(latent_input, decoder_output, name="decoder")
-        print(decoder.summary())
         return decoder
 
 

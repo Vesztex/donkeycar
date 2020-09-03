@@ -93,28 +93,19 @@ class MakeMovie(object):
 
         import cv2
 
-        user_angle = float(record["user/angle"])
+        angle = float(record["user/angle"])
         user_throttle_var = 'car/speed' if self.use_speed else 'user/throttle'
-        user_throttle = float(record[user_throttle_var])
+        throttle = float(record[user_throttle_var])
 
         height, width, _ = img.shape
-
         length = height
         if self.use_speed:
             length /= self.cfg.MAX_SPEED
 
-        a1 = user_angle * 45.0
-        l1 = user_throttle * length
-
-        mid = width // 2 - 1
-
-        p1 = tuple((mid - 2, height - 1))
-        p11 = tuple((int(p1[0] + l1 * math.cos((a1 + 270.0) * self.deg_to_rad)),
-                     int(p1[1] + l1 * math.sin((a1 + 270.0) * self.deg_to_rad))))
-
+        p1, p2 = self.make_end_points(angle, throttle, height, width, -2)
         # user is green, pilot is blue
         green = (0, 255, 0)
-        cv2.line(img, p1, p11, green, 2)
+        cv2.line(img, p1, p2, green, -2)
         font = cv2.FONT_HERSHEY_PLAIN
         bottom_left = (width - 40, height-2)
         cv2.putText(img, text='User', org=bottom_left, fontFace=font,
@@ -154,23 +145,26 @@ class MakeMovie(object):
             angle, throttle = self.keras_part.run(pred_img)
         height, width, _ = pred_img.shape
 
-        length = height
-        a2 = angle * 45.0
-        l2 = throttle * length
-        mid = width // 2 - 1
-
-        p2 = tuple((mid + 2, height - 1))
-        p22 = tuple((int(p2[0] + l2 * math.cos((a2 + 270.0) * self.deg_to_rad)),
-                     int(p2[1] + l2 * math.sin((a2 + 270.0) * self.deg_to_rad))))
-
+        p1, p2 = self.make_end_points(angle, throttle, height, width, 2)
         # user is green, pilot is blue
         blue = (0, 0, 255)
-        cv2.line(img, p2, p22, blue, 2)
+        cv2.line(img, p1, p2, blue, 2)
 
         font = cv2.FONT_HERSHEY_PLAIN
         bottom_left = (2, height-2)
         cv2.putText(img, text='Pilot', org=bottom_left, fontFace=font,
                     fontScale=1.0, color=blue, lineType=1)
+
+    def make_end_points(self, angle, throttle, height, width, offset):
+        length = height
+        # angle in rad around +/- 45 deg of pos y-axis
+        a = (angle * 45.0 + 270.0) * self.deg_to_rad
+        # scale length by throttle/speed
+        l = throttle * length
+        mid = width // 2 - 1
+        p1 = mid + offset, height - 1
+        p2 = int(p1[0] + l * math.cos(a)), int(p1[1] + l * math.sin(a))
+        return p1, p2
 
     def draw_steering_distribution(self, record, img):
         '''

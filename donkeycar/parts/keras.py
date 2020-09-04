@@ -410,7 +410,7 @@ class KerasWorld(KerasSquarePlus):
         print("done - encoder is not trainable now")
 
     def encoder_checks(self, encoder):
-        assert type(encoder) is tf.python.keras.engine.training.Model, \
+        assert type(encoder) is tf.keras.Model, \
             'first layer of model needs to be a model'
         assert encoder.name == 'encoder', \
             'first layer model should have name "encoder"'
@@ -427,29 +427,13 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
         super().__init__(input_shape, roi_crop,
                          pre_trained_path=pre_trained_path, *args, **kwargs)
 
-    # def make_controller_inputs(self):
-    #     latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
-    #     imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
-    #     return [latent_input, imu_input]
-    #
-    # def transform_controller_inputs(self, inputs):
-    #     return concatenate(inputs)
-
-    def make_controller(self):
-        l2 = 0.001
+    def make_controller_inputs(self):
         latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
         imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
-        x = concatenate([latent_input, imu_input])
-        for i in range(3):
-            x = Dense(units=self.latent_dim / 2, activation='relu',
-                      kernel_regularizer=regularizers.l2(l2),
-                      name='dense' + str(i))(x)
-        angle_out = Dense(units=1, activation='linear', name='angle')(x)
-        throttle_out = Dense(units=1, activation='linear', name='throttle')(x)
-        controller = Model(inputs=[latent_input, imu_input],
-                           outputs=[angle_out, throttle_out],
-                           name='controller')
-        return controller
+        return [latent_input, imu_input]
+
+    def transform_controller_inputs(self, inputs):
+        return concatenate(inputs)
 
     def make_model(self, input_shape, roi_crop):
         controller = self.make_controller()

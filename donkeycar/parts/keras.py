@@ -361,17 +361,24 @@ class KerasWorld(KerasSquarePlus):
             self.encoder_checks(encoder)
             return encoder
 
+    def make_controller_inputs(self):
+        latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
+        return latent_input
+
+    def transform_controller_inputs(self, inputs):
+        return inputs
+
     def make_controller(self):
         l2 = 0.001
-        latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
-        x = latent_input
+        inputs = self.make_controller_inputs()
+        x = self.transform_controller_inputs(inputs)
         for i in range(3):
             x = Dense(units=self.latent_dim / 2, activation='relu',
                       kernel_regularizer=regularizers.l2(l2),
                       name='dense' + str(i))(x)
         angle_out = Dense(units=1, activation='linear', name='angle')(x)
         throttle_out = Dense(units=1, activation='linear', name='throttle')(x)
-        controller = Model(inputs=latent_input,
+        controller = Model(inputs=inputs,
                            outputs=[angle_out, throttle_out],
                            name='controller')
         return controller
@@ -419,6 +426,14 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
                  pre_trained_path=None, *args, **kwargs):
         super().__init__(input_shape, roi_crop,
                          pre_trained_path=pre_trained_path, *args, **kwargs)
+
+    # def make_controller_inputs(self):
+    #     latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
+    #     imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
+    #     return [latent_input, imu_input]
+    #
+    # def transform_controller_inputs(self, inputs):
+    #     return concatenate(inputs)
 
     def make_controller(self):
         l2 = 0.001

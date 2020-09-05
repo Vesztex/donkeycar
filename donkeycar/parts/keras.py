@@ -345,14 +345,14 @@ class KerasWorld(KerasSquarePlus):
     def __init__(self, input_shape=(144, 192, 3), roi_crop=(0, 0),
                  pre_trained_path=None, *args, **kwargs):
         self.pre_trained_path = pre_trained_path
-        self.encoder = self.make_encoder()
+        self.encoder = self.make_encoder(input_shape)
         self.latent_dim = self.encoder.outputs[0].shape[1]
         self.encoder.trainable = self.pre_trained_path is None
         super().__init__(input_shape, roi_crop, size='R', *args, **kwargs)
 
-    def make_encoder(self):
+    def make_encoder(self, input_shape):
         if self.pre_trained_path is None:
-            return AutoEncoder(latent_dim=128).encoder
+            return AutoEncoder(input_shape=input_shape, latent_dim=128).encoder
         else:
             # load full world model
             k_world = tf.keras.models.load_model(self.pre_trained_path)
@@ -444,6 +444,36 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
         model = Model(inputs=[pilot_input, imu_input],
                       outputs=[angle, throttle],
                       name="world_pilot_imu")
+        return model
+
+
+class WorldMemory:
+    def __init__(self, latent_dim=128, *args, **kwargs):
+        self.seq_length = kwargs.get('seq_length', 3)
+        self.imu_dim = kwargs.get('imu_dim', 6)
+        self.latent_dim = latent_dim
+        self.model = self.make_model()
+
+    def make_model(self):
+        l2 = 0.001
+        input_shape_latent = (self.seq_length, self.latent_dim)
+        input_shape_imu = (self.seq_length, self.imu_dim)
+        input_shape_drive = (self.seq_length, 2)
+        latent_seq_in = keras.Input(input_shape_latent, name='latent_seq_in')
+        imu_seq_in = keras.Input(input_shape_imu, name='imu_seq_in')
+        drive_seq_in = keras.Input(input_shape_drive, name='drive_seq_in')
+        x = concatenate([latent_seq_in, imu_seq_in, drive_seq_in], axis=1)
+        layers = 3
+        for i in range(layers):
+            x = LSTM(units=self.latent_dim,
+                     kernel_regularizer=regularizers.l2(l2),
+                     recurrent_regularizer=regularizers.l2(l2),
+                     name='lstm' + str(i),
+                     return_sequences=(i != layers - 1))(x)
+        latent_out = x[:self.latent_dim]
+        model = Model(inputs=[latent_seq_in, imu_seq_in, drive_seq_in],
+                      outputs=latent_out,
+                      name='Memory')
         return model
 
 

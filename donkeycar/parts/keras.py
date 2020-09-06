@@ -484,6 +484,8 @@ class WorldMemory:
         drive_out = Dense(units=2, name='drive_out')(sequences)
         state = x[1]
         outputs = [latent_out, imu_out, drive_out]
+        # TODO: find out how to train on subset of outputs only, so this can
+        #  be removed.
         if not self.is_train:
             outputs += [state]
         model = Model(inputs=[latent_seq_in, imu_seq_in, drive_seq_in],

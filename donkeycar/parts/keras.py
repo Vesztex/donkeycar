@@ -560,14 +560,16 @@ class KerasIMU(KerasPilot):
     outputs steering and throttle
 
     Note: When training, you will need to vectorize the input from the IMU.
-    Depending on the names you use for imu records, something like this will work:
+    Depending on the names you use for imu records, something like this will
+    work:
 
     X_keys = ['cam/image_array','imu_array']
     y_keys = ['user/angle', 'user/throttle']
 
     def rt(rec):
-        rec['imu_array'] = np.array([ rec['imu/acl_x'], rec['imu/acl_y'], rec['imu/acl_z'],
-            rec['imu/gyr_x'], rec['imu/gyr_y'], rec['imu/gyr_z'] ])
+        rec['imu_array'] =
+            np.array([ rec['imu/acl_x'], rec['imu/acl_y'], rec['imu/acl_z'],
+                       rec['imu/gyr_x'], rec['imu/gyr_y'], rec['imu/gyr_z'] ])
         return rec
 
     kl = KerasIMU()

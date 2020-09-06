@@ -462,17 +462,18 @@ class WorldMemory:
         latent_seq_in = keras.Input(input_shape_latent, name='latent_seq_in')
         imu_seq_in = keras.Input(input_shape_imu, name='imu_seq_in')
         drive_seq_in = keras.Input(input_shape_drive, name='drive_seq_in')
-        x = concatenate([latent_seq_in, imu_seq_in, drive_seq_in], axis=1)
+        x = concatenate([latent_seq_in, imu_seq_in, drive_seq_in], axis=-1)
         layers = 3
         for i in range(layers):
-            x = LSTM(units=self.latent_dim,
+            x = LSTM(units=self.latent_dim + self.imu_dim + 2,
                      kernel_regularizer=regularizers.l2(l2),
                      recurrent_regularizer=regularizers.l2(l2),
                      name='lstm' + str(i),
                      return_sequences=(i != layers - 1))(x)
-        latent_out = x[:self.latent_dim]
+        latent_out, imu_out, drive_out \
+            = tf.split(x, [self.latent_dim, self.imu_dim, 2], axis=1)
         model = Model(inputs=[latent_seq_in, imu_seq_in, drive_seq_in],
-                      outputs=latent_out,
+                      outputs=[latent_out, imu_out],
                       name='Memory')
         return model
 

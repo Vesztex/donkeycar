@@ -448,13 +448,17 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
 
 
 class WorldMemory:
-    def __init__(self, latent_dim=128, *args, **kwargs):
+    def __init__(self, encoder_path='models/encoder.h5', latent_dim=128, *args,
+                 **kwargs):
         self.seq_length = kwargs.get('seq_length', 3)
         self.imu_dim = kwargs.get('imu_dim', 6)
         self.layers = kwargs.get('lstm_layers', 1)
         self.units = kwargs.get('lstm_units', 32)
         self.latent_dim = latent_dim
+        self.encoder = keras.models.load_model(encoder_path)
         self.model = self.make_model()
+        self.is_train = True
+        print('Created WorldMemory with encoder path:', encoder_path)
 
     def make_model(self):
         l2 = 0.001
@@ -479,9 +483,11 @@ class WorldMemory:
         imu_out = Dense(units=self.imu_dim, name='imu_out')(sequences)
         drive_out = Dense(units=2, name='drive_out')(sequences)
         state = x[1]
+        outputs = [latent_out, imu_out, drive_out]
+        if not self.is_train:
+            outputs += [state]
         model = Model(inputs=[latent_seq_in, imu_seq_in, drive_seq_in],
-                      outputs=[latent_out, imu_out, drive_out, state],
-                      name='Memory')
+                      outputs=outputs, name='Memory')
         return model
 
 

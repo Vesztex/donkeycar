@@ -23,7 +23,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-from donkeycar.parts.keras import KerasSquarePlusImuLstm
+from donkeycar.parts.keras import KerasSquarePlusImuLstm, WorldMemory
 
 '''
 IMAGES
@@ -537,8 +537,10 @@ def get_model_by_type(model_type, cfg):
                                         seq_length=seq_length)
     elif model_type == 'world':
         kl = KerasWorld(input_shape=input_shape)
-    elif model_type == 'worldimu':
+    elif model_type == 'world_imu':
         kl = KerasWorldImu(input_shape=input_shape)
+    elif model_type == 'world_memory':
+        kl = WorldMemory(input_shape=input_shape, encoder_path=cfg.ENCODER_PATH)
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit which
         # causes a lot of unexpected things to happen when using TF-GPU for
@@ -570,7 +572,8 @@ def get_model_by_type(model_type, cfg):
                        'linear', 'square_plus', 'square_plus_imu',
                        'square_plus_lstm', 'tensorrt_linear',
                        'coral_tflite_linear', '3d', 'rnn',
-                       'categorical', 'latent', 'fastai']
+                       'categorical', 'latent', 'fastai', 'world', 'world_imu',
+                       'world_memory']
         raise ValueError(
             "Unknown model type: '{:}', known types: {:}. Note for TFlite "
             "models pass 'tflite_linear' "

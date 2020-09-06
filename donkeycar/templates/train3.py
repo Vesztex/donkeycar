@@ -41,7 +41,7 @@ from docopt import docopt
 import donkeycar as dk
 from donkeycar.parts.datastore import TubHandler, Tub
 from donkeycar.parts.keras import KerasIMU, KerasCategorical, KerasBehavioral, \
-    KerasLatent, KerasLocalizer, KerasSquarePlusImu, KerasWorldImu
+    KerasLatent, KerasLocalizer, KerasSquarePlusImu, KerasWorldImu, WorldMemory
 from donkeycar.parts.tflite import keras_model_to_tflite
 from donkeycar.parts.augment import augment_image
 from donkeycar.utils import *
@@ -181,6 +181,12 @@ class MyCPCallback(keras.callbacks.ModelCheckpoint):
 
 def generator(kl, data, cfg, is_train_set=True):
     batch_size = cfg.BATCH_SIZE
+    has_imu = type(kl) in [KerasIMU, KerasSquarePlusImu, KerasWorldImu]
+    has_bvh = type(kl) is KerasBehavioral
+    img_out = type(kl) is KerasLatent
+    loc_out = type(kl) is KerasLocalizer
+    imu_dim = getattr(cfg, 'IMU_DIM', 6)
+
     while True:
         batch_data = []
         keys = list(data.keys())
@@ -190,12 +196,6 @@ def generator(kl, data, cfg, is_train_set=True):
             model_out_shape = (2, 1)
         else:
             model_out_shape = kl.model.output.shape
-
-        has_imu = type(kl) in [KerasIMU, KerasSquarePlusImu, KerasWorldImu]
-        has_bvh = type(kl) is KerasBehavioral
-        img_out = type(kl) is KerasLatent
-        loc_out = type(kl) is KerasLocalizer
-        imu_dim = getattr(cfg, 'IMU_DIM', 6)
 
         if img_out:
             import cv2
@@ -535,10 +535,11 @@ def make_train_plot(history, model_path, save_best):
                                                         figure_format))
 
 
-def sequence_generator(data, cfg):
+def sequence_generator(kl, data, cfg):
     num_records = len(data)
     batch_size = cfg.BATCH_SIZE
     is_imu = False
+    is_mem = type(kl) is WorldMemory
     while True:
         for offset in range(0, num_records, batch_size):
             batch_data = data[offset:offset+batch_size]
@@ -547,19 +548,27 @@ def sequence_generator(data, cfg):
 
             b_inputs_img = []
             b_inputs_imu = []
+            b_inputs_drive = []
             y1 = []
             y2 = []
+            y3 = []
 
             for seq in batch_data:
                 inputs_img = []
                 inputs_imu = []
+                inputs_drive = []
                 num_images_target = len(seq)
+                # for memory model sequence is one longer as we want to
+                # predict the next latent vector, imu and drive vector
+                if is_mem:
+                    num_images_target -= 1
 
                 for iRec, record in enumerate(seq):
                     # get image data if we don't already have it
                     if len(inputs_img) < num_images_target:
                         if record['img_data'] is None:
-                            img_arr = load_scaled_image_arr(record['image_path'], cfg)
+                            img_path = record['image_path']
+                            img_arr = load_scaled_image_arr(img_path, cfg)
                             if img_arr is None:
                                 break
                             if aug:
@@ -569,26 +578,55 @@ def sequence_generator(data, cfg):
                         else:
                             img_arr = record['img_data']
 
-                        inputs_img.append(img_arr)
+                        imu_arr = None
                         if 'imu_array' in record:
-                            inputs_imu.append(record['imu_array'])
                             is_imu = True
-                    # add the latest angle / throttle to observation data
+                            imu_arr = record['imu_array']
+                        drive_arr = [record['angle'], record['throttle']]
+                        # for world memory model input is latent vector and
+                        # imu and angle/throttle series
+                        if is_mem:
+                            # encode image into latent vector
+                            img_arr = kl.encoder(img_arr)
+                            if len(inputs_img) < num_images_target - 1:
+                                inputs_img.append(img_arr)
+                                inputs_imu.append(imu_arr)
+                                inputs_drive.append(drive_arr)
+                        else:
+                            inputs_img.append(img_arr)
+                            if is_imu:
+                                inputs_imu.append(imu_arr)
+
+                    # add the latest angle / throttle to observation data in
+                    # normal sequence model, and the next data in memory model
                     if iRec == num_images_target - 1:
-                        y1.append(record['angle'])
-                        y2.append(record['throttle'])
+                        if is_mem:
+                            y1.append(img_arr)
+                            y2.append(imu_arr)
+                            y3.append(drive_arr)
+                        else:
+                            y1.append(drive_arr[0])
+                            y2.append(drive_arr[1])
 
                 b_inputs_img.append(inputs_img)
                 b_inputs_imu.append(inputs_imu)
+                b_inputs_drive.append(inputs_drive)
 
-            x_shape = (batch_size, cfg.SEQUENCE_LENGTH,
-                       cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
-            imu_dim = getattr(cfg, 'IMU_DIM', 6)
-            imu_shape = (batch_size, cfg.SEQUENCE_LENGTH, imu_dim)
+            if is_mem:
+                x_shape = (batch_size, cfg.SEQUENCE_LENGTH, kl.latent_dim)
+            else:
+                x_shape = (batch_size, cfg.SEQUENCE_LENGTH,
+                           cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
             X = [np.array(b_inputs_img).reshape(x_shape)]
-            if is_imu:
-                X.append(np.array(b_inputs_imu).reshape(imu_shape))
             y = [np.array(y1), np.array(y2)]
+            if is_imu:
+                imu_dim = getattr(cfg, 'IMU_DIM', 6)
+                imu_shape = (batch_size, cfg.SEQUENCE_LENGTH, imu_dim)
+                X.append(np.array(b_inputs_imu).reshape(imu_shape))
+            if is_mem:
+                drive_shape = (batch_size, cfg.SEQUENCE_LENGTH, 2)
+                X.append(np.array(b_inputs_drive).reshape(drive_shape))
+                y.append(np.array(y3))
 
             yield X, y
 
@@ -618,7 +656,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
     if cfg.PRINT_MODEL_SUMMARY:
         print(kl.model.summary())
-    tubs = gather_tubs(cfg, tub_names, exclude)
+
     verbose = cfg.VERBOSE_TRAIN
     records = gather_records(cfg, tub_names, exclude=exclude,
                              data_base=pilot_data)
@@ -628,7 +666,9 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
     gen_records = {}
     collate_records(records, gen_records, cfg)
-    sequences = collating_sequences(cfg, gen_records)
+    # memory model requires sequence of 1 more as we forcast the next data
+    extend_length = 1 if type(kl) is WorldMemory else 0
+    sequences = collating_sequences(cfg, gen_records, extend_length)
     if train_frac:
         random.shuffle(sequences)
         sequences = sequences[:int(train_frac * len(sequences))]
@@ -638,8 +678,8 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     train_data, val_data \
         = train_test_split(sequences, test_size=(1 - cfg.TRAIN_TEST_SPLIT))
 
-    train_gen = sequence_generator(train_data, cfg)
-    val_gen = sequence_generator(val_data, cfg)
+    train_gen = sequence_generator(kl, train_data, cfg)
+    val_gen = sequence_generator(kl, val_data, cfg)
     total_train = len(train_data)
     total_val = len(val_data)
 
@@ -655,9 +695,9 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
              steps_per_epoch, val_steps, pilot_data=pilot_data, verbose=verbose)
 
 
-def collating_sequences(cfg, gen_records):
+def collating_sequences(cfg, gen_records, extend_length=0):
     sequences = []
-    target_len = cfg.SEQUENCE_LENGTH
+    target_len = cfg.SEQUENCE_LENGTH + extend_length
     step_size = getattr(cfg, 'SEQUENCE_TRAIN_STEP_SIZE', 1)
     assert type(step_size) is int, 'Sequence step size must be integer.'
     print('Collating {:} sequences with step size {:}'.format(len(

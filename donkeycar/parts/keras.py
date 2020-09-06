@@ -451,6 +451,8 @@ class WorldMemory:
     def __init__(self, latent_dim=128, *args, **kwargs):
         self.seq_length = kwargs.get('seq_length', 3)
         self.imu_dim = kwargs.get('imu_dim', 6)
+        self.layers = kwargs.get('lstm_layers', 1)
+        self.units = kwargs.get('lstm_units', 32)
         self.latent_dim = latent_dim
         self.model = self.make_model()
 
@@ -463,17 +465,22 @@ class WorldMemory:
         imu_seq_in = keras.Input(input_shape_imu, name='imu_seq_in')
         drive_seq_in = keras.Input(input_shape_drive, name='drive_seq_in')
         x = concatenate([latent_seq_in, imu_seq_in, drive_seq_in], axis=-1)
-        layers = 3
-        for i in range(layers):
-            x = LSTM(units=self.latent_dim + self.imu_dim + 2,
+        for i in range(self.layers):
+            last = (i == self.layers - 1)
+            x = LSTM(units=self.units,
                      kernel_regularizer=regularizers.l2(l2),
                      recurrent_regularizer=regularizers.l2(l2),
                      name='lstm' + str(i),
-                     return_sequences=(i != layers - 1))(x)
-        latent_out, imu_out, drive_out \
-            = tf.split(x, [self.latent_dim, self.imu_dim, 2], axis=1)
+                     return_sequences=not last,
+                     return_state=last)(x)
+        # now x[0] has return sequences and x[1] has the state
+        sequences = x[0]
+        latent_out = Dense(units=self.latent_dim, name='latent_out')(sequences)
+        imu_out = Dense(units=self.imu_dim, name='imu_out')(sequences)
+        drive_out = Dense(units=2, name='drive_out')(sequences)
+        state = x[1]
         model = Model(inputs=[latent_seq_in, imu_seq_in, drive_seq_in],
-                      outputs=[latent_out, imu_out],
+                      outputs=[latent_out, imu_out, drive_out, state],
                       name='Memory')
         return model
 

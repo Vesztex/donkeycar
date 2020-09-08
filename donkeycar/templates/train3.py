@@ -600,7 +600,7 @@ def sequence_generator(kl, data, cfg):
                     # normal sequence model, and the next data in memory model
                     if iRec == num_images_target - 1:
                         if is_mem:
-                            y1.append(img_arr)
+                            y1.append(np.squeeze(img_arr))
                             y2.append(imu_arr)
                             y3.append(drive_arr)
                         else:

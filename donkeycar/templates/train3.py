@@ -560,8 +560,6 @@ def sequence_generator(kl, data, cfg):
                 num_images_target = len(seq)
                 # for memory model sequence is one longer as we want to
                 # predict the next latent vector, imu and drive vector
-                if is_mem:
-                    num_images_target -= 1
 
                 for iRec, record in enumerate(seq):
                     # get image data if we don't already have it
@@ -587,6 +585,7 @@ def sequence_generator(kl, data, cfg):
                         # imu and angle/throttle series
                         if is_mem:
                             # encode image into latent vector
+                            img_arr = img_arr.reshape((1,) + img_arr.shape)
                             img_arr = kl.encoder(img_arr)
                             if len(inputs_img) < num_images_target - 1:
                                 inputs_img.append(img_arr)
@@ -638,7 +637,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     saves the output trained model as model_name
     trains models which take sequence of images
     '''
-    seq_step = getattr(cfg,'SEQUENCE_TRAIN_STEP_SIZE', 1)
+    seq_step = getattr(cfg, 'SEQUENCE_TRAIN_STEP_SIZE', 1)
     print("Sequence of images training, using step size", seq_step)
     pilot_num = 0
     pilot_data = {}
@@ -723,7 +722,7 @@ def multi_train(cfg, tub, model, transfer, model_type, aug, exclude=None,
     '''
     train_fn = train
     if model_type in ('rnn', '3d', 'look_ahead', 'square_plus_lstm',
-                      'square_plus_imu_lstm'):
+                      'square_plus_imu_lstm', 'world_memory'):
         train_fn = sequence_train
     train_fn(cfg, tub, model, transfer, model_type, aug, exclude,
              train_frac, dry)

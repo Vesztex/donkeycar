@@ -448,16 +448,15 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
 
 
 class WorldMemory:
-    def __init__(self, encoder_path='models/encoder.h5', latent_dim=128, *args,
-                 **kwargs):
+    def __init__(self, encoder_path='models/encoder.h5', *args, **kwargs):
         self.seq_length = kwargs.get('seq_length', 3)
         self.imu_dim = kwargs.get('imu_dim', 6)
         self.layers = kwargs.get('lstm_layers', 1)
         self.units = kwargs.get('lstm_units', 32)
-        self.latent_dim = latent_dim
         self.encoder = keras.models.load_model(encoder_path)
-        self.model = self.make_model()
+        self.latent_dim = self.encoder.outputs[0].shape[1]
         self.is_train = True
+        self.model = self.make_model()
         print('Created WorldMemory with encoder path:', encoder_path)
 
     def make_model(self):
@@ -492,6 +491,11 @@ class WorldMemory:
                       outputs=outputs, name='Memory')
         return model
 
+    def model_id(self):
+        return 'world_memory'
+
+    def compile(self):
+        self.model.compile(optimizer='adam', loss='mse')
 
 class AutoEncoder:
     def __init__(self, input_shape=(144, 192, 3), latent_dim=256,

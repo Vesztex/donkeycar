@@ -123,7 +123,7 @@ def collate_records(records, gen_records, cfg):
 
         sample['angle'] = angle
         sample['throttle'] = throttle
-        sample['img_data'] = None
+        sample['img_data'] = json_data.get('encoder/image_latent')
 
         if 'car/accel' in json_data:
             accel = clamp_and_norm(json_data['car/accel'], accel_mult)
@@ -552,6 +552,7 @@ def sequence_generator(kl, data, cfg):
             y1 = []
             y2 = []
             y3 = []
+            cache = {}
 
             for seq in batch_data:
                 inputs_img = []
@@ -573,6 +574,7 @@ def sequence_generator(kl, data, cfg):
                                 img_arr = augment_image(img_arr)
                             if cfg.CACHE_IMAGES:
                                 record['img_data'] = img_arr
+                        # for world memory model img_data contains latent vec
                         else:
                             img_arr = record['img_data']
 
@@ -584,9 +586,6 @@ def sequence_generator(kl, data, cfg):
                         # for world memory model input is latent vector and
                         # imu and angle/throttle series
                         if is_mem:
-                            # encode image into latent vector
-                            img_arr = img_arr.reshape((1,) + img_arr.shape)
-                            img_arr = kl.encoder(img_arr)
                             if len(inputs_img) < num_images_target - 1:
                                 inputs_img.append(img_arr)
                                 inputs_imu.append(imu_arr)
@@ -657,8 +656,11 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
         print(kl.model.summary())
 
     verbose = cfg.VERBOSE_TRAIN
+    encoder = None
+    if type(kl) is WorldMemory:
+        encoder = kl.encoder
     records = gather_records(cfg, tub_names, exclude=exclude,
-                             data_base=pilot_data)
+                             data_base=pilot_data, encoder=encoder)
     if dry:
         print("Dry run only - stop here.\n")
         return

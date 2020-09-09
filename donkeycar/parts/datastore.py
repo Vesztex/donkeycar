@@ -19,7 +19,7 @@ from tqdm import tqdm
 import shutil
 
 from donkeycar.parts.augment import augment_pil_image
-from donkeycar.utils import arr_to_img, get_record_index
+from donkeycar.utils import arr_to_img, get_record_index, normalize_and_crop
 from donkeycar.parts.transform import ImgBrightnessNormaliser
 
 
@@ -150,8 +150,11 @@ class Tub(object):
         input_types = dict(zip(self.inputs, self.types))
         return input_types.get(key)
 
-    def write_json_record(self, json_data):
-        path = self.get_json_record_path(self.current_ix)
+    def write_json_record(self, json_data, ix=None):
+        this_ix = ix
+        if ix is None:
+            this_ix = self.current_ix
+        path = self.get_json_record_path(this_ix)
         try:
             with open(path, 'w') as fp:
                 json.dump(json_data, fp)
@@ -525,36 +528,65 @@ class Tub(object):
         """
         # define the brightness normaliser
         img_br = ImgBrightnessNormaliser(norm)
-
         # define the processor
+
         def processor(img_arr):
             out_arr = img_br.run(img_arr)
             return arr_to_img(out_arr)
 
         self._process_images(processor)
 
-    def _process_images(self, processor):
+    def add_latent_vector(self, encoder, cfg):
         """
-        Go through all images and process them
-        :param processor: function(img_arr) returning an PIL image
+        Adds a latent vector to the json data into field 'encoder/image_latent'.
+        :param encoder:     model that reads a normalised image and returns
+                            a latent vector
+        :param cfg:         donkeycar config for normalize_and_crop
+        """
+        def processor(img_arr):
+            img_norm = normalize_and_crop(img_arr, cfg)
+            img_norm = img_norm.reshape((1,) + img_norm.shape)
+            latent = encoder(img_norm)
+            return latent.numpy().tolist()[0]
+
+        self._process_images(processor, 'encoder/image_latent')
+
+    def _process_images(self, processor, new_key=None):
+        """
+        Go through all images and process them. Either updates the images in
+        the tub or manipulates the records.
+
+        :param processor:   function(img_arr) returning an PIL image or a json
+                            entry
         """
         # Get all record's index
         index = self.get_index(shuffled=False)
         print('Processing', len(index), 'images in', self.path)
         # Go through index
         for ix in tqdm(index):
-            data = self.get_record(ix)
+            json_data = self.get_json_record(ix)
+            data = self.read_record(json_data)
+            new_val = None
             for key, val in data.items():
                 typ = self.get_input_type(key)
                 # load objects that were saved as separate files
                 if typ == 'image_array':
                     # here val is an img_arr
                     img_out = processor(val)
-                    name = self.make_file_name(key, ext='.jpg', ix=ix)
-                    try:
-                        img_out.save(os.path.join(self.path, name))
-                    except IOError as err:
-                        print(err)
+                    # no new_key given, save the result as image
+                    if new_key is None:
+                        name = self.make_file_name(key, ext='.jpg', ix=ix)
+                        try:
+                            img_out.save(os.path.join(self.path, name))
+                        except IOError as err:
+                            print(err)
+                    # new_key means results goes back into record
+                    else:
+                        new_val = img_out
+            # save new record
+            if new_val is not None:
+                json_data[new_key] = new_val
+                self.write_json_record(json_data, ix=ix)
 
     def write_exclude(self):
         if 0 == len(self.exclude):

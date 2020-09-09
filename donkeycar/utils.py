@@ -459,7 +459,7 @@ def get_record_index(fnm):
     return int(sl[1].split('.')[0])
 
 
-def gather_records(cfg, tub_names, exclude=None, data_base=None):
+def gather_records(cfg, tub_names, exclude=None, data_base=None, encoder=None):
     tubs = gather_tubs(cfg, tub_names, exclude)
     records = []
     tub_paths = []
@@ -469,6 +469,8 @@ def gather_records(cfg, tub_names, exclude=None, data_base=None):
     for tub in tubs:
         if exclude_laps is not None:
             tub.exclude_slow_laps(cfg.EXCLUDE_SLOW_LAPS, sort_by=exclude_by)
+        if encoder is not None:
+            tub.add_latent_vector(encoder, cfg)
         record_paths = tub.gather_records()
         records += record_paths
         tub_paths.append(tub.path)

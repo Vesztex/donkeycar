@@ -624,7 +624,10 @@ def sequence_generator(kl, data, cfg):
             if is_mem:
                 drive_shape = (batch_size, cfg.SEQUENCE_LENGTH, 2)
                 X.append(np.array(b_inputs_drive).reshape(drive_shape))
+                # add drive array to targets
                 y.append(np.array(y3))
+                # add dummy to target for internal state model output
+                y.append(np.zeros((batch_size, kl.latent_dim)))
 
             yield X, y
 

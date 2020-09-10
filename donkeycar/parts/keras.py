@@ -478,15 +478,11 @@ class WorldMemory:
                      return_state=last)(x)
         # now x[0] has return sequences and x[1] has the state
         sequences = x[0]
+        state = x[1]
         latent_out = Dense(units=self.latent_dim, name='latent_out')(sequences)
         imu_out = Dense(units=self.imu_dim, name='imu_out')(sequences)
         drive_out = Dense(units=2, name='drive_out')(sequences)
-        state = x[1]
-        outputs = [latent_out, imu_out, drive_out]
-        # TODO: find out how to train on subset of outputs only, so this can
-        #  be removed.
-        if not self.is_train:
-            outputs += [state]
+        outputs = [latent_out, imu_out, drive_out, state]
         model = Model(inputs=[latent_seq_in, imu_seq_in, drive_seq_in],
                       outputs=outputs, name='Memory')
         return model
@@ -495,7 +491,8 @@ class WorldMemory:
         return 'world_memory'
 
     def compile(self):
-        self.model.compile(optimizer='adam', loss='mse')
+        self.model.compile(optimizer='adam', loss=['mse', 'mse', 'mse', None])
+
 
 class AutoEncoder:
     def __init__(self, input_shape=(144, 192, 3), latent_dim=256,

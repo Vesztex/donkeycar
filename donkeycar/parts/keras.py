@@ -451,7 +451,7 @@ class WorldMemory:
     def __init__(self, encoder_path='models/encoder.h5', *args, **kwargs):
         self.seq_length = kwargs.get('seq_length', 3)
         self.imu_dim = kwargs.get('imu_dim', 6)
-        self.layers = kwargs.get('lstm_layers', 2)
+        self.layers = kwargs.get('lstm_layers', 1)
         self.units = kwargs.get('lstm_units', 64)
         self.encoder = keras.models.load_model(encoder_path)
         self.latent_dim = self.encoder.outputs[0].shape[1]
@@ -471,7 +471,6 @@ class WorldMemory:
         x = concatenate(inputs, axis=-1)
         for i in range(self.layers):
             last = (i == self.layers - 1)
-            print(not last)
             x = LSTM(units=self.units,
                      kernel_regularizer=regularizers.l2(l2),
                      recurrent_regularizer=regularizers.l2(l2),

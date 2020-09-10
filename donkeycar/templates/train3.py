@@ -656,7 +656,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     pilot_data['ModelType'] = kl.model_id()
 
     if cfg.PRINT_MODEL_SUMMARY:
-        print(kl.model.summary())
+        print(kl.model.summary(line_length=180))
 
     verbose = cfg.VERBOSE_TRAIN
     encoder = None
@@ -704,8 +704,8 @@ def collating_sequences(cfg, gen_records, extend_length=0):
     target_len = cfg.SEQUENCE_LENGTH + extend_length
     step_size = getattr(cfg, 'SEQUENCE_TRAIN_STEP_SIZE', 1)
     assert type(step_size) is int, 'Sequence step size must be integer.'
-    print('Collating {:} sequences with step size {:}'.format(len(
-        gen_records), step_size))
+    print('Collating {:} sequences with length {:} step size {:}'\
+          .format(len(gen_records), target_len, step_size))
     for k, sample in tqdm(gen_records.items()):
         seq = []
         for i in range(target_len):

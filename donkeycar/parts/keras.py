@@ -451,13 +451,13 @@ class WorldMemory:
     def __init__(self, encoder_path='models/encoder.h5', *args, **kwargs):
         self.seq_length = kwargs.get('seq_length', 3)
         self.imu_dim = kwargs.get('imu_dim', 6)
-        self.layers = kwargs.get('lstm_layers', 1)
-        self.units = kwargs.get('lstm_units', 32)
+        self.layers = kwargs.get('lstm_layers', 2)
+        self.units = kwargs.get('lstm_units', 64)
         self.encoder = keras.models.load_model(encoder_path)
         self.latent_dim = self.encoder.outputs[0].shape[1]
-        self.is_train = True
         self.model = self.make_model()
-        print('Created WorldMemory with encoder path:', encoder_path)
+        print('Created WorldMemory with encoder path:', encoder_path,
+              'seq length', self.seq_length)
 
     def make_model(self):
         l2 = 0.001
@@ -467,9 +467,11 @@ class WorldMemory:
         latent_seq_in = keras.Input(input_shape_latent, name='latent_seq_in')
         imu_seq_in = keras.Input(input_shape_imu, name='imu_seq_in')
         drive_seq_in = keras.Input(input_shape_drive, name='drive_seq_in')
-        x = concatenate([latent_seq_in, imu_seq_in, drive_seq_in], axis=-1)
+        inputs = [latent_seq_in, imu_seq_in, drive_seq_in]
+        x = concatenate(inputs, axis=-1)
         for i in range(self.layers):
             last = (i == self.layers - 1)
+            print(not last)
             x = LSTM(units=self.units,
                      kernel_regularizer=regularizers.l2(l2),
                      recurrent_regularizer=regularizers.l2(l2),
@@ -483,14 +485,15 @@ class WorldMemory:
         imu_out = Dense(units=self.imu_dim, name='imu_out')(sequences)
         drive_out = Dense(units=2, name='drive_out')(sequences)
         outputs = [latent_out, imu_out, drive_out, state]
-        model = Model(inputs=[latent_seq_in, imu_seq_in, drive_seq_in],
-                      outputs=outputs, name='Memory')
+        model = Model(inputs=inputs, outputs=outputs, name='Memory')
         return model
 
     def model_id(self):
         return 'world_memory'
 
     def compile(self):
+        # here we set the loss for the internal state output to None so it
+        # doesn't get used in training
         self.model.compile(optimizer='adam', loss=['mse', 'mse', 'mse', None])
 
 

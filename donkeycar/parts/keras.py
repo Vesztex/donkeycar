@@ -496,6 +496,62 @@ class WorldMemory:
         self.model.compile(optimizer='adam', loss=['mse', 'mse', 'mse', None])
 
 
+class WorldPilot(KerasWorldImu):
+    def __init__(self, pre_trained_path='models/encoder.h5',
+                 memory_path='models/memory.h5',
+                 input_shape=(144, 192, 3), roi_crop=(0, 0), *args, **kwargs):
+        self.memory = keras.models.load_model(memory_path)
+        # get seq length from input shape of memory model
+        self.seq_length = self.memory.inputs[0].shape[1]
+        super().__init__(input_shape=input_shape, roi_crop=roi_crop,
+                         pre_trained_path=pre_trained_path)
+        self.latent_seq = []
+        self.imu_seq = []
+        self.drive_seq = []
+
+    def make_controller_inputs(self):
+        latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
+        imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
+        state_input = keras.Input(shape=(self.latent_dim,), name='state_in')
+        return [latent_input, imu_input, state_input]
+
+    def make_model(self, input_shape, roi_crop):
+        controller = self.make_controller()
+        return controller
+
+    def run(self, img_arr, imu_arr, drive_arr):
+        # convert imu python list into numpy array first, img_arr is already
+        # numpy array
+        imu_arr = np.array(imu_arr)
+        # convert image array into latent vector first
+        img_arr_res = img_arr.reshape((1,) + img_arr.shape)
+        latent_arr = self.encoder.predict(img_arr_res)
+        latent_arr = np.squeeze(latent_arr)
+        # prepare sequences for memory input
+        mem_input = []
+        for seq, arr in zip([self.latent_seq, self.imu_seq, self.drive_seq],
+                            [latent_arr, imu_arr, drive_arr]):
+            # if buffer empty fill to length
+            while len(seq) < self.seq_length:
+                seq.append(arr)
+            # pop oldest entry from front and append new entry at end
+            seq.pop(0)
+            seq.append(arr)
+            # reshape into sequence form
+            new_seq_shape = (1, self.seq_length,) + arr.shape
+            seq_reshape = np.array(seq).reshape(new_seq_shape)
+            mem_input.append(seq_reshape)
+
+        # now we run the memory model, only need internal state from output
+        [latent_out, imu_out, drive_out, state] = self.memory.predict(mem_input)
+
+        # now we run the controller, taking current latent vector, imu and state
+        outputs = self.model.predict([latent_arr, imu_arr, state])
+        steering = outputs[0]
+        throttle = outputs[1]
+        return steering[0][0], throttle[0][0]
+
+
 class AutoEncoder:
     def __init__(self, input_shape=(144, 192, 3), latent_dim=256,
                  encoder_path=None, decoder_path=None):

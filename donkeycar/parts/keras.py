@@ -503,6 +503,8 @@ class WorldPilot(KerasWorldImu):
         self.memory = keras.models.load_model(memory_path)
         # get seq length from input shape of memory model
         self.seq_length = self.memory.inputs[0].shape[1]
+        # get state vector length from last output of memory model
+        self.state_dim = self.memory.outputs[3].shape[1]
         super().__init__(input_shape=input_shape, roi_crop=roi_crop,
                          pre_trained_path=pre_trained_path)
         self.latent_seq = []
@@ -512,7 +514,7 @@ class WorldPilot(KerasWorldImu):
     def make_controller_inputs(self):
         latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
         imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
-        state_input = keras.Input(shape=(self.latent_dim,), name='state_in')
+        state_input = keras.Input(shape=(self.state_dim,), name='state_in')
         return [latent_input, imu_input, state_input]
 
     def make_model(self, input_shape, roi_crop):
@@ -522,15 +524,15 @@ class WorldPilot(KerasWorldImu):
     def run(self, img_arr, imu_arr, drive_arr):
         # convert imu python list into numpy array first, img_arr is already
         # numpy array
-        imu_arr = np.array(imu_arr)
+        imu_arr = np.array(imu_arr).reshape((1, len(imu_arr)))
         # convert image array into latent vector first
         img_arr_res = img_arr.reshape((1,) + img_arr.shape)
+        # encoder returns (1, latent_dim)
         latent_arr = self.encoder.predict(img_arr_res)
-        latent_arr = np.squeeze(latent_arr)
         # prepare sequences for memory input
         mem_input = []
         for seq, arr in zip([self.latent_seq, self.imu_seq, self.drive_seq],
-                            [latent_arr, imu_arr, drive_arr]):
+                            [latent_arr[0], imu_arr[0], drive_arr]):
             # if buffer empty fill to length
             while len(seq) < self.seq_length:
                 seq.append(arr)

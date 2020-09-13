@@ -450,7 +450,7 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
 class WorldMemory:
     def __init__(self, encoder_path='models/encoder.h5', *args, **kwargs):
         self.seq_length = kwargs.get('seq_length', 3)
-        self.imu_dim = kwargs.get('imu_dim', 6)
+        #self.imu_dim = kwargs.get('imu_dim', 6)
         self.layers = kwargs.get('lstm_layers', 1)
         self.units = kwargs.get('lstm_units', 64)
         self.encoder = keras.models.load_model(encoder_path)
@@ -462,12 +462,12 @@ class WorldMemory:
     def make_model(self):
         l2 = 0.001
         input_shape_latent = (self.seq_length, self.latent_dim)
-        input_shape_imu = (self.seq_length, self.imu_dim)
+        #input_shape_imu = (self.seq_length, self.imu_dim)
         input_shape_drive = (self.seq_length, 2)
         latent_seq_in = keras.Input(input_shape_latent, name='latent_seq_in')
-        imu_seq_in = keras.Input(input_shape_imu, name='imu_seq_in')
+        #imu_seq_in = keras.Input(input_shape_imu, name='imu_seq_in')
         drive_seq_in = keras.Input(input_shape_drive, name='drive_seq_in')
-        inputs = [latent_seq_in, imu_seq_in, drive_seq_in]
+        inputs = [latent_seq_in, drive_seq_in]
         x = concatenate(inputs, axis=-1)
         for i in range(self.layers):
             last = (i == self.layers - 1)
@@ -481,9 +481,9 @@ class WorldMemory:
         sequences = x[0]
         state = x[1]
         latent_out = Dense(units=self.latent_dim, name='latent_out')(sequences)
-        imu_out = Dense(units=self.imu_dim, name='imu_out')(sequences)
-        drive_out = Dense(units=2, name='drive_out')(sequences)
-        outputs = [latent_out, imu_out, drive_out, state]
+        #imu_out = Dense(units=self.imu_dim, name='imu_out')(sequences)
+        #drive_out = Dense(units=2, name='drive_out')(sequences)
+        outputs = [latent_out, state]  # [latent_out, imu_out, drive_out, state]
         model = Model(inputs=inputs, outputs=outputs, name='Memory')
         return model
 
@@ -493,7 +493,7 @@ class WorldMemory:
     def compile(self):
         # here we set the loss for the internal state output to None so it
         # doesn't get used in training
-        self.model.compile(optimizer='adam', loss=['mse', 'mse', 'mse', None])
+        self.model.compile(optimizer='adam', loss=['mse', None])
 
 
 class WorldPilot(KerasWorldImu):
@@ -507,9 +507,9 @@ class WorldPilot(KerasWorldImu):
         self.state_dim = self.memory.outputs[3].shape[1]
         super().__init__(input_shape=input_shape, roi_crop=roi_crop,
                          pre_trained_path=pre_trained_path)
-        self.latent_seq = []
-        self.imu_seq = []
-        self.drive_seq = []
+        # fill sequence to size
+        self.latent_seq = [np.zeros((self.latent_dim,))] * self.seq_length
+        self.drive_seq = [np.zeros((2,))] * self.seq_length
 
     def make_controller_inputs(self):
         latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
@@ -521,7 +521,7 @@ class WorldPilot(KerasWorldImu):
         controller = self.make_controller()
         return controller
 
-    def run(self, img_arr, imu_arr, drive_arr):
+    def run(self, img_arr, imu_arr):
         # convert imu python list into numpy array first, img_arr is already
         # numpy array
         imu_arr = np.array(imu_arr).reshape((1, len(imu_arr)))
@@ -531,16 +531,10 @@ class WorldPilot(KerasWorldImu):
         latent_arr = self.encoder.predict(img_arr_res)
         # prepare sequences for memory input
         mem_input = []
-        for seq, arr in zip([self.latent_seq, self.imu_seq, self.drive_seq],
-                            [latent_arr[0], imu_arr[0], drive_arr]):
-            # if buffer empty fill to length
-            while len(seq) < self.seq_length:
-                seq.append(arr)
-            # pop oldest entry from front and append new entry at end
-            seq.pop(0)
-            seq.append(arr)
+        for seq, size in zip([self.latent_seq, self.drive_seq],
+                             [self.latent_dim, 2]):
             # reshape into sequence form
-            new_seq_shape = (1, self.seq_length,) + arr.shape
+            new_seq_shape = (1, self.seq_length,) + size
             seq_reshape = np.array(seq).reshape(new_seq_shape)
             mem_input.append(seq_reshape)
 
@@ -549,9 +543,14 @@ class WorldPilot(KerasWorldImu):
 
         # now we run the controller, taking current latent vector, imu and state
         outputs = self.model.predict([latent_arr, imu_arr, state])
-        steering = outputs[0]
-        throttle = outputs[1]
-        return steering[0][0], throttle[0][0]
+        drive_arr = [outputs[i][0][0] for i in [0, 1]]
+        for seq, arr in zip([self.latent_seq, self.drive_seq],
+                            [latent_arr[0], np.array(drive_arr)]):
+            # pop oldest entry from front and append new entry at end
+            seq.pop(0)
+            seq.append(arr)
+        # return angle, throttle
+        return drive_arr[0], drive_arr[1]
 
 
 class AutoEncoder:

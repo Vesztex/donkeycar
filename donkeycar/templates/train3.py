@@ -540,6 +540,7 @@ def sequence_generator(kl, data, cfg):
     batch_size = cfg.BATCH_SIZE
     is_imu = False
     is_mem = type(kl) is WorldMemory
+
     while True:
         for offset in range(0, num_records, batch_size):
             batch_data = data[offset:offset+batch_size]
@@ -551,8 +552,6 @@ def sequence_generator(kl, data, cfg):
             b_inputs_drive = []
             y1 = []
             y2 = []
-            y3 = []
-            cache = {}
 
             for seq in batch_data:
                 inputs_img = []
@@ -588,7 +587,6 @@ def sequence_generator(kl, data, cfg):
                         if is_mem:
                             if len(inputs_img) < num_images_target - 1:
                                 inputs_img.append(img_arr)
-                                inputs_imu.append(imu_arr)
                                 inputs_drive.append(drive_arr)
                         else:
                             inputs_img.append(img_arr)
@@ -600,8 +598,6 @@ def sequence_generator(kl, data, cfg):
                     if iRec == num_images_target - 1:
                         if is_mem:
                             y1.append(np.squeeze(img_arr))
-                            y2.append(imu_arr)
-                            y3.append(drive_arr)
                         else:
                             y1.append(drive_arr[0])
                             y2.append(drive_arr[1])
@@ -612,22 +608,22 @@ def sequence_generator(kl, data, cfg):
 
             if is_mem:
                 x_shape = (batch_size, cfg.SEQUENCE_LENGTH, kl.latent_dim)
+                X = [np.array(b_inputs_img).reshape(x_shape)]
+                drive_shape = (batch_size, cfg.SEQUENCE_LENGTH, 2)
+                X.append(np.array(b_inputs_drive).reshape(drive_shape))
+                y = np.array(y1)
+                # add dummy to target for internal state model output
+                y.append(np.zeros((batch_size, kl.state_dim)))
+
             else:
                 x_shape = (batch_size, cfg.SEQUENCE_LENGTH,
                            cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
-            X = [np.array(b_inputs_img).reshape(x_shape)]
-            y = [np.array(y1), np.array(y2)]
-            if is_imu:
-                imu_dim = getattr(cfg, 'IMU_DIM', 6)
-                imu_shape = (batch_size, cfg.SEQUENCE_LENGTH, imu_dim)
-                X.append(np.array(b_inputs_imu).reshape(imu_shape))
-            if is_mem:
-                drive_shape = (batch_size, cfg.SEQUENCE_LENGTH, 2)
-                X.append(np.array(b_inputs_drive).reshape(drive_shape))
-                # add drive array to targets
-                y.append(np.array(y3))
-                # add dummy to target for internal state model output
-                y.append(np.zeros((batch_size, kl.latent_dim)))
+                X = [np.array(b_inputs_img).reshape(x_shape)]
+                if is_imu:
+                    imu_dim = getattr(cfg, 'IMU_DIM', 6)
+                    imu_shape = (batch_size, cfg.SEQUENCE_LENGTH, imu_dim)
+                    X.append(np.array(b_inputs_imu).reshape(imu_shape))
+                y = [np.array(y1), np.array(y2)]
 
             yield X, y
 

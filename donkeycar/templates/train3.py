@@ -611,9 +611,9 @@ def sequence_generator(kl, data, cfg):
                 X = [np.array(b_inputs_img).reshape(x_shape)]
                 drive_shape = (batch_size, cfg.SEQUENCE_LENGTH, 2)
                 X.append(np.array(b_inputs_drive).reshape(drive_shape))
-                y = np.array(y1)
+                y = [np.array(y1)]
                 # add dummy to target for internal state model output
-                y.append(np.zeros((batch_size, kl.state_dim)))
+                y.append(np.zeros((batch_size, kl.units)))
 
             else:
                 x_shape = (batch_size, cfg.SEQUENCE_LENGTH,

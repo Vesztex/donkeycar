@@ -583,11 +583,10 @@ def sequence_generator(kl, data, cfg):
                             imu_arr = record['imu_array']
                         drive_arr = [record['angle'], record['throttle']]
                         # for world memory model input is latent vector and
-                        # imu and angle/throttle series
-                        if is_mem:
-                            if len(inputs_img) < num_images_target - 1:
-                                inputs_img.append(img_arr)
-                                inputs_drive.append(drive_arr)
+                        # angle/throttle series up to last entry
+                        if is_mem and len(inputs_img) < num_images_target - 1:
+                            inputs_img.append(img_arr)
+                            inputs_drive.append(drive_arr)
                         else:
                             inputs_img.append(img_arr)
                             if is_imu:
@@ -607,22 +606,14 @@ def sequence_generator(kl, data, cfg):
                 b_inputs_drive.append(inputs_drive)
 
             if is_mem:
-                x_shape = (batch_size, cfg.SEQUENCE_LENGTH, kl.latent_dim)
-                X = [np.array(b_inputs_img).reshape(x_shape)]
-                drive_shape = (batch_size, cfg.SEQUENCE_LENGTH, 2)
-                X.append(np.array(b_inputs_drive).reshape(drive_shape))
-                y = [np.array(y1)]
+                X = [np.array(b_inputs_img), np.array(b_inputs_drive)]
                 # add dummy to target for internal state model output
-                y.append(np.zeros((batch_size, kl.units)))
+                y = [np.array(y1), np.zeros((batch_size, kl.units))]
 
             else:
-                x_shape = (batch_size, cfg.SEQUENCE_LENGTH,
-                           cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
-                X = [np.array(b_inputs_img).reshape(x_shape)]
+                X = [np.array(b_inputs_img)]
                 if is_imu:
-                    imu_dim = getattr(cfg, 'IMU_DIM', 6)
-                    imu_shape = (batch_size, cfg.SEQUENCE_LENGTH, imu_dim)
-                    X.append(np.array(b_inputs_imu).reshape(imu_shape))
+                    X.append(np.array(b_inputs_imu))
                 y = [np.array(y1), np.array(y2)]
 
             yield X, y

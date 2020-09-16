@@ -328,7 +328,7 @@ class Tub(object):
     def get_json_record_path(self, ix):
         return os.path.join(self.path, 'record_' + str(ix) + '.json')
 
-    def get_json_record(self, ix, unravel=False):
+    def get_json_record(self, ix, unravel=False, abs_path=True):
         path = self.get_json_record_path(ix)
         err_add = 'You may want to run `donkey tubcheck --fix`'
         try:
@@ -362,8 +362,10 @@ class Tub(object):
                 del(json_data[d])
             json_data.update(unravel_dict)
 
-        record_dict = self.make_record_paths_absolute(json_data)
-        return record_dict
+        if abs_path:
+            return self.make_record_paths_absolute(json_data)
+        else:
+            return json_data
 
     def get_record(self, ix):
         json_data = self.get_json_record(ix)
@@ -564,7 +566,8 @@ class Tub(object):
         print('Processing', len(index), 'images in', self.path)
         # Go through index
         for ix in tqdm(index):
-            json_data = self.get_json_record(ix)
+            # don't change the record by inserting abs path
+            json_data = self.get_json_record(ix, abs_path=False)
             data = self.read_record(json_data)
             new_val = None
             for key, val in data.items():

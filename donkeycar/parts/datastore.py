@@ -546,8 +546,8 @@ class Tub(object):
         def processor(img_arr):
             img_norm = normalize_and_crop(img_arr, cfg)
             img_norm = img_norm.reshape((1,) + img_norm.shape)
-            latent = encoder(img_norm)
-            return latent.numpy().tolist()[0]
+            latent = encoder.predict(img_norm)
+            return latent.tolist()[0]
 
         self._process_images(processor, 'encoder/image_latent')
 

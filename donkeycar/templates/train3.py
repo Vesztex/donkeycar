@@ -587,7 +587,7 @@ def sequence_generator(kl, data, cfg):
                         if is_mem and len(inputs_img) < num_images_target - 1:
                             inputs_img.append(img_arr)
                             inputs_drive.append(drive_arr)
-                        else:
+                        if not is_mem:
                             inputs_img.append(img_arr)
                             if is_imu:
                                 inputs_imu.append(imu_arr)

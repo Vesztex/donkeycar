@@ -181,6 +181,18 @@ class Tub(object):
             d[k] = v
         return d
 
+    def make_record_paths_relative(self, record_dict):
+        # make paths absolute
+        d = {}
+        for k, v in record_dict.items():
+            if self.get_input_type(k) == 'image_array':  # path to jpg file
+                vs = os.path.split(v)
+                if len(vs) == 2:
+                    # this is the file name x.jpg in path /mycar/data/tub/x.jpg
+                    v = vs[1]
+            d[k] = v
+        return d
+
     def copy(self, suffix='copy'):
         """
         Create new tub by inserting 'copy' before the date like
@@ -328,7 +340,7 @@ class Tub(object):
     def get_json_record_path(self, ix):
         return os.path.join(self.path, 'record_' + str(ix) + '.json')
 
-    def get_json_record(self, ix, unravel=False, abs_path=True):
+    def get_json_record(self, ix, unravel=False):
         path = self.get_json_record_path(ix)
         err_add = 'You may want to run `donkey tubcheck --fix`'
         try:
@@ -362,10 +374,8 @@ class Tub(object):
                 del(json_data[d])
             json_data.update(unravel_dict)
 
-        if abs_path:
-            return self.make_record_paths_absolute(json_data)
-        else:
-            return json_data
+        json_out = self.make_record_paths_absolute(json_data)
+        return json_out
 
     def get_record(self, ix):
         json_data = self.get_json_record(ix)
@@ -567,7 +577,7 @@ class Tub(object):
         # Go through index
         for ix in tqdm(index):
             # don't change the record by inserting abs path
-            json_data = self.get_json_record(ix, abs_path=False)
+            json_data = self.get_json_record(ix)
             data = self.read_record(json_data)
             new_val = None
             for key, val in data.items():
@@ -589,6 +599,7 @@ class Tub(object):
             # save new record
             if new_val is not None:
                 json_data[new_key] = new_val
+                json_data = self.make_record_paths_relative(json_data)
                 self.write_json_record(json_data, ix=ix)
 
     def write_exclude(self):

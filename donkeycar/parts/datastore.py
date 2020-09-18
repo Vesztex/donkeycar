@@ -558,7 +558,8 @@ class Tub(object):
         def processor(img_arr):
             img_norm = normalize_and_crop(img_arr, cfg)
             img_norm = img_norm.reshape((1,) + img_norm.shape)
-            latent = encoder.predict(img_norm)
+            latent = encoder.predict(img_norm, workers=1,
+                                     use_multiprocessing=False)
             return latent.tolist()[0]
 
         force_overwrite = getattr(cfg, 'OVERWRITE_LATENT', True)

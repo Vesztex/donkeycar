@@ -977,6 +977,7 @@ if __name__ == "__main__":
     nn_size = args['--nn_size']
     train_frac = args['--frac']
     dry = args['--dry']
+
     if nn_size is not None:
         cfg.NN_SIZE = nn_size
 

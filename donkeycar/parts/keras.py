@@ -487,8 +487,14 @@ class WorldMemory:
         model = Model(inputs=inputs, outputs=outputs, name='Memory')
         return model
 
+    def load(self, model_path):
+        prev = self.model_id()
+        self.model = keras.models.load_model(model_path)
+        print("Load model: overwriting " + prev + " with " + self.model_id())
+
     def model_id(self):
-        return 'world_memory'
+        return 'world_memory layers: ' + str(self.layers) + ' units: ' \
+               + str(self.units)
 
     def compile(self):
         # here we set the loss for the internal state output to None so it

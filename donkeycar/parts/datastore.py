@@ -561,9 +561,11 @@ class Tub(object):
             latent = encoder.predict(img_norm)
             return latent.tolist()[0]
 
-        self._process_images(processor, 'encoder/image_latent')
+        force_overwrite = getattr(cfg, 'OVERWRITE_LATENT', True)
+        self._process_images(processor, 'encoder/image_latent',
+                             force_overwrite=force_overwrite)
 
-    def _process_images(self, processor, new_key=None):
+    def _process_images(self, processor, new_key=None, force_overwrite=True):
         """
         Go through all images and process them. Either updates the images in
         the tub or manipulates the records.
@@ -579,6 +581,9 @@ class Tub(object):
             # don't change the record by inserting abs path
             json_data = self.get_json_record(ix)
             data = self.read_record(json_data)
+            # skip if already processed data found
+            if new_key in data and not force_overwrite:
+                continue
             new_val = None
             for key, val in data.items():
                 typ = self.get_input_type(key)

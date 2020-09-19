@@ -181,7 +181,8 @@ class MyCPCallback(keras.callbacks.ModelCheckpoint):
 
 def generator(kl, data, cfg, is_train_set=True):
     batch_size = cfg.BATCH_SIZE
-    has_imu = type(kl) in [KerasIMU, KerasSquarePlusImu, KerasWorldImu]
+    has_imu = type(kl) in [KerasIMU, KerasSquarePlusImu, KerasWorldImu,
+                           WorldPilot]
     has_bvh = type(kl) is KerasBehavioral
     img_out = type(kl) is KerasLatent
     loc_out = type(kl) is KerasLocalizer
@@ -252,8 +253,12 @@ def generator(kl, data, cfg, is_train_set=True):
                 if img_arr is None:
                     continue
 
-                shape = (batch_size, cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
-                img_arr = np.array(inputs_img).reshape(shape)
+                if type(kl) is WorldPilot:
+                    img_arr = np.array(inputs_img)
+                else:
+                    shape = (batch_size, cfg.TARGET_H,
+                             cfg.TARGET_W, cfg.TARGET_D)
+                    img_arr = np.array(inputs_img).reshape(shape)
 
                 if has_imu:
                     X = [img_arr, np.array(inputs_imu)]

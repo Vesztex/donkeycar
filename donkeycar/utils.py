@@ -23,7 +23,8 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-from donkeycar.parts.keras import KerasSquarePlusImuLstm, WorldMemory
+from donkeycar.parts.keras import KerasSquarePlusImuLstm, WorldMemory, \
+    WorldPilot
 
 '''
 IMAGES
@@ -537,7 +538,7 @@ def get_model_by_type(model_type, cfg):
                                         roi_crop=roi_crop,
                                         imu_dim=imu_dim, size=nn_size,
                                         seq_length=seq_length)
-    elif model_type == 'world':
+    elif model_type == 'world_encoder':
         kl = KerasWorld(input_shape=input_shape)
     elif model_type == 'world_imu':
         kl = KerasWorldImu(input_shape=input_shape)
@@ -545,6 +546,8 @@ def get_model_by_type(model_type, cfg):
         kl = WorldMemory(input_shape=input_shape,
                          encoder_path=cfg.ENCODER_PATH,
                          seq_length=cfg.SEQUENCE_LENGTH)
+    elif model_type == 'world':
+        kl = WorldPilot(input_shape=input_shape)
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit which
         # causes a lot of unexpected things to happen when using TF-GPU for

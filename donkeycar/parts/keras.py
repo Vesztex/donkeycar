@@ -286,12 +286,12 @@ class KerasSquarePlusImu(KerasSquarePlus):
     def text(self):
         return super().text() + ' Imu dim ' + str(self.imu_dim)
 
-    def run(self, img_arr, imu=None):
+    def run(self, img_arr, imu_arr=None):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        if imu is None:
+        if imu_arr is None:
             imu_arr = np.zeros((1, 6))
         else:
-            imu_arr = np.array(imu).reshape(1, self.imu_dim)
+            imu_arr = np.array(imu_arr).reshape(1, self.imu_dim)
         outputs = self.model.predict(x=[img_arr, imu_arr])
         steering = outputs[0]
         throttle = outputs[1]
@@ -510,7 +510,7 @@ class WorldPilot(KerasWorldImu):
         # get seq length from input shape of memory model
         self.seq_length = self.memory.inputs[0].shape[1]
         # get state vector length from last output of memory model
-        self.state_dim = self.memory.outputs[3].shape[1]
+        self.state_dim = self.memory.outputs[1].shape[1]
         super().__init__(input_shape=input_shape, roi_crop=roi_crop,
                          pre_trained_path=pre_trained_path)
         # fill sequence to size
@@ -524,37 +524,43 @@ class WorldPilot(KerasWorldImu):
         return [latent_input, imu_input, state_input]
 
     def make_model(self, input_shape, roi_crop):
+        latent_seq_input = keras.Input(shape=(self.seq_length,
+                                              self.latent_dim),
+                                       name='latent_seq_in')
+        drive_seq_input = keras.Input(shape=(self.seq_length, 2),
+                                      name='drive_seq_in')
+        [latent_out, state] = self.memory([latent_seq_input, drive_seq_input])
+        img_input = keras.Input(shape=input_shape, name='img_in')
+        latent = self.encoder(img_input)
+        imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
         controller = self.make_controller()
-        return controller
+        outputs = controller([latent, imu_input, state])
+        model = Model(inputs=[img_input, imu_input,
+                              latent_seq_input, drive_seq_input],
+                      outputs=[outputs, latent])
+        return model
 
-    def run(self, img_arr, imu_arr):
+    def run(self, img_arr, imu_arr=None):
         # convert imu python list into numpy array first, img_arr is already
         # numpy array
-        imu_arr = np.array(imu_arr).reshape((1, len(imu_arr)))
+        if imu_arr is None:
+            imu_arr = np.zeros((1, self.imu_dim))
+        else:
+            imu_arr = np.array([imu_arr])
         # convert image array into latent vector first
-        img_arr_res = img_arr.reshape((1,) + img_arr.shape)
-        # encoder returns (1, latent_dim)
-        latent_arr = self.encoder.predict(img_arr_res)
-        # prepare sequences for memory input
-        mem_input = []
-        for seq, size in zip([self.latent_seq, self.drive_seq],
-                             [self.latent_dim, 2]):
-            # reshape into sequence form
-            new_seq_shape = (1, self.seq_length,) + size
-            seq_reshape = np.array(seq).reshape(new_seq_shape)
-            mem_input.append(seq_reshape)
-
-        # now we run the memory model, only need internal state from output
-        [latent_out, imu_out, drive_out, state] = self.memory.predict(mem_input)
-
-        # now we run the controller, taking current latent vector, imu and state
-        outputs = self.model.predict([latent_arr, imu_arr, state])
-        drive_arr = [outputs[i][0][0] for i in [0, 1]]
-        for seq, arr in zip([self.latent_seq, self.drive_seq],
-                            [latent_arr[0], np.array(drive_arr)]):
+        img_arr = img_arr.reshape((1,) + img_arr.shape)
+        # now we run the model returning drive vector and last latent vector
+        inputs = [img_arr, imu_arr,
+                  np.array([self.latent_seq]), np.array([self.drive_seq])]
+        [drive, latent] = self.model.predict(inputs)
+        # convert drive array of ndarray into more convenient type
+        drive_arr = np.array(drive).squeeze()
+        # add new results for angle, throttle and latent vector into sequence
+        for seq, new in zip([self.latent_seq, self.drive_seq],
+                            [latent[0], drive_arr]):
             # pop oldest entry from front and append new entry at end
             seq.pop(0)
-            seq.append(arr)
+            seq.append(new)
         # return angle, throttle
         return drive_arr[0], drive_arr[1]
 

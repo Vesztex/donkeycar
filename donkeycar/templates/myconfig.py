@@ -76,6 +76,7 @@ SORT_LAPS_BY = 'lap_time'  # gyro_z, accel_x
 SEQUENCE_LENGTH = 5
 SEQUENCE_TRAIN_STEP_SIZE = 1
 ENCODER_PATH = 'models/encoder.h5'
+OVERWRITE_LATENT = False
 
 
 # PI DATA

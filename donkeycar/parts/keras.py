@@ -343,22 +343,25 @@ class KerasWorld(KerasSquarePlus):
     """
 
     def __init__(self, input_shape=(144, 192, 3), roi_crop=(0, 0),
-                 pre_trained_path=None, *args, **kwargs):
-        self.pre_trained_path = pre_trained_path
+                 encoder_path=None, *args, **kwargs):
+        self.encoder_path = encoder_path
+        self.latent_dim = kwargs.get('latent_dim', 128)
         self.encoder = self.make_encoder(input_shape)
-        self.latent_dim = self.encoder.outputs[0].shape[1]
-        self.encoder.trainable = self.pre_trained_path is None
+        self.encoder.trainable = self.encoder_path is None
         super().__init__(input_shape, roi_crop, size='R', *args, **kwargs)
 
     def make_encoder(self, input_shape):
-        if self.pre_trained_path is None:
-            return AutoEncoder(input_shape=input_shape, latent_dim=128).encoder
+        if self.encoder_path is None:
+            return AutoEncoder(input_shape=input_shape,
+                               latent_dim=self.latent_dim).encoder
         else:
             # load full world model
-            k_world = tf.keras.models.load_model(self.pre_trained_path)
+            k_world = tf.keras.models.load_model(self.encoder_path)
             # return layer 1 which is the encoder
             encoder = k_world.layers[1]
             self.encoder_checks(encoder)
+            # reset latent dimension from loaded model
+            self.latent_dim = encoder.outputs[0].shape[1]
             return encoder
 
     def make_controller_inputs(self):
@@ -393,8 +396,8 @@ class KerasWorld(KerasSquarePlus):
 
     def text(self):
         text = super().text()
-        if self.pre_trained_path is not None:
-            text += ' with encoder from : ' + str(self.pre_trained_path)
+        if self.encoder_path is not None:
+            text += ' with encoder from : ' + str(self.encoder_path)
         return text
 
     def load(self, model_path):
@@ -423,9 +426,9 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
     """
 
     def __init__(self, input_shape=(144, 192, 3), roi_crop=(0, 0),
-                 pre_trained_path=None, *args, **kwargs):
+                 encoder_path=None, *args, **kwargs):
         super().__init__(input_shape, roi_crop,
-                         pre_trained_path=pre_trained_path, *args, **kwargs)
+                         encoder_path=encoder_path, *args, **kwargs)
 
     def make_controller_inputs(self):
         latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
@@ -453,7 +456,7 @@ class WorldMemory:
         #self.imu_dim = kwargs.get('imu_dim', 6)
         self.layers = kwargs.get('lstm_layers', 1)
         self.units = kwargs.get('lstm_units', 64)
-        self.encoder = keras.models.load_model(encoder_path)
+        self.encoder = keras.models.load_model(encoder_path).layers[1]
         self.latent_dim = self.encoder.outputs[0].shape[1]
         self.model = self.make_model()
         print('Created WorldMemory with encoder path:', encoder_path,
@@ -503,7 +506,7 @@ class WorldMemory:
 
 
 class WorldPilot(KerasWorldImu):
-    def __init__(self, pre_trained_path='models/encoder.h5',
+    def __init__(self, encoder_path='models/encoder.h5',
                  memory_path='models/memory.h5',
                  input_shape=(144, 192, 3), roi_crop=(0, 0), *args, **kwargs):
         self.memory = keras.models.load_model(memory_path)
@@ -512,10 +515,12 @@ class WorldPilot(KerasWorldImu):
         # get state vector length from last output of memory model
         self.state_dim = self.memory.outputs[1].shape[1]
         super().__init__(input_shape=input_shape, roi_crop=roi_crop,
-                         pre_trained_path=pre_trained_path)
+                         encoder_path=encoder_path)
         # fill sequence to size
         self.latent_seq = [np.zeros((self.latent_dim,))] * self.seq_length
         self.drive_seq = [np.zeros((2,))] * self.seq_length
+        self.encoder.trainable = False
+        self.memory.trainable = False
 
     def make_controller_inputs(self):
         latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
@@ -537,8 +542,18 @@ class WorldPilot(KerasWorldImu):
         outputs = controller([latent, imu_input, state])
         model = Model(inputs=[img_input, imu_input,
                               latent_seq_input, drive_seq_input],
-                      outputs=[outputs, latent])
+                      outputs=[outputs, latent],
+                      name='world_pilot')
         return model
+
+    def compile(self):
+        # here we set the loss for the latent vector output to None so it
+        # doesn't get used in training
+        self.model.compile(optimizer='adam', loss=['mse', None])
+
+    def model_id(self):
+        return 'World pilot state dim: {:} seq length {:}'\
+            .format(self.state_dim, self.seq_length)
 
     def run(self, img_arr, imu_arr=None):
         # convert imu python list into numpy array first, img_arr is already

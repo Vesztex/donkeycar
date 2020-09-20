@@ -547,7 +547,8 @@ def get_model_by_type(model_type, cfg):
                          encoder_path=cfg.ENCODER_PATH,
                          seq_length=cfg.SEQUENCE_LENGTH)
     elif model_type == 'world':
-        kl = WorldPilot(input_shape=input_shape)
+        kl = WorldPilot(input_shape=input_shape,
+                        encoder_path=cfg.ENCODER_PATH)
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit which
         # causes a lot of unexpected things to happen when using TF-GPU for

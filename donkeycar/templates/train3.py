@@ -16,6 +16,7 @@ Usage:
     [--file=<file> ...]
     [--model=<model>]
     [--transfer=<model>]
+    [--encoder=<model>]
     [--type=(linear|latent|categorical|rnn|imu|behavior|3d|look_ahead|tensorrt_linear|tflite_linear|coral_tflite_linear)]
     [--figure_format=<figure_format>]
     [--nn_size=<nn_size>]
@@ -123,7 +124,8 @@ def collate_records(records, gen_records, cfg):
 
         sample['angle'] = angle
         sample['throttle'] = throttle
-        sample['img_data'] = json_data.get('encoder/image_latent')
+        sample['img_latent'] = json_data.get('encoder/image_latent')
+        sample['img_data'] = None
 
         if 'car/accel' in json_data:
             accel = clamp_and_norm(json_data['car/accel'], accel_mult)
@@ -221,7 +223,7 @@ def generator(kl, data, cfg, is_train_set=True):
 
                 for record in batch_data:
                     # get image data if we don't already have it
-                    if record['img_data'] is None:
+                    if record.get('img_data') is None:
                         filename = record['image_path']
                         img_arr = load_scaled_image_arr(filename, cfg)
                         if img_arr is None:
@@ -540,11 +542,27 @@ def make_train_plot(history, model_path, save_best):
                                                         figure_format))
 
 
+def get_img_from_record(record, cfg):
+    # for normal models img data either needs to get
+    # loaded through the path to the image or has
+    # been loaded into 'img_data' already
+    if record['img_data'] is None:
+        img_path = record['image_path']
+        img_arr = load_scaled_image_arr(img_path, cfg)
+        if aug:
+            img_arr = augment_image(img_arr)
+        if cfg.CACHE_IMAGES:
+            record['img_data'] = img_arr
+    else:
+        img_arr = record['img_data']
+    return img_arr
+
+
 def sequence_generator(kl, data, cfg):
     num_records = len(data)
     batch_size = cfg.BATCH_SIZE
-    is_imu = False
     is_mem = type(kl) is WorldMemory
+    is_world = type(kl) is WorldPilot
 
     while True:
         for offset in range(0, num_records, batch_size):
@@ -553,73 +571,86 @@ def sequence_generator(kl, data, cfg):
                 break
 
             b_inputs_img = []
+            b_inputs_latent = []
             b_inputs_imu = []
             b_inputs_drive = []
-            y1 = []
-            y2 = []
+            b_outputs = []
 
             for seq in batch_data:
                 inputs_img = []
+                inputs_latent = []
                 inputs_imu = []
                 inputs_drive = []
+                outputs = []
                 num_images_target = len(seq)
-                # for memory model sequence is one longer as we want to
-                # predict the next latent vector, imu and drive vector
-
+                # For memory or world model, the sequence is one longer than
+                # the input data. For the memory model we want to predict the
+                # next latent vector and for the world model we want in
+                # addition to use the last (=current) entry as input of image
+                # and imu
                 for iRec, record in enumerate(seq):
                     # get image data if we don't already have it
-                    if len(inputs_img) < num_images_target:
-                        if record['img_data'] is None:
-                            img_path = record['image_path']
-                            img_arr = load_scaled_image_arr(img_path, cfg)
-                            if img_arr is None:
-                                break
-                            if aug:
-                                img_arr = augment_image(img_arr)
-                            if cfg.CACHE_IMAGES:
-                                record['img_data'] = img_arr
-                        # for world memory model img_data contains latent vec
-                        else:
-                            img_arr = record['img_data']
-
-                        imu_arr = None
-                        if 'imu_array' in record:
-                            is_imu = True
-                            imu_arr = record['imu_array']
-                        drive_arr = [record['angle'], record['throttle']]
-                        # for world memory model input is latent vector and
-                        # angle/throttle series up to last entry
-                        if is_mem and len(inputs_img) < num_images_target - 1:
-                            inputs_img.append(img_arr)
-                            inputs_drive.append(drive_arr)
-                        if not is_mem:
-                            inputs_img.append(img_arr)
-                            if is_imu:
-                                inputs_imu.append(imu_arr)
-
+                    if not is_mem:
+                        img_arr = get_img_from_record(record, cfg)
+                    # for memory and world model get latent array
+                    if is_mem or is_world:
+                        latent_arr = record['img_latent']
+                    # allow imu_arr to be None if it's not in the data
+                    imu_arr = record.get('imu_array')
+                    # but not for world model
+                    if is_world:
+                        assert imu_arr is not None, 'World model requires imu data'
+                    drive_arr = [record['angle'], record['throttle']]
+                    # for memory model input consists of latent vector and
+                    # angle/throttle series up to last entry for world model
+                    # input additionally contains the image and imu array
+                    if (is_mem or is_world) and len(inputs_latent) < \
+                            num_images_target - 1:
+                        inputs_latent.append(latent_arr)
+                        inputs_drive.append(drive_arr)
+                    if not (is_mem or is_world):
+                        inputs_img.append(img_arr)
+                        if imu_arr:
+                            inputs_imu.append(imu_arr)
                     # add the latest angle / throttle to observation data in
                     # normal sequence model, and the next data in memory model
                     if iRec == num_images_target - 1:
                         if is_mem:
-                            y1.append(np.squeeze(img_arr))
+                            outputs.append(np.squeeze(latent_arr))
                         else:
-                            y1.append(drive_arr[0])
-                            y2.append(drive_arr[1])
+                            if is_world:
+                                inputs_img.append(img_arr)
+                                inputs_imu.append(imu_arr)
+                            outputs.append(drive_arr)
 
                 b_inputs_img.append(inputs_img)
-                b_inputs_imu.append(inputs_imu)
+                b_inputs_latent.append(inputs_latent)
+                if inputs_imu:
+                    b_inputs_imu.append(inputs_imu)
                 b_inputs_drive.append(inputs_drive)
+                b_outputs.append(outputs)
 
             if is_mem:
-                X = [np.array(b_inputs_img), np.array(b_inputs_drive)]
+                # input latent sequence and drive sequence
+                X = [np.array(b_inputs_latent), np.array(b_inputs_drive)]
                 # add dummy to target for internal state model output
-                y = [np.array(y1), np.zeros((batch_size, kl.units))]
+                y = [np.array(outputs), np.zeros((batch_size, kl.units))]
+
+            elif is_world:
+                # input img array, imu array, latent sequence and drive sequence
+                X = [np.array(b_inputs_img).squeeze(),
+                     np.array(b_inputs_imu).squeeze(),
+                     np.array(b_inputs_latent), np.array(b_inputs_drive)]
+                # model returns drive vector and current latent state.
+                np_outputs = np.array(b_outputs).squeeze()
+                y = [[np_outputs[:, 0], np_outputs[:, 1]],
+                     np.zeros((batch_size, kl.latent_dim))]
 
             else:
                 X = [np.array(b_inputs_img)]
-                if is_imu:
+                if b_inputs_imu:
                     X.append(np.array(b_inputs_imu))
-                y = [np.array(y1), np.array(y2)]
+                y = [np.array(outputs)]
 
             yield X, y
 
@@ -652,7 +683,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
 
     verbose = cfg.VERBOSE_TRAIN
     encoder = None
-    if type(kl) is WorldMemory:
+    if type(kl) in [WorldMemory, WorldPilot]:
         encoder = kl.encoder
     records = gather_records(cfg, tub_names, exclude=exclude,
                              data_base=pilot_data, encoder=encoder)
@@ -663,7 +694,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     gen_records = {}
     collate_records(records, gen_records, cfg)
     # memory model requires sequence of 1 more as we forcast the next data
-    extend_length = 1 if type(kl) is WorldMemory else 0
+    extend_length = 1 if type(kl) in [WorldMemory, WorldPilot] else 0
     sequences = collating_sequences(cfg, gen_records, extend_length)
     if train_frac:
         random.shuffle(sequences)
@@ -682,7 +713,7 @@ def sequence_train(cfg, tub_names, model_name, transfer_model, model_type,
     steps_per_epoch = total_train // cfg.BATCH_SIZE
     val_steps = total_val // cfg.BATCH_SIZE
     print('Train: %d, validation: %d steps_per_epoch: %d'
-          %(total_train, total_val, steps_per_epoch))
+          % (total_train, total_val, steps_per_epoch))
     if steps_per_epoch < 2:
         raise Exception("Too little data to train. Please record more records.")
 
@@ -719,7 +750,7 @@ def multi_train(cfg, tub, model, transfer, model_type, aug, exclude=None,
     '''
     train_fn = train
     if model_type in ('rnn', '3d', 'look_ahead', 'square_plus_lstm',
-                      'square_plus_imu_lstm', 'world_memory'):
+                      'square_plus_imu_lstm', 'world_memory', 'world'):
         train_fn = sequence_train
     train_fn(cfg, tub, model, transfer, model_type, aug, exclude,
              train_frac, dry)
@@ -982,6 +1013,7 @@ if __name__ == "__main__":
     nn_size = args['--nn_size']
     train_frac = args['--frac']
     dry = args['--dry']
+    encoder = args['--encoder']
 
     if nn_size is not None:
         cfg.NN_SIZE = nn_size
@@ -1007,5 +1039,7 @@ if __name__ == "__main__":
         # switched off b/c of incompatibility with Lstm
         # disable_eager_execution()
         train_frac = float(train_frac) if train_frac else None
+        if encoder:
+            cfg.ENCODER_PATH = encoder
         multi_train(cfg, dirs, model, transfer, model_type, aug, exclude,
                     train_frac, dry)

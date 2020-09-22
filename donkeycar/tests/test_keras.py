@@ -76,9 +76,7 @@ def test_localizer():
 
 
 def test_world():
-    this_dir = pathlib.Path(__file__).parent.absolute()
-    path = os.path.join(this_dir, 'encoder.h5')
-    k = KerasWorldImu(encoder_path=path)
+    k = KerasWorldImu()
     print(k.model.summary())
     img = get_test_img(k.model)
     imu = np.random.uniform(size=(6,))

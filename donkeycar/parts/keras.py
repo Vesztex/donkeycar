@@ -539,17 +539,17 @@ class WorldPilot(KerasWorldImu):
         latent = self.encoder(img_input)
         imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
         controller = self.make_controller()
-        outputs = controller([latent, imu_input, state])
+        [angle, throttle] = controller([latent, imu_input, state])
         model = Model(inputs=[img_input, imu_input,
                               latent_seq_input, drive_seq_input],
-                      outputs=[outputs, latent],
+                      outputs=[angle, throttle, latent],
                       name='world_pilot')
         return model
 
     def compile(self):
         # here we set the loss for the latent vector output to None so it
         # doesn't get used in training
-        self.model.compile(optimizer='adam', loss=['mse', None])
+        self.model.compile(optimizer='adam', loss=['mse', 'mse', None])
 
     def model_id(self):
         return 'World pilot state dim: {:} seq length {:}'\
@@ -567,9 +567,9 @@ class WorldPilot(KerasWorldImu):
         # now we run the model returning drive vector and last latent vector
         inputs = [img_arr, imu_arr,
                   np.array([self.latent_seq]), np.array([self.drive_seq])]
-        [drive, latent] = self.model.predict(inputs)
+        [angle, throttle, latent] = self.model.predict(inputs)
         # convert drive array of ndarray into more convenient type
-        drive_arr = np.array(drive).squeeze()
+        drive_arr = np.array([angle[0][0], throttle[0][0]])
         # add new results for angle, throttle and latent vector into sequence
         for seq, new in zip([self.latent_seq, self.drive_seq],
                             [latent[0], drive_arr]):

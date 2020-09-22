@@ -643,7 +643,7 @@ def sequence_generator(kl, data, cfg):
                      np.array(b_inputs_latent), np.array(b_inputs_drive)]
                 # model returns drive vector and current latent state.
                 np_outputs = np.array(b_outputs).squeeze()
-                y = [[np_outputs[:, 0], np_outputs[:, 1]],
+                y = [np_outputs[:, 0], np_outputs[:, 1],
                      np.zeros((batch_size, kl.latent_dim))]
 
             else:

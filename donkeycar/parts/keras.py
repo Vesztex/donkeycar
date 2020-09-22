@@ -554,8 +554,8 @@ class WorldPilot(KerasWorldImu):
         self.model.compile(optimizer='adam', loss=['mse', 'mse', None])
 
     def model_id(self):
-        return 'World pilot state dim: {:} seq length {:}'\
-            .format(self.state_dim, self.seq_length)
+        return 'WorldPilot_sd_{:}_ld_{:}_seql_{:}'\
+            .format(self.state_dim, self.latent_dim, self.seq_length)
 
     def load(self, model_path):
         self.model = keras.models.load_model(model_path)

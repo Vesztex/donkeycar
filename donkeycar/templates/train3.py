@@ -17,6 +17,7 @@ Usage:
     [--model=<model>]
     [--transfer=<model>]
     [--encoder=<model>]
+    [--memory=<model>]
     [--type=(linear|latent|categorical|rnn|imu|behavior|3d|look_ahead|tensorrt_linear|tflite_linear|coral_tflite_linear)]
     [--figure_format=<figure_format>]
     [--nn_size=<nn_size>]
@@ -1014,6 +1015,7 @@ if __name__ == "__main__":
     train_frac = args['--frac']
     dry = args['--dry']
     encoder = args['--encoder']
+    memory = args['--memory']
 
     if nn_size is not None:
         cfg.NN_SIZE = nn_size
@@ -1041,5 +1043,7 @@ if __name__ == "__main__":
         train_frac = float(train_frac) if train_frac else None
         if encoder:
             cfg.ENCODER_PATH = encoder
+        if memory:
+            cfg.MEMORY_PATH = memory
         multi_train(cfg, dirs, model, transfer, model_type, aug, exclude,
                     train_frac, dry)

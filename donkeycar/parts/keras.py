@@ -19,7 +19,7 @@ from tensorflow.python.keras import regularizers
 from tensorflow.python.keras.layers import Input, Dense, Reshape
 from tensorflow.python.keras.models import Model, Sequential
 from tensorflow.python.keras.layers import Convolution2D, Conv2D, MaxPooling2D,\
-    AveragePooling2D, BatchNormalization, UpSampling2D
+    BatchNormalization, UpSampling2D
 from tensorflow.python.keras.layers import Activation, Dropout, Flatten
 from tensorflow.python.keras.layers.merge import concatenate
 from tensorflow.python.keras.layers import LSTM
@@ -28,16 +28,6 @@ from tensorflow.python.keras.layers import Conv3D, MaxPooling3D, Conv2DTranspose
 
 import donkeycar as dk
 from donkeycar.parts.tflite import TFLitePilot
-
-if tf.__version__ == '1.13.1':
-    from tensorflow import ConfigProto, Session
-
-    # Override keras session to work around a bug in TF 1.13.1
-    # Remove after we upgrade to TF 1.14 / TF 2.x.
-    config = ConfigProto()
-    config.gpu_options.allow_growth = True
-    session = Session(config=config)
-    keras.backend.set_session(session)
 
 
 class KerasPilot(object):
@@ -65,11 +55,14 @@ class KerasPilot(object):
 
     def set_optimizer(self, optimizer_type, rate, decay):
         if optimizer_type == "adam":
-            self.model.optimizer = keras.optimizers.Adam(lr=rate, decay=decay)
+            self.model.optimizer = tf.keras.optimizers.Adam(lr=rate,
+                                                            decay=decay)
         elif optimizer_type == "sgd":
-            self.model.optimizer = keras.optimizers.SGD(lr=rate, decay=decay)
+            self.model.optimizer = tf.keras.optimizers.SGD(lr=rate,
+                                                           decay=decay)
         elif optimizer_type == "rmsprop":
-            self.model.optimizer = keras.optimizers.RMSprop(lr=rate, decay=decay)
+            self.model.optimizer = tf.keras.optimizers.RMSprop(lr=rate,
+                                                               decay=decay)
         else:
             raise Exception("unknown optimizer type: %s" % optimizer_type)
 
@@ -86,18 +79,18 @@ class KerasPilot(object):
         """
 
         # checkpoint to save model after each epoch
-        save_best = keras.callbacks.ModelCheckpoint(saved_model_path,
-                                                    monitor='val_loss',
-                                                    verbose=verbose,
-                                                    save_best_only=True,
-                                                    mode='min')
+        save_best = tf.keras.callbacks.ModelCheckpoint(saved_model_path,
+                                                       monitor='val_loss',
+                                                       verbose=verbose,
+                                                       save_best_only=True,
+                                                       mode='min')
 
         # stop training if the validation error stops improving.
-        early_stop = keras.callbacks.EarlyStopping(monitor='val_loss',
-                                                   min_delta=min_delta,
-                                                   patience=patience,
-                                                   verbose=verbose,
-                                                   mode='auto')
+        early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+                                                      min_delta=min_delta,
+                                                      patience=patience,
+                                                      verbose=verbose,
+                                                      mode='auto')
 
         callbacks_list = [save_best]
 
@@ -148,17 +141,19 @@ class KerasPilot(object):
 
 
 class KerasCategorical(KerasPilot):
-    '''
-    The KerasCategorical pilot breaks the steering and throttle decisions into discreet
-    angles and then uses categorical cross entropy to train the network to activate a single
-    neuron for each steering and throttle choice. This can be interesting because we
-    get the confidence value as a distribution over all choices.
-    This uses the dk.utils.linear_bin and dk.utils.linear_unbin to transform continuous
-real numbers into a range of discreet values for training and runtime.
-    The input and output are therefore bounded and must be chosen wisely to match the data.
-    The default ranges work for the default setup. But cars which go faster may want to
-    enable a higher throttle range. And cars with larger steering throw may want more bins.
-    '''
+    """
+    The KerasCategorical pilot breaks the steering and throttle decisions
+    into discret angles and then uses categorical cross entropy to train the
+    network to activate a single neuron for each steering and throttle
+    choice. This can be interesting because we get the confidence value as a
+    distribution over all choices. This uses the dk.utils.linear_bin and
+    dk.utils.linear_unbin to transform continuous real numbers into a range
+    of discreet values for training and runtime. The input and output are
+    therefore bounded and must be chosen wisely to match the data. The
+    default ranges work for the default setup. But cars which go faster may
+    want to enable a higher throttle range. And cars with larger steering
+    throw may want more bins.
+    """
     def __init__(self, input_shape=(120, 160, 3), throttle_range=0.5,
                  roi_crop=(0, 0), *args, **kwargs):
         super().__init__()
@@ -180,7 +175,8 @@ real numbers into a range of discreet values for training and runtime.
         img_arr = img_arr.reshape((1,) + img_arr.shape)
         angle_binned, throttle = self.model.predict(img_arr)
         N = len(throttle[0])
-        throttle = dk.utils.linear_unbin(throttle, N=N, offset=0.0, R=self.throttle_range)
+        throttle = dk.utils.linear_unbin(throttle, N=N, offset=0.0,
+                                         R=self.throttle_range)
         angle_unbinned = dk.utils.linear_unbin(angle_binned)
         return angle_unbinned, throttle
 
@@ -188,8 +184,8 @@ real numbers into a range of discreet values for training and runtime.
 class KerasLinear(KerasPilot):
     '''
     The KerasLinear pilot uses one neuron to output a continous value via the
-    Keras Dense layer with linear activation. One each for steering and throttle.
-    The output is not bounded.
+    Keras Dense layer with linear activation. One each for steering and
+    throttle. The output is not bounded.
     '''
     def __init__(self, num_outputs=2, input_shape=(120, 160, 3),
                  roi_crop=(0, 0)):
@@ -506,21 +502,27 @@ class WorldMemory:
 
 
 class WorldPilot(KerasWorldImu):
-    def __init__(self, encoder_path='models/encoder.h5',
-                 memory_path='models/memory.h5',
+    def __init__(self, encoder_path=None, memory_path=None,
                  input_shape=(144, 192, 3), roi_crop=(0, 0), *args, **kwargs):
-        self.memory = keras.models.load_model(memory_path)
-        # get seq length from input shape of memory model
-        self.seq_length = self.memory.inputs[0].shape[1]
-        # get state vector length from last output of memory model
-        self.state_dim = self.memory.outputs[1].shape[1]
-        super().__init__(input_shape=input_shape, roi_crop=roi_crop,
-                         encoder_path=encoder_path)
-        # fill sequence to size
-        self.latent_seq = [np.zeros((self.latent_dim,))] * self.seq_length
-        self.drive_seq = [np.zeros((2,))] * self.seq_length
-        self.encoder.trainable = False
-        self.memory.trainable = False
+        if memory_path:
+            assert encoder_path, "Need to provide encoder path too"
+            self.memory = keras.models.load_model(memory_path)
+            # get seq length from input shape of memory model
+            self.seq_length = self.memory.inputs[0].shape[1]
+            # get state vector length from last output of memory model
+            self.state_dim = self.memory.outputs[1].shape[1]
+            super().__init__(input_shape=input_shape, roi_crop=roi_crop,
+                             encoder_path=encoder_path)
+            # fill sequence to size
+            self.latent_seq = [np.zeros((self.latent_dim,))] * self.seq_length
+            self.drive_seq = [np.zeros((2,))] * self.seq_length
+            self.encoder.trainable = False
+            self.memory.trainable = False
+        else:
+            assert encoder_path is None, "Don't pass encoder w/o memory model"
+            self.memory = self.seq_length = self.state_dim = None
+            self.latent_seq = self.drive_seq = None
+            print('Created empty WorldPilot - you need to load a model')
 
     def make_controller_inputs(self):
         latent_input = keras.Input(shape=(self.latent_dim,), name='latent_in')
@@ -554,6 +556,23 @@ class WorldPilot(KerasWorldImu):
     def model_id(self):
         return 'World pilot state dim: {:} seq length {:}'\
             .format(self.state_dim, self.seq_length)
+
+    def load(self, model_path):
+        self.model = keras.models.load_model(model_path)
+        print(self.model.summary())
+        self.memory = self.model.get_layer('Memory')
+        # get seq length from input shape of memory model
+        self.seq_length = self.memory.inputs[0].shape[1]
+        # get state vector length from last output of memory model
+        self.state_dim = self.memory.outputs[1].shape[1]
+        self.encoder = self.model.get_layer('encoder')
+        self.latent_dim = self.encoder.outputs[0].shape[1]
+        self.imu_dim = self.model.get_layer('imu_in').output_shape[0][1]
+        # fill sequence to size
+        self.latent_seq = [np.zeros((self.latent_dim,))] * self.seq_length
+        self.drive_seq = [np.zeros((2,))] * self.seq_length
+        self.encoder.trainable = False
+        self.memory.trainable = False
 
     def run(self, img_arr, imu_arr=None):
         # convert imu python list into numpy array first, img_arr is already
@@ -602,6 +621,7 @@ class AutoEncoder:
     def make_encoder(self):
         encoder_input = keras.Input(self.input_shape, name='img_in')
         x = encoder_input
+        conv = None
         for i, f, s in zip(range(len(self.filters)), self.filters,
                            self.strides):
             conv = Conv2D(filters=f, kernel_size=self.kernel, strides=s,
@@ -667,10 +687,13 @@ class KerasIMU(KerasPilot):
                                                     train_frac=cfg.TRAIN_TEST_SPLIT)
 
     '''
-    def __init__(self, model=None, num_outputs=2, num_imu_inputs=6, input_shape=(120, 160, 3), *args, **kwargs):
-        super(KerasIMU, self).__init__(*args, **kwargs)
+    def __init__(self, model=None, num_outputs=2, num_imu_inputs=6,
+                 input_shape=(120, 160, 3), *args, **kwargs):
+        super(KerasIMU, self).__init__()
         self.num_imu_inputs = num_imu_inputs
-        self.model = default_imu(num_outputs = num_outputs, num_imu_inputs = num_imu_inputs, input_shape=input_shape)
+        self.model = default_imu(num_outputs=num_outputs,
+                                 num_imu_inputs=num_imu_inputs,
+                                 input_shape=input_shape)
         self.compile()
 
     def compile(self):
@@ -694,7 +717,7 @@ class KerasBehavioral(KerasPilot):
     '''
     def __init__(self, model=None, num_outputs=2, num_behavior_inputs=2,
                  input_shape=(120, 160, 3), *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.model = default_bhv(num_outputs=num_outputs,
                                  num_bvh_inputs=num_behavior_inputs,
                                  input_shape=input_shape)
@@ -727,7 +750,7 @@ class KerasLocalizer(KerasPilot):
     '''
     def __init__(self, model=None, num_locations=8, input_shape=(120, 160, 3),
                  *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.model = default_loc(num_locations=num_locations,
                                  input_shape=input_shape)
         self.compile()
@@ -751,7 +774,7 @@ def adjust_input_shape(input_shape, roi_crop):
 
 def default_categorical(input_shape=(120, 160, 3), roi_crop=(0, 0)):
 
-    opt = keras.optimizers.Adam()
+    opt = tf.keras.optimizers.Adam()
     drop = 0.2
     # we now expect that cropping done elsewhere. we will adjust our expeected
     # image size here:
@@ -1125,7 +1148,7 @@ def default_loc(num_locations, input_shape):
 class KerasRNN_LSTM(KerasPilot):
     def __init__(self, image_w=160, image_h=120, image_d=3, seq_length=3,
                  num_outputs=2, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         image_shape = (image_h, image_w, image_d)
         self.model = rnn_lstm(seq_length=seq_length,
                               num_outputs=num_outputs,
@@ -1151,9 +1174,9 @@ class KerasRNN_LSTM(KerasPilot):
         self.img_seq = self.img_seq[1:]
         self.img_seq.append(img_arr)
 
-        img_arr = np.array(self.img_seq).reshape(1, self.seq_length,
-                                                 self.image_h, self.image_w,
-                                                 self.image_d)
+        img_arr = np.array(self.img_seq).reshape((1, self.seq_length,
+                                                  self.image_h, self.image_w,
+                                                  self.image_d))
         outputs = self.model.predict([img_arr])
         steering = outputs[0][0]
         throttle = outputs[0][1]
@@ -1200,7 +1223,7 @@ def rnn_lstm(seq_length=3, num_outputs=2, image_shape=(120, 160, 3)):
 class Keras3D_CNN(KerasPilot):
     def __init__(self, image_w=160, image_h=120, image_d=3, seq_length=20,
                  num_outputs=2, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.model = build_3d_cnn(w=image_w, h=image_h, d=image_d, s=seq_length,
                                   num_outputs=num_outputs)
         self.seq_length = seq_length
@@ -1225,9 +1248,9 @@ class Keras3D_CNN(KerasPilot):
         self.img_seq = self.img_seq[1:]
         self.img_seq.append(img_arr)
 
-        img_arr = np.array(self.img_seq).reshape(1, self.seq_length,
-                                                 self.image_h, self.image_w,
-                                                 self.image_d)
+        img_arr = np.array(self.img_seq).reshape((1, self.seq_length,
+                                                  self.image_h, self.image_w,
+                                                  self.image_d))
         outputs = self.model.predict([img_arr])
         steering = outputs[0][0]
         throttle = outputs[0][1]
@@ -1307,7 +1330,7 @@ def build_3d_cnn(w, h, d, s, num_outputs):
 
 class KerasLatent(KerasPilot):
     def __init__(self, num_outputs=2, input_shape=(120, 160, 3), *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.model = default_latent(num_outputs, input_shape)
         self.compile()
 

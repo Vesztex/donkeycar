@@ -105,7 +105,7 @@ class MakeMovie(object):
         p1, p2 = self.make_end_points(angle, throttle, height, width, -2)
         # user is green, pilot is blue
         green = (0, 255, 0)
-        cv2.line(img, p1, p2, green, -2)
+        cv2.line(img, p1, p2, green, 2)
         font = cv2.FONT_HERSHEY_PLAIN
         bottom_left = (width - 40, height-2)
         cv2.putText(img, text='User', org=bottom_left, fontFace=font,

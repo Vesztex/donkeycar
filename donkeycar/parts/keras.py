@@ -19,7 +19,7 @@ from tensorflow.python.keras import regularizers
 from tensorflow.python.keras.layers import Input, Dense, Reshape
 from tensorflow.python.keras.models import Model, Sequential
 from tensorflow.python.keras.layers import Convolution2D, Conv2D, MaxPooling2D,\
-    BatchNormalization, UpSampling2D
+    BatchNormalization, UpSampling2D, LayerNormalization
 from tensorflow.python.keras.layers import Activation, Dropout, Flatten
 from tensorflow.python.keras.layers.merge import concatenate
 from tensorflow.python.keras.layers import LSTM
@@ -396,7 +396,7 @@ class KerasWorld(KerasSquarePlus):
             text += ' with encoder from : ' + str(self.encoder_path)
         return text
 
-    def load(self, model_path):
+    def load_encoder(self, model_path):
         print('Loading encoder from', model_path, 'into world model...', end='')
         model = keras.models.load_model(model_path)
         encoder = model.layers[1]
@@ -636,7 +636,8 @@ class AutoEncoder:
         # remove first entry from (, a, b, c)
         self.output_shape = tuple(conv.output_shape[1:])
         x = Flatten()(x)
-        latent = Dense(self.latent_dim, name="latent")(x)
+        x = Dense(self.latent_dim, name="dense")(x)
+        latent = LayerNormalization(name="latent")(x)
         encoder = keras.Model(encoder_input, latent, name="encoder")
         return encoder
 

@@ -621,23 +621,25 @@ class AutoEncoder:
     def make_encoder(self):
         encoder_input = keras.Input(self.input_shape, name='img_in')
         x = encoder_input
+        drop = 0.02
         conv = None
-        for i, f, s in zip(range(len(self.filters)), self.filters,
-                           self.strides):
+        num_l = len(self.filters)
+        for i, f, s in zip(range(num_l), self.filters, self.strides):
             conv = Conv2D(filters=f, kernel_size=self.kernel, strides=s,
                           padding='same', activation='relu',
                           name='conv' + str(i))
             x = conv(x)
-            if i < 4:
-                x = MaxPooling2D(pool_size=(3, 3) if i == 3 else (2, 2),
+            x = BatchNormalization(name='batch_norm' + str(i))(x)
+            x = Dropout(rate=drop, name='drop' + str(i))(x)
+            if i < num_l - 1:
+                x = MaxPooling2D(pool_size=(3, 3) if i == num_l - 2 else (2, 2),
                                  padding='same',
                                  name='pool' + str(i))(x)
 
         # remove first entry from (, a, b, c)
         self.output_shape = tuple(conv.output_shape[1:])
         x = Flatten()(x)
-        x = Dense(self.latent_dim, name="dense")(x)
-        latent = LayerNormalization(name="latent")(x)
+        latent = Dense(self.latent_dim, name="dense", activation='sigmoid')(x)
         encoder = keras.Model(encoder_input, latent, name="encoder")
         return encoder
 

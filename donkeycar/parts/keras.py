@@ -450,8 +450,8 @@ class WorldMemory:
     def __init__(self, encoder_path='models/encoder.h5', *args, **kwargs):
         self.seq_length = kwargs.get('seq_length', 3)
         #self.imu_dim = kwargs.get('imu_dim', 6)
-        self.layers = kwargs.get('lstm_layers', 1)
-        self.units = kwargs.get('lstm_units', 64)
+        self.layers = kwargs.get('lstm_layers', 3)
+        self.units = kwargs.get('lstm_units', 128)
         self.encoder = keras.models.load_model(encoder_path).layers[1]
         self.latent_dim = self.encoder.outputs[0].shape[1]
         self.model = self.make_model()
@@ -498,7 +498,10 @@ class WorldMemory:
     def compile(self):
         # here we set the loss for the internal state output to None so it
         # doesn't get used in training
-        self.model.compile(optimizer='adam', loss=['mse', None])
+        opt = tf.keras.optimizers.Adam(learning_rate=0.01,
+                                       beta_1=0.9,
+                                       beta_2=0.999)
+        self.model.compile(optimizer=opt, loss=['mse', None])
 
 
 class WorldPilot(KerasWorldImu):

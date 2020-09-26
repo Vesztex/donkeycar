@@ -152,7 +152,7 @@ class LapTimer:
                         this_lap_dist = self.distance - self.last_distance
                         self.last_distance = self.distance
                         self.lap_lenghts.append(this_lap_dist)
-                # rest lo counter
+                # reset lo counter
                 self.count_lo = 0
             # Sleep for 0.5 ms. At 5m/s car makes 2.5mm / 0.5ms. At that speed
             # trigger determines how many cm the car has to be in the

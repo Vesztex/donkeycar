@@ -564,9 +564,7 @@ class ShowPredictionPlots(BaseCommand):
         num_records = len(records)
         print('processing %d records:' % num_records)
 
-        use_speed = False
-        if cfg.USE_SPEED_FOR_MODEL is not None:
-            use_speed = cfg.USE_SPEED_FOR_MODEL
+        use_speed = getattr(cfg, 'USE_SPEED_FOR_MODEL', False)
         throttle_key = 'car/speed' if use_speed else 'user/throttle'
 
         bar = Bar('Processing', max=num_records)
@@ -578,6 +576,7 @@ class ShowPredictionPlots(BaseCommand):
             user_angle = float(record["user/angle"])
             user_throttle = float(record[throttle_key])
             pilot_angle, pilot_throttle = model.run(img)
+            pilot_throttle *= cfg.MAX_SPEED if use_speed else 1.0
 
             user_angles.append(user_angle)
             user_throttles.append(user_throttle)

@@ -29,9 +29,13 @@ class Odometer:
         self._pi = pigpio.pi()
         self._last_tick = None
         self._last_tick_speed = None
-        self.last_tick_diff = 0
+        # as this is a time diff in mu s, make it small so it doesn't give a
+        # too short average time in the first record
+        self.last_tick_diff = 10000.0
         self._weight = weight
-        self._avg = 0.0
+        # as this is a time diff in mu s, make it small so it doesn't give a
+        # too short average time in the first record
+        self._avg = 10000.0
         self.inst = 0.0
         self._max_speed = 0.0
         self._distance = 0
@@ -56,8 +60,7 @@ class Odometer:
         if self._last_tick is not None:
             diff = pigpio.tickDiff(self._last_tick, tick)
             self.inst = 0.5 * (diff + self.last_tick_diff)
-            self._avg = self._weight * self.inst  \
-                        + (1.0 - self._weight) * self._avg
+            self._avg += self._weight * (self.inst - self._avg)
             self._distance += 1
             if self._debug:
                 self._debug_data['tick'].append(diff)

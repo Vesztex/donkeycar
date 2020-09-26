@@ -562,6 +562,7 @@ class Tub(object):
                                      use_multiprocessing=False)
             return latent.tolist()[0]
 
+        print('Add latent vector using to tub {:}'.format(self.path))
         force_overwrite = getattr(cfg, 'OVERWRITE_LATENT', True)
         self._process_images(processor, 'encoder/image_latent',
                              force_overwrite=force_overwrite)

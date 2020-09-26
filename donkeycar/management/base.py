@@ -11,6 +11,7 @@ import stat
 
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
+from donkeycar.parts.keras import KerasIMU, KerasWorldImu, KerasSquarePlusImu
 from donkeycar.parts.transform import ImuCombinerNormaliser
 from donkeycar.utils import *
 from donkeycar.management.tub import TubManager
@@ -548,11 +549,11 @@ class ShowPredictionPlots(BaseCommand):
         from progress.bar import Bar
 
         model_path = os.path.expanduser(model_path)
-        model = dk.utils.get_model_by_type(model_type, cfg)
+        kl = dk.utils.get_model_by_type(model_type, cfg)
         # This just gets us the text for the plot title:
         if model_type is None:
             model_type = cfg.DEFAULT_MODEL_TYPE
-        model.load(model_path)
+        kl.load(model_path)
 
         records = gather_records(cfg, tub_paths)
         user_angles = []
@@ -567,6 +568,11 @@ class ShowPredictionPlots(BaseCommand):
         use_speed = getattr(cfg, 'USE_SPEED_FOR_MODEL', False)
         throttle_key = 'car/speed' if use_speed else 'user/throttle'
 
+        has_imu = type(kl) in [KerasIMU, KerasSquarePlusImu, KerasWorldImu,
+                               WorldPilot]
+        accel_mult = 1.0 / cfg.IMU_ACCEL_NORM
+        gyro_mult = 1.0 / cfg.IMU_GYRO_NORM
+
         bar = Bar('Processing', max=num_records)
         for record_path in records:
             with open(record_path, 'r') as fp:
@@ -575,9 +581,15 @@ class ShowPredictionPlots(BaseCommand):
             img = load_scaled_image_arr(img_filename, cfg)
             user_angle = float(record["user/angle"])
             user_throttle = float(record[throttle_key])
-            pilot_angle, pilot_throttle = model.run(img)
+            if has_imu:
+                accel = clamp_and_norm(record['car/accel'], accel_mult)
+                gyro = clamp_and_norm(record['car/gyro'], gyro_mult)
+                imu = accel + gyro
+                args = (img, imu)
+            else:
+                args = (img,)
+            pilot_angle, pilot_throttle = kl.run(*args)
             pilot_throttle *= cfg.MAX_SPEED if use_speed else 1.0
-
             user_angles.append(user_angle)
             user_throttles.append(user_throttle)
             pilot_angles.append(pilot_angle)

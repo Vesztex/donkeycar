@@ -170,12 +170,17 @@ def drive(cfg, model_path=None, model_type=None):
 
     V.add(steering, inputs=['angle'])
     V.add(throttle, inputs=['throttle'])
-    
-    # add tub to save data
 
+    # add recording monitor
+    class RecMon:
+        def run(self, rec):
+            print(rec)
+
+    V.add(RecMon(), inputs=['recording'])
+
+    # add tub to save data
     inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode']
     types = ['image_array', 'float', 'float', 'str']
-
     th = TubHandler(path=cfg.DATA_PATH)
     tub = th.new_tub_writer(inputs=inputs, types=types)
     V.add(tub, inputs=inputs, outputs=["tub/num_records"], run_condition='recording')

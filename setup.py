@@ -48,7 +48,8 @@ setup(name='donkeycar',
                         'progress',
                         'tqdm',
                         'simple-pid',
-                        'braceexpand'
+                        'braceexpand',
+                        'art'
                         ],
 
       extras_require={

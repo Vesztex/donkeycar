@@ -1,5 +1,8 @@
+from art import *
 __version__ = '3.1.2 DocGarbanzo'
 
+logo = text2art('Donkey Car', font='speed')
+print(logo)
 print('using donkey v{} ...'.format(__version__))
 
 import sys

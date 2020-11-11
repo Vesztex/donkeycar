@@ -27,3 +27,4 @@ dependencies:
     - simple-pid
     - tensorflow==2.2.0
     - git+https://github.com/autorope/keras-vis.git
+    - art

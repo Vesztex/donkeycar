@@ -27,3 +27,4 @@ dependencies:
 - pip:
     - simple-pid
     - git+https://github.com/autorope/keras-vis.git
+    - art

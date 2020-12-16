@@ -1,5 +1,5 @@
-
-from typing import (Any, Callable, Generic, Iterable, Iterator, List, Sized, Tuple, TypeVar)
+from typing import Any, Callable, Generic, Iterable, Iterator, List, Sized, \
+    Tuple, TypeVar, Union
 
 from donkeycar.pipeline.types import TubRecord
 
@@ -13,142 +13,117 @@ XOut = TypeVar('XOut', covariant=True)
 YOut = TypeVar('YOut', covariant=True)
 
 
-class SizedIterator(Generic[X], Iterator[X], Sized):
+# This is a protocol type without explicitly using a `Protocol`
+# Using `Protocol` requires Python 3.7
+class SizedIterable(Generic[X], Iterable[X], Sized):
     def __init__(self) -> None:
-        # This is a protocol type without explicitly using a `Protocol`
-        # Using `Protocol` requires Python 3.7
+        pass
+
+    def __len__(self) -> int:
+        pass
+
+    def __iter__(self) -> Iterator[X]:
         pass
 
 
-class TubSeqIterator(SizedIterator[TubRecord]):
+class TubSeqIterator(Iterator[TubRecord]):
     def __init__(self, records: List[TubRecord]) -> None:
         self.records = records or list()
-        self.current_index = 0
+        self.iter = iter(self.records)
 
-    def __len__(self):
-        return len(self.records)
+    def __iter__(self) -> 'TubSeqIterator[TubRecord]':
+        return self
 
-    def __iter__(self) -> SizedIterator[TubRecord]:
-        return TubSeqIterator(self.records)
-
-    def __next__(self):
-        if self.current_index >= len(self.records):
-            raise StopIteration('No more records')
-
-        record = self.records[self.current_index]
-        self.current_index += 1
-        return record
-
-    next = __next__
+    def __next__(self) -> TubRecord:
+        return next(self.iter)
 
 
-class TfmIterator(Generic[R, XOut, YOut],  SizedIterator[Tuple[XOut, YOut]]):
+class _BaseTfmIterator(Iterator[Tuple[XOut, YOut]]):
+    """
+    A basic transforming iterator. Do no use this class directly.
+    """
     def __init__(self,
-                 iterable: Iterable[R],
-                 x_transform: Callable[[R], XOut],
-                 y_transform: Callable[[R], YOut]) -> None:
-
+                 iterable: [Union[SizedIterable[R],
+                                  SizedIterable[Tuple[X, Y]]]]) \
+            -> None:
         self.iterable = iterable
-        self.x_transform = x_transform
-        self.y_transform = y_transform
-        self.iterator = BaseTfmIterator_(
-            iterable=self.iterable, x_transform=self.x_transform, y_transform=self.y_transform)
+        self.iterator = iter(self.iterable.iterable)
 
-    def __len__(self):
-        return len(self.iterator)
+    def __iter__(self) -> '_BaseTfmIterator[XOut, YOut]':
+        return self
 
-    def __iter__(self) -> SizedIterator[Tuple[XOut, YOut]]:
-        return BaseTfmIterator_(
-            iterable=self.iterable, x_transform=self.x_transform, y_transform=self.y_transform)
-
-    def __next__(self):
-        return next(self.iterator)
-
-
-class TfmTupleIterator(Generic[X, Y, XOut, YOut],  SizedIterator[Tuple[XOut, YOut]]):
-    def __init__(self,
-                 iterable: Iterable[Tuple[X, Y]],
-                 x_transform: Callable[[X], XOut],
-                 y_transform: Callable[[Y], YOut]) -> None:
-
-        self.iterable = iterable
-        self.x_transform = x_transform
-        self.y_transform = y_transform
-        self.iterator = BaseTfmIterator_(
-            iterable=self.iterable, x_transform=self.x_transform, y_transform=self.y_transform)
-
-    def __len__(self):
-        return len(self.iterator)
-
-    def __iter__(self) -> SizedIterator[Tuple[XOut, YOut]]:
-        return BaseTfmIterator_(
-            iterable=self.iterable, x_transform=self.x_transform, y_transform=self.y_transform)
-
-    def __next__(self):
-        return next(self.iterator)
-
-
-class BaseTfmIterator_(Generic[XOut, YOut],  SizedIterator[Tuple[XOut, YOut]]):
-    '''
-    A basic transforming iterator.
-    Do no use this class directly.
-    '''
-
-    def __init__(self,
-                 # Losing a bit of type safety here for a common implementation
-                 iterable: Iterable[Any],
-                 x_transform: Callable[[R], XOut],
-                 y_transform: Callable[[R], YOut]) -> None:
-
-        self.iterable = iterable
-        self.x_transform = x_transform
-        self.y_transform = y_transform
-        self.iterator = iter(self.iterable)
-
-    def __len__(self):
-        return len(self.iterator)
-
-    def __iter__(self) -> SizedIterator[Tuple[XOut, YOut]]:
-        return BaseTfmIterator_(self.iterable, self.x_transform, self.y_transform)
-
-    def __next__(self):
-        record = next(self.iterator)
-        if (isinstance(record, tuple) and len(record) == 2):
-            x, y = record
-            return self.x_transform(x), self.y_transform(y)
+    def __next__(self) -> Tuple[XOut, YOut]:
+        r = next(self.iterator)
+        if isinstance(r, tuple) and len(r) == 2:
+            x, y = r
+            return self.iterable.x_transform(x), self.iterable.y_transform(y)
         else:
-            return self.x_transform(record), self.y_transform(record)
+            return self.iterable.x_transform(r), self.iterable.y_transform(r)
 
 
-class TubSequence(Iterable[TubRecord]):
+class TfmShallowList(Generic[R, XOut, YOut], SizedIterable[Tuple[XOut, YOut]]):
+    def __init__(self,
+                 iterable: Union['TubSequence',
+                                 'TfmShallowList[X, Y, XOut, YOut]'],
+                 x_transform: Callable[[Union[R, X]], XOut],
+                 y_transform: Callable[[Union[R, Y]], YOut]) -> None:
+        self.iterable = iterable
+        self.x_transform = x_transform
+        self.y_transform = y_transform
+
+    def __len__(self) -> int:
+        return len(self.iterable)
+
+    def __iter__(self) -> _BaseTfmIterator[XOut, YOut]:
+        return _BaseTfmIterator(self)
+
+
+class TubSequence(SizedIterable[TubRecord]):
     def __init__(self, records: List[TubRecord]) -> None:
         self.records = records
 
-    def __iter__(self) -> SizedIterator[TubRecord]:
+    def __iter__(self) -> TubSeqIterator:
         return TubSeqIterator(self.records)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.records)
 
     def build_pipeline(self,
                        x_transform: Callable[[TubRecord], X],
-                       y_transform: Callable[[TubRecord], Y]) -> SizedIterator[Tuple[X, Y]]:
-        return TfmIterator(self, x_transform=x_transform, y_transform=y_transform)
+                       y_transform: Callable[[TubRecord], Y]) \
+            -> TfmShallowList[TubRecord, X, Y]:
+        return TfmShallowList(self,
+                              x_transform=x_transform,
+                              y_transform=y_transform)
 
     @classmethod
-    def map_pipeline(
-            cls,
-            x_transform: Callable[[X], XOut],
-            y_transform: Callable[[Y], YOut],
-            pipeline: SizedIterator[Tuple[X, Y]]) -> SizedIterator[Tuple[XOut, YOut]]:
-        return TfmTupleIterator(pipeline, x_transform=x_transform, y_transform=y_transform)
+    def map_pipeline(cls,
+                     pipeline: Union['TubSequence',
+                                     TfmShallowList[TubRecord, X, Y]],
+                     x_transform: Callable[[X], XOut],
+                     y_transform: Callable[[Y], YOut]) \
+            -> TfmShallowList[Tuple[X, Y], XOut, YOut]:
+        return TfmShallowList(pipeline,
+                              x_transform=x_transform,
+                              y_transform=y_transform)
 
-    @classmethod
-    def map_pipeline_factory(
-            cls,
-            x_transform: Callable[[X], XOut],
-            y_transform: Callable[[Y], YOut],
-            factory: Callable[[], SizedIterator[Tuple[X, Y]]]) -> SizedIterator[Tuple[XOut, YOut]]:
 
-        pipeline = factory()
-        return cls.map_pipeline(pipeline=pipeline, x_transform=x_transform, y_transform=y_transform)
+class Pipeline(SizedIterable[Tuple[XOut, YOut]]):
+    def __init__(self,
+                 iterable: SizedIterable[Union[R, Tuple[X, Y]]],
+                 x_transform: Callable[[Union[R, X]], XOut],
+                 y_transform: Callable[[Union[R, Y]], YOut]) -> None:
+        self.iterable = iterable
+        self.x_transform = x_transform
+        self.y_transform = y_transform
+
+    def __iter__(self) -> Iterator[Tuple[XOut, YOut]]:
+        for record in self.iterable:
+            if type(record) is tuple:
+                x, y = record
+                yield self.x_transform(x), self.y_transform(y)
+            else:
+                yield self.x_transform(record), self.y_transform(record)
+
+    def __len__(self) -> int:
+        return len(self.iterable)

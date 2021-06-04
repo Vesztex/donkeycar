@@ -17,16 +17,14 @@ class Tub(object):
     """
 
     def __init__(self, base_path, inputs=[], types=[], metadata=[],
-                 max_catalog_len=1000, read_only=False):
+                 max_catalog_len=1000, read_only=False, timestamp=None):
         self.base_path = base_path
         self.images_base_path = os.path.join(self.base_path, Tub.images())
-        self.inputs = inputs
-        self.types = types
-        self.metadata = metadata
         self.manifest = Manifest(base_path, inputs=inputs, types=types,
                                  metadata=metadata, max_len=max_catalog_len,
                                  read_only=read_only)
-        self.input_types = dict(zip(self.inputs, self.types))
+        self.input_types = dict(zip(self.manifest.inputs, self.manifest.types))
+        self.timestamp = timestamp
         # Create images folder if necessary
         if not os.path.exists(self.images_base_path):
             os.makedirs(self.images_base_path, exist_ok=True)
@@ -64,8 +62,11 @@ class Tub(object):
                     image.save(image_path)
                     contents[key] = name
 
+        # if timestamp given, use this time (assuming iso string)
+        ts = contents.get(self.timestamp)
+        time_s = datetime.fromisoformat(ts).timestamp() if ts else time.time()
         # Private properties
-        contents['_timestamp_ms'] = int(round(time.time() * 1000))
+        contents['_timestamp_ms'] = int(round(time_s * 1000))
         contents['_index'] = self.manifest.current_index
         contents['_session_id'] = self.manifest.session_id
 
@@ -114,9 +115,10 @@ class TubWriter(object):
         self.tub = Tub(base_path, inputs, types, metadata, max_catalog_len)
 
     def run(self, *args):
-        assert len(self.tub.inputs) == len(args), \
-            f'Expected {len(self.tub.inputs)} inputs but received {len(args)}'
-        record = dict(zip(self.tub.inputs, args))
+        assert len(self.tub.manifest.inputs) == len(args), \
+            f'Expected {len(self.tub.manifest.inputs)} inputs but received ' \
+            f'{len(args)}'
+        record = dict(zip(self.tub.manifest.inputs, args))
         self.tub.write_record(record)
         return self.tub.manifest.current_index
 

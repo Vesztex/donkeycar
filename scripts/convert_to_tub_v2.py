@@ -2,6 +2,7 @@
 '''
 Usage:
     convert_to_tub_v2.py --tub=<path> --output=<path>
+    --timestamp=<timestampkey>
 
 Note:
     This script converts the old datastore format to the new datastore format.
@@ -20,12 +21,13 @@ from donkeycar.parts.datastore import Tub as LegacyTub
 from donkeycar.parts.tub_v2 import Tub
 
 
-def convert_to_tub_v2(paths, output_path):
+def convert_to_tub_v2(paths, output_path, timestamp=None):
     """
     Convert from old tubs to new one
 
     :param paths:               legacy tub paths
     :param output_path:         new tub output path
+    :param timestamp:           name of timestamp in input tub
     :return:                    None
     """
     empty_record = {'__empty__': True}
@@ -38,8 +40,9 @@ def convert_to_tub_v2(paths, output_path):
         # add input and type for empty records recording
         inputs = legacy_tub.inputs + ['__empty__']
         types = legacy_tub.types + ['boolean']
-        output_tub = Tub(output_path, inputs, types,
-                         list(legacy_tub.meta.items()))
+        output_tub = Tub(base_path=output_path, inputs=inputs, types=types,
+                         metadata=list(legacy_tub.meta.items()),
+                         timestamp=timestamp)
         record_paths = legacy_tub.gather_records()
         bar = IncrementalBar('Converting', max=len(record_paths))
         previous_index = None
@@ -80,8 +83,8 @@ def convert_to_tub_v2(paths, output_path):
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-
     input_path = args["--tub"]
     output_path = args["--output"]
+    timestamp = args["--timestamp"]
     paths = input_path.split(',')
-    convert_to_tub_v2(paths, output_path)
+    convert_to_tub_v2(paths, output_path, timestamp)

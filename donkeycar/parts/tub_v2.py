@@ -8,6 +8,7 @@ import numpy as np
 from PIL import Image
 
 from donkeycar.parts.datastore_v2 import Manifest, ManifestIterator
+from donkeycar.utils import img_to_binary
 
 
 class Tub(object):
@@ -17,7 +18,8 @@ class Tub(object):
     """
 
     def __init__(self, base_path, inputs=[], types=[], metadata=[],
-                 max_catalog_len=1000, read_only=False, timestamp=None):
+                 max_catalog_len=1000, read_only=False, img_as_jpeg=True,
+                 timestamp=None):
         self.base_path = base_path
         self.images_base_path = os.path.join(self.base_path, Tub.images())
         self.manifest = Manifest(base_path, inputs=inputs, types=types,
@@ -25,6 +27,7 @@ class Tub(object):
                                  read_only=read_only)
         self.input_types = dict(zip(self.manifest.inputs, self.manifest.types))
         self.timestamp = timestamp
+        self.img_as_jpeg = img_as_jpeg
         # Create images folder if necessary
         if not os.path.exists(self.images_base_path):
             os.makedirs(self.images_base_path, exist_ok=True)
@@ -57,12 +60,17 @@ class Tub(object):
                 elif input_type == 'image_array':
                     # Handle image array
                     image = Image.fromarray(np.uint8(value))
-                    name = Tub._image_file_name(self.manifest.current_index, key)
-                    image_path = os.path.join(self.images_base_path, name)
-                    image.save(image_path)
-                    contents[key] = name
+                    if self.img_as_jpeg:
+                        name = Tub._image_file_name(self.manifest.current_index, key)
+                        image_path = os.path.join(self.images_base_path, name)
+                        image.save(image_path)
+                        contents[key] = name
+                    else:
+                        bytes = img_to_binary(image)
+                        img_str = bytes.decode(encoding="latin-1")
+                        contents[key] = img_str
 
-        # if timestamp given, use this time (assuming iso string)
+        # Use timestamp if given, assuming iso string, else fallback to now
         ts = contents.get(self.timestamp)
         time_s = datetime.fromisoformat(ts).timestamp() if ts else time.time()
         # Private properties

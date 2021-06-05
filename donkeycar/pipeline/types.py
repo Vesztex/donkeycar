@@ -4,7 +4,8 @@ from typing import Any, List, Optional, TypeVar, Tuple
 import numpy as np
 from donkeycar.config import Config
 from donkeycar.parts.tub_v2 import Tub
-from donkeycar.utils import load_image, load_pil_image, train_test_split
+from donkeycar.utils import load_image, load_pil_image, train_test_split, \
+    binary_to_img
 from typing_extensions import TypedDict
 
 X = TypeVar('X', covariant=True)
@@ -36,24 +37,33 @@ class TubRecord(object):
 
     def image(self, cached=True, as_nparray=True) -> np.ndarray:
         """Loads the image for you
-
         Args:
-            cached (bool, optional): whether to cache the image. Defaults to True.
-            as_nparray (bool, optional): whether to convert the image to a np array of uint8.
-                                         Defaults to True. If false, returns result of Image.open()
+            cached (bool, optional):    whether to cache the image. Defaults
+                                        to True.
+            as_nparray (bool, optional):    whether to convert the image to an
+                                            np array of uint8. Defaults to True.
+                                            If false, returns result of Image.open()
 
         Returns:
             np.ndarray: [description]
         """
         if self._image is None:
-            image_path = self.underlying['cam/image_array']
-            full_path = os.path.join(self.base_path, 'images', image_path)
-
-            if as_nparray:
-                _image = load_image(full_path, cfg=self.config)
+            img_arr_val = self.underlying['cam/image_array']
+            # if image stored as jpeg:
+            path_split = img_arr_val.split('_')
+            if len(path_split) == 5 and path_split[4] == '.jpg':
+                full_path = os.path.join(self.base_path, 'images', img_arr_val)
+                if as_nparray:
+                    _image = load_image(full_path, cfg=self.config)
+                else:
+                    # If you just want the raw Image
+                    _image = load_pil_image(full_path, cfg=self.config)
+            # else image is encoded string in tub
             else:
-                # If you just want the raw Image
-                _image = load_pil_image(full_path, cfg=self.config)
+                img_binary = img_arr_val.encode(encoding="latin-1")
+                _image = binary_to_img(img_binary)
+                if as_nparray:
+                    _image = np.asarray(_image)
 
             if cached:
                 self._image = _image

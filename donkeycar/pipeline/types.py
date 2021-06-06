@@ -1,3 +1,4 @@
+import base64
 import os
 from typing import Any, List, Optional, TypeVar, Tuple
 
@@ -60,7 +61,8 @@ class TubRecord(object):
                     _image = load_pil_image(full_path, cfg=self.config)
             # else image is encoded string in tub
             else:
-                img_binary = img_arr_val.encode(encoding="latin-1")
+                #img_binary = img_arr_val.encode(encoding="latin-1")
+                img_binary = base64.b64decode(img_arr_val.encode())
                 _image = binary_to_img(img_binary)
                 if as_nparray:
                     _image = np.asarray(_image)

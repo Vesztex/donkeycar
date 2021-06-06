@@ -1,9 +1,7 @@
-import atexit
+import base64
 import os
 import time
 from datetime import datetime
-import json
-
 import numpy as np
 from PIL import Image
 
@@ -67,7 +65,8 @@ class Tub(object):
                         contents[key] = name
                     else:
                         bytes = img_to_binary(image)
-                        img_str = bytes.decode(encoding="latin-1")
+                        #img_str = bytes.decode(encoding="latin-1")
+                        img_str = base64.b64encode(bytes).decode()
                         contents[key] = img_str
 
         # Use timestamp if given, assuming iso string, else fallback to now
@@ -119,8 +118,9 @@ class TubWriter(object):
     A Donkey part, which can write records to the datastore.
     """
     def __init__(self, base_path, inputs=[], types=[], metadata=[],
-                 max_catalog_len=1000):
-        self.tub = Tub(base_path, inputs, types, metadata, max_catalog_len)
+                 max_catalog_len=1000, img_as_jpeg=True):
+        self.tub = Tub(base_path, inputs, types, metadata, max_catalog_len,
+                       img_as_jpeg=img_as_jpeg)
 
     def run(self, *args):
         assert len(self.tub.manifest.inputs) == len(args), \

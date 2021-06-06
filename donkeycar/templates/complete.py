@@ -679,8 +679,10 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
     # do we want to store new records into own dir or append to existing
     tub_path = TubHandler(path=cfg.DATA_PATH).create_tub_path() if \
         cfg.AUTO_CREATE_NEW_TUB else cfg.DATA_PATH
-    tub_writer = TubWriter(tub_path, inputs=inputs, types=types, metadata=meta)
-    V.add(tub_writer, inputs=inputs, outputs=["tub/num_records"], run_condition='recording')
+    tub_writer = TubWriter(tub_path, inputs=inputs, types=types, metadata=meta,
+                           img_as_jpeg=cfg.IMG_AS_JPEG)
+    V.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],
+          run_condition='recording')
 
     # Telemetry (we add the same metrics added to the TubHandler
     if cfg.HAVE_MQTT_TELEMETRY:
@@ -704,7 +706,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         ctr.set_tub(tub_writer.tub)
         ctr.print_controls()
 
-    #run the vehicle for 20 seconds
+    # run the vehicle
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS)
 
 

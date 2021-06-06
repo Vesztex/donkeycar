@@ -185,7 +185,8 @@ def drive(cfg, model_path=None, model_type=None):
     # do we want to store new records into own dir or append to existing
     tub_path = TubHandler(path=cfg.DATA_PATH).create_tub_path() if \
         cfg.AUTO_CREATE_NEW_TUB else cfg.DATA_PATH
-    tub_writer = TubWriter(base_path=tub_path, inputs=inputs, types=types)
+    tub_writer = TubWriter(base_path=tub_path, inputs=inputs, types=types,
+                           img_as_jpeg=cfg.IMG_AS_JPEG)
     car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],
             run_condition='recording')
     if not model_path and cfg.USE_RC:

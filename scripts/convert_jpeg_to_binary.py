@@ -43,8 +43,10 @@ def convert_jpeg_to_binary(path, output_path):
         try:
             img_path = record['cam/image_array']
             full_path = os.path.join(input_tub.base_path, 'images', img_path)
+            full_path = os.path.expanduser(full_path)
             img = Image.open(full_path)
             img_arr = np.asarray(img)
+            record['cam/image_array'] = img_arr
             current_index = record['_index']
             # first record or they are continuous, just append
             if not previous_index or current_index == previous_index + 1:

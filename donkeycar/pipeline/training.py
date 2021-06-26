@@ -28,12 +28,12 @@ class BatchSequence(object):
                  model: KerasPilot,
                  config: Config,
                  records: List[TubRecord],
-                 is_train: bool) -> None:
+                 apply_aug: bool) -> None:
         self.model = model
         self.config = config
         self.sequence = TubSequence(records)
         self.batch_size = self.config.BATCH_SIZE
-        self.is_train = is_train
+        self.apply_aug = apply_aug
         self.augmentation = ImageAugmentation(config)
         self.pipeline = self._create_pipeline()
 
@@ -42,8 +42,8 @@ class BatchSequence(object):
 
     def image_processor(self, img_arr):
         """ Augments the images if in training and normalizes it. """
-        if self.is_train:
-            img_arr = self.augmentation.augment(img_arr)
+        if self.apply_aug:
+            img_arr = self.augmentation.run(img_arr)
         norm_img = normalize_image(img_arr)
         return norm_img
 
@@ -117,8 +117,11 @@ def train(cfg: Config, tub_paths: str, model: str = None,
     print(f'Records # Training {len(training_records)}')
     print(f'Records # Validation {len(validation_records)}')
 
-    training_pipe = BatchSequence(kl, cfg, training_records, is_train=True)
-    validation_pipe = BatchSequence(kl, cfg, validation_records, is_train=False)
+    # We need augmentation in validation when using crop / trapeze
+    apply_aug = getattr(cfg, 'APPLY_AUGMENTATION_IN_VALIDATION', True)
+    training_pipe = BatchSequence(kl, cfg, training_records, apply_aug=True)
+    validation_pipe = BatchSequence(kl, cfg, validation_records,
+                                    apply_aug=apply_aug)
 
     dataset_train = training_pipe.create_tf_data().prefetch(
         tf.data.experimental.AUTOTUNE)

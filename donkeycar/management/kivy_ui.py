@@ -717,7 +717,7 @@ class OverlayImage(FullImage):
 
     def augment(self, img_arr):
         if pilot_screen().auglist:
-            img_arr = pilot_screen().augmentation.augment(img_arr)
+            img_arr = pilot_screen().augmentation.run(img_arr)
         return img_arr
 
     def get_image(self, record):
@@ -806,30 +806,45 @@ class PilotScreen(Screen):
     def set_brightness(self, val=None):
         if self.ids.button_bright.state == 'down':
             self.config.AUG_MULTIPLY_RANGE = (val, val)
-            if self.ids.button_blur.state == 'down':
-                self.auglist = ['MULTIPLY', 'BLUR']
-            else:
-                self.auglist = ['MULTIPLY']
-
-    def remove_brightness(self):
-        self.auglist = ['BLUR'] if self.ids.button_blur.state == 'down' else[]
+            if 'MULTIPLY' not in self.auglist:
+                self.auglist.append('MULTIPLY')
+        elif 'MULTIPLY' in self.auglist:
+            self.auglist.remove('MULTIPLY')
+        # update dependency
+        self.on_auglist(None, None)
 
     def set_blur(self, val=None):
         if self.ids.button_blur.state == 'down':
             self.config.AUG_BLUR_RANGE = (val, val)
-            if self.ids.button_bright.state == 'down':
-                self.auglist = ['MULTIPLY', 'BLUR']
-            else:
-                self.auglist = ['BLUR']
-
-    def remove_blur(self):
-        self.auglist = ['MULTIPLY'] if self.ids.button_bright.state == 'down' \
-            else []
+            if 'BLUR' not in self.auglist:
+                self.auglist.append('BLUR')
+        elif 'BLUR' in self.auglist:
+            self.auglist.remove('BLUR')
+        # update dependency
+        self.on_auglist(None, None)
 
     def on_auglist(self, obj, auglist):
         self.config.AUGMENTATIONS = self.auglist
         self.augmentation = ImageAugmentation(self.config)
         self.on_current_record(None, self.current_record)
+
+    def set_mask(self, state):
+        if state == 'down':
+            self.ids.status.text = 'Trapezoidal mask on'
+            self.auglist = ['TRAPEZE'] + self.auglist
+        else:
+            self.ids.status.text = 'Trapezoidal mask off'
+            if 'TRAPEZE' in self.auglist:
+                self.auglist.remove('TRAPEZE')
+
+    def set_crop(self, state):
+        if state == 'down':
+            self.ids.status.text = 'Crop on'
+            self.auglist = ['CROP'] + self.auglist
+        else:
+            self.ids.status.text = 'Crop off'
+            if 'CROP' in self.auglist:
+                self.auglist.remove('CROP')
 
     def status(self, msg):
         self.ids.status.text = msg

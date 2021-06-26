@@ -147,12 +147,21 @@ PRUNE_PERCENT_PER_ITERATION = 20 # Percenge of pruning that is perform per itera
 PRUNE_VAL_LOSS_DEGRADATION_LIMIT = 0.2 # The max amout of validation loss that is permitted during pruning.
 PRUNE_EVAL_PERCENT_OF_DATASET = .05  # percent of dataset used to perform evaluation of model.
 
-# Region of interest cropping
-# only supported in Categorical and Linear models.
+# Augmentations
+AUGMENTATIONS = []
+# Region of interest cropping, requires 'CROP' in AUGMENTATIONS to be set
 # If these crops values are too large, they will cause the stride values to become negative and the model with not be valid.
-ROI_CROP_TOP = 0                    #the number of rows of pixels to ignore on the top of the image
-ROI_CROP_BOTTOM = 0                 #the number of rows of pixels to ignore on the bottom of the image
-
+ROI_CROP_TOP = 45                # the number of rows of pixels to ignore on the top of the image
+ROI_CROP_BOTTOM = 0             # the number of rows of pixels to ignore on the bottom of the image
+ROI_CROP_RIGHT = 0              # the number of rows of pixels to ignore on the right of the image
+ROI_CROP_LEFT = 0               # the number of rows of pixels to ignore on the left of the image
+# For trapezoidal see explanation in augmentations.py, requires 'TRAPEZE' in AUGMENTATIONS to be set
+ROI_TRAPEZE_LL = 0
+ROI_TRAPEZE_LR = 160
+ROI_TRAPEZE_UL = 20
+ROI_TRAPEZE_UR = 140
+ROI_TRAPEZE_MIN_Y = 60
+ROI_TRAPEZE_MAX_Y = 120
 
 #Model transfer options
 #When copying weights during a model transfer operation, should we freeze a certain number of layers

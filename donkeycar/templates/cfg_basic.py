@@ -105,6 +105,24 @@ MODEL_CATEGORICAL_MAX_THROTTLE_RANGE = 0.5
 #RNN or 3D
 SEQUENCE_LENGTH = 3
 
+# Augmentations
+AUGMENTATIONS = []
+# Number of pixels to crop, requires 'CROP' in AUGMENTATIONS to be set
+ROI_CROP_TOP = 45
+ROI_CROP_BOTTOM = 0
+ROI_CROP_RIGHT = 0
+ROI_CROP_LEFT = 0
+# For trapezoidal see explanation in augmentations.py, requires 'TRAPEZE' in
+# AUGMENTATIONS to be set
+ROI_TRAPEZE_LL = 0
+ROI_TRAPEZE_LR = 160
+ROI_TRAPEZE_UL = 20
+ROI_TRAPEZE_UR = 140
+ROI_TRAPEZE_MIN_Y = 60
+ROI_TRAPEZE_MAX_Y = 120
+
+
+
 #SOMBRERO
 HAVE_SOMBRERO = False
 

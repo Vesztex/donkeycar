@@ -1,18 +1,22 @@
-from art import *
-__version__ = '3.1.2 DocGarbanzo'
-
-logo = text2art('Donkey Car', font='speed')
-print(logo)
-print('using donkey v{} ...'.format(__version__))
-
 import sys
+from pyfiglet import Figlet
+import logging
 
-if sys.version_info.major < 3:
-    msg = 'Donkey Requires Python 3.4 or greater. You are using {}'\
-        .format(sys.version)
+logging.basicConfig(level=logging.INFO)
+f = Figlet(font='speed')
+__version__ = '4.3.0'
+
+
+print(f.renderText('Donkey Car'))
+print(f'using donkey v{__version__} ...')
+
+if sys.version_info.major < 3 or sys.version_info.minor < 6:
+    msg = f'Donkey Requires Python 3.6 or greater. You are using {sys.version}'
     raise ValueError(msg)
 
-from . import parts
+# The default recursion limits in CPython are too small.
+sys.setrecursionlimit(10**5)
+
 from .vehicle import Vehicle
 from .memory import Memory
 from . import utils

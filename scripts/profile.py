@@ -14,10 +14,6 @@ import donkeycar as dk
 import numpy as np
 from donkeycar.utils import FPSTimer
 
-# this switches TF >= 2.0 from eager into graph mode which is faster.
-from tensorflow.python.framework.ops import disable_eager_execution
-disable_eager_execution()
-
 
 def profile(model_path, model_type):
     cfg = dk.load_config('config.py')
@@ -25,38 +21,19 @@ def profile(model_path, model_type):
     model = dk.utils.get_model_by_type(model_type, cfg)
     model.load(model_path)
     
-    count, h, w, ch = 1, cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D
-    seq_len = 0
+    h, w, ch = cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D
 
-    if "rnn" in model_type or "3d" in model_type:
-        seq_len = cfg.SEQUENCE_LENGTH
-
-    # generate random array in the right shape and normalised [0,1]
-    img = np.random.rand(int(h), int(w), int(ch))
-
-    if seq_len:
-        img_arr = []
-        for i in range(seq_len):
-            img_arr.append(img)
-        img_arr = np.array(img_arr)
+    # generate random array in the right shape in [0,1)
+    img = np.random.randint(0, 255, size=(h, w, ch))
 
     # make a timer obj
     timer = FPSTimer()
 
     try:
         while True:
-
-            '''
-            run forward pass on model
-            '''
-            if seq_len:
-                model.run(img_arr)
-            else:
-                model.run(img)
-
-            '''
-            keep track of iterations and give feed back on iter/sec
-            '''
+            # run inferencing
+            model.run(img)
+            # time
             timer.on_frame()
 
     except KeyboardInterrupt:
@@ -65,4 +42,4 @@ def profile(model_path, model_type):
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    profile(model_path=args['--model'], model_type=args['--type'])
+    profile(model_path = args['--model'], model_type = args['--type'])

@@ -1,4 +1,3 @@
-
 import os
 import array
 import time
@@ -12,6 +11,7 @@ from prettytable import PrettyTable
 #import for syntactical ease
 from donkeycar.parts.web_controller.web import LocalWebController
 from donkeycar.parts.web_controller.web import WebFpv
+
 
 class Joystick(object):
     '''
@@ -138,8 +138,18 @@ class Joystick(object):
 
 
 class PyGameJoystick(object):
-    def __init__(self, which_js=0):
+    def __init__( self,
+                  poll_delay=0.0,
+                  throttle_scale=1.0,
+                  steering_scale=1.0,
+                  throttle_dir=-1.0,
+                  dev_fn='/dev/input/js0',
+                  auto_record_on_throttle=True,
+                  which_js=0):
+
         import pygame
+
+        pygame.init()
 
         # Initialize the joysticks
         pygame.joystick.init()
@@ -153,32 +163,46 @@ class PyGameJoystick(object):
         self.button_states = [ 0 for i in range(self.joystick.get_numbuttons() + self.joystick.get_numhats() * 4)]
         self.axis_names = {}
         self.button_names = {}
-
+        self.dead_zone = 0.07
+        for i in range(self.joystick.get_numaxes()):
+            self.axis_names[i] = i
+        for i in range(self.joystick.get_numbuttons() + self.joystick.get_numhats() * 4):
+            self.button_names[i] = i
 
     def poll(self):
+        import pygame
+
         button = None
         button_state = None
         axis = None
         axis_val = None
 
-        self.joystick.init()
+        pygame.event.get()
+
 
         for i in range( self.joystick.get_numaxes() ):
             val = self.joystick.get_axis( i )
-            if self.axis_states[i] != val:
+            if abs(val) < self.dead_zone:
+                val = 0.0
+            if self.axis_states[i] != val and i in self.axis_names:
                 axis = self.axis_names[i]
                 axis_val = val
                 self.axis_states[i] = val
                 logging.debug("axis: %s val: %f" % (axis, val))
+                #print("axis: %s val: %f" % (axis, val))
 
 
         for i in range( self.joystick.get_numbuttons() ):
             state = self.joystick.get_button( i )
             if self.button_states[i] != state:
+                if not i in self.button_names:
+                    print('button:', i)
+                    continue
                 button = self.button_names[i]
                 button_state = state
                 self.button_states[i] = state
                 logging.info("button: %s state: %d" % (button, state))
+                #print("button: %s state: %d" % (button, state))
 
         for i in range( self.joystick.get_numhats() ):
             hat = self.joystick.get_hat( i )
@@ -188,12 +212,122 @@ class PyGameJoystick(object):
             for state in states:
                 state = int(state)
                 if self.button_states[iBtn] != state:
+                    if not iBtn in self.button_names:
+                        print("button:", iBtn)
+                        continue
                     button = self.button_names[iBtn]
                     button_state = state
                     self.button_states[iBtn] = state
+                    logging.info("button: %s state: %d" % (button, state))
+                    #print("button: %s state: %d" % (button, state))
+
                 iBtn += 1
 
         return button, button_state, axis, axis_val
+        
+    def set_deadzone(self, val):
+        self.dead_zone = val
+
+# this class is a helper for the RCReceiver class
+class Channel:
+    def __init__(self, pin):
+        self.pin = pin
+        self.tick = None
+        self.high_tick = None
+
+class RCReceiver:
+    MIN_OUT = -1
+    MAX_OUT = 1
+    def __init__(self, cfg, debug=False):
+        import pigpio
+        self.pi = pigpio.pi()
+
+        # standard variables
+        self.channels = [Channel(cfg.STEERING_RC_GPIO), Channel(cfg.THROTTLE_RC_GPIO), Channel(cfg.DATA_WIPER_RC_GPIO)]
+        self.min_pwm = 1000
+        self.max_pwm = 2000
+        self.oldtime = 0
+        self.STEERING_MID = cfg.PIGPIO_STEERING_MID
+        self.MAX_FORWARD = cfg.PIGPIO_MAX_FORWARD
+        self.STOPPED_PWM = cfg.PIGPIO_STOPPED_PWM
+        self.MAX_REVERSE = cfg.PIGPIO_MAX_REVERSE
+        self.RECORD = cfg.AUTO_RECORD_ON_THROTTLE
+        self.debug = debug
+        self.mode = 'user'
+        self.is_action = False
+        self.invert = cfg.PIGPIO_INVERT
+        self.jitter = cfg.PIGPIO_JITTER
+        self.factor = (self.MAX_OUT - self.MIN_OUT) / (self.max_pwm - self.min_pwm)
+        self.cbs = []
+        self.signals = [0,0,0]
+        for channel in self.channels:
+            self.pi.set_mode(channel.pin, pigpio.INPUT)
+            self.cbs.append(self.pi.callback(channel.pin, pigpio.EITHER_EDGE, self.cbf))
+            if self.debug:
+                print(f'RCReceiver gpio {channel.pin} created')
+    
+
+    def cbf(self, gpio, level, tick):
+        import pigpio
+        """ Callback function for pigpio interrupt gpio. Signature is determined
+            by pigpiod library. This function is called every time the gpio
+            changes state as we specified EITHER_EDGE.  The pigpio callback library
+            sends the user-defined callback function three parameters, which it may or may not use
+        :param gpio: gpio to listen for state changes
+        :param level: rising/falling edge
+        :param tick: # of mu s since boot, 32 bit int
+        """
+        for channel in self.channels:
+            if gpio == channel.pin:            
+                if level == 1:                
+                    channel.high_tick = tick            
+                elif level == 0:                
+                    if channel.high_tick is not None:                    
+                        channel.tick = pigpio.tickDiff(channel.high_tick, tick)
+
+    def pulse_width(self, high):
+        """
+        :return: the PWM pulse width in microseconds.
+        """
+        if high is not None:
+            return high
+        else:
+            return 0.0
+
+    def run(self):
+        i = 0
+        for channel in self.channels:
+            # signal is a value in [0, (MAX_OUT-MIN_OUT)]
+            self.signals[i] = (self.pulse_width(channel.tick) - self.min_pwm) * self.factor
+            # convert into min max interval
+            if self.invert:
+                self.signals[i] = -self.signals[i] + self.MAX_OUT
+            else:
+                self.signals[i] += self.MIN_OUT
+            i += 1
+        if self.debug:
+            print('RC CH1 signal:', round(self.signals[0], 3), 'RC CH2 signal:', round(self.signals[1], 3), 'RC CH3 signal:', round(self.signals[2], 3))
+
+        # check mode channel if present
+        if (self.signals[2] - self.jitter) > 0:  
+            self.mode = 'local'
+        else:
+            self.mode = 'user'
+
+        # check throttle channel
+        if ((self.signals[1] - self.jitter) > 0) and self.RECORD: # is throttle above jitter level? If so, turn on auto-record 
+            is_action = True
+        else:
+            is_action = False
+        return self.signals[0], self.signals[1], self.mode, is_action
+
+    def shutdown(self):
+        """
+        Cancel all the callbacks on shutdown
+        """
+        for channel in self.channels:
+            self.cbs[channel].cancel()
+
 
 
 class JoystickCreator(Joystick):
@@ -323,11 +457,11 @@ class PS4Joystick(Joystick):
         self.axis_names = {
             0x00 : 'left_stick_horz',
             0x01 : 'left_stick_vert',
-            0x02 : 'right_stick_horz',
-            0x05 : 'right_stick_vert',
+            0x03 : 'right_stick_horz',
+            0x04 : 'right_stick_vert',
 
-            0x03 : 'left_trigger_axis',
-            0x04 : 'right_trigger_axis',
+            0x02 : 'left_trigger_axis',
+            0x05 : 'right_trigger_axis',
 
             0x10 : 'dpad_leftright',
             0x11 : 'dpad_updown',
@@ -343,21 +477,21 @@ class PS4Joystick(Joystick):
 
         self.button_names = {
 
-            0x130 : 'square',
-            0x131 : 'cross',
-            0x132 : 'circle',
+            0x134 : 'square',
+            0x130 : 'cross',
+            0x131 : 'circle',
             0x133 : 'triangle',
 
-            0x134 : 'L1',
-            0x135 : 'R1',
+            0x138 : 'L1',
+            0x139 : 'R1',
             0x136 : 'L2',
             0x137 : 'R2',
             0x13a : 'L3',
             0x13b : 'R3',
 
             0x13d : 'pad',
-            0x138 : 'share',
-            0x139 : 'options',
+            0x13a : 'share',
+            0x13b : 'options',
             0x13c : 'PS',
         }
 
@@ -423,40 +557,41 @@ class PS3JoystickPC(Joystick):
         }
 
 
-class PyGamePS3Joystick(PyGameJoystick):
+class PyGamePS4Joystick(PyGameJoystick):
     '''
-    An interface to a physical PS3 joystick available via pygame
+    An interface to a physical PS4 joystick available via pygame
     Windows setup: https://github.com/nefarius/ScpToolkit/releases/tag/v1.6.238.16010
     '''
     def __init__(self, *args, **kwargs):
-        super(PyGamePS3Joystick, self).__init__(*args, **kwargs)
+        super(PyGamePS4Joystick, self).__init__(*args, **kwargs)
 
         self.axis_names = {
             0x00 : 'left_stick_horz',
             0x01 : 'left_stick_vert',
-            0x02 : 'analog_trigger',
             0x03 : 'right_stick_vert',
-            0x04 : 'right_stick_horz',
+            0x02 : 'right_stick_horz',
         }
 
         self.button_names = {
-            0 : "cross",
-            1 : "circle",
-            2 : 'square',
+            2 : "circle",
+            1 : "cross",
+            0 : 'square',
             3 : "triangle",
 
-            6 : 'select',
-            7 : 'start',
+            8 : 'share',
+            9 : 'options',
+            13 : 'pad',
 
             4 : 'L1',
             5 : 'R1',
-            8 : 'L3',
-            9 : 'R3',
-
-            10 : 'dpad_left',
-            11 : 'dpad_right',
-            12 : 'dpad_down',
-            13 : 'dpad_up',
+            6 : 'L2',
+            7 : 'R2',
+            10 : 'L3',
+            11 : 'R3',
+            14 : 'dpad_left',
+            15 : 'dpad_right',
+            16 : 'dpad_down',
+            17 : 'dpad_up',
         }
 
 
@@ -483,14 +618,14 @@ class XboxOneJoystick(Joystick):
         super(XboxOneJoystick, self).__init__(*args, **kwargs)
 
         self.axis_names = {
-            0x00: 'left_stick_horz',
-            0x01: 'left_stick_vert',
-            0x02: 'right_stick_horz',
-            0x05: 'right_stick_vert',
-            0x09: 'right_trigger',
-            0x0a: 'left_trigger',
-            0x10: 'dpad_horz',
-            0x11: 'dpad_vert',
+            0x00 : 'left_stick_horz',
+            0x01 : 'left_stick_vert',
+            0x05 : 'right_stick_vert',
+            0x02 : 'right_stick_horz',
+            0x0a : 'left_trigger',
+            0x09 : 'right_trigger',
+            0x10 : 'dpad_horiz',
+            0x11 : 'dpad_vert'
         }
 
         self.button_names = {
@@ -498,11 +633,10 @@ class XboxOneJoystick(Joystick):
             0x131: 'b_button',
             0x133: 'x_button',
             0x134: 'y_button',
+            0x13b: 'options',
             0x136: 'left_shoulder',
             0x137: 'right_shoulder',
-            0x13b: 'options',
         }
-
 
 class LogitechJoystick(Joystick):
     '''
@@ -752,8 +886,8 @@ class JoystickController(object):
     def erase_last_N_records(self):
         if self.tub is not None:
             try:
-                self.tub.erase_last_n_records(self.num_records_to_erase)
-                print('erased last %d records.' % self.num_records_to_erase)
+                self.tub.delete_last_n_records(self.num_records_to_erase)
+                print('deleted last %d records.' % self.num_records_to_erase)
             except:
                 print('failed to erase')
 
@@ -1078,6 +1212,28 @@ class PS4JoystickController(JoystickController):
             'left_stick_horz' : self.set_steering,
             'right_stick_vert' : self.set_throttle,
         }
+
+
+class PyGamePS4JoystickController(PS4JoystickController):
+    '''
+    A Controller object that maps inputs to actions
+    '''
+    def __init__(self, which_js=0, *args, **kwargs):
+        super(PyGamePS4JoystickController, self).__init__(*args, **kwargs)
+        self.which_js=which_js
+
+
+    def init_js(self):
+        '''
+        attempt to init joystick
+        '''
+        try:
+            self.js = PyGamePS4Joystick(which_js=self.which_js)
+        except Exception as e:
+            print(e)
+            self.js = None
+        return self.js is not None
+
 
 
 class XboxOneJoystickController(JoystickController):
@@ -1449,25 +1605,28 @@ def get_js_controller(cfg):
         cont_class = LogitechJoystickController
     elif cfg.CONTROLLER_TYPE == "rc3":
         cont_class = RC3ChanJoystickController
+    elif cfg.CONTROLLER_TYPE == "pygame":
+        cont_class = PyGamePS4JoystickController
     else:
-        raise("Unknown controller type: " + cfg.CONTROLLER_TYPE)
+        raise( Exception("Unknown controller type: " + cfg.CONTROLLER_TYPE))
 
     ctr = cont_class(throttle_dir=cfg.JOYSTICK_THROTTLE_DIR,
                                 throttle_scale=cfg.JOYSTICK_MAX_THROTTLE,
                                 steering_scale=cfg.JOYSTICK_STEERING_SCALE,
-                                auto_record_on_throttle=cfg.AUTO_RECORD_ON_THROTTLE)
+                                auto_record_on_throttle=cfg.AUTO_RECORD_ON_THROTTLE,
+                                dev_fn=cfg.JOYSTICK_DEVICE_FILE)
 
     ctr.set_deadzone(cfg.JOYSTICK_DEADZONE)
     return ctr
 
-if __name__ == "__main__":
-    '''
-    publish ps3 controller
-    when running from ubuntu 16.04, it will interfere w mouse until:
-    xinput set-prop "Sony PLAYSTATION(R)3 Controller" "Device Enabled" 0
-    '''
-    print("You may need:")
-    print('xinput set-prop "Sony PLAYSTATION(R)3 Controller" "Device Enabled" 0')
-    p = JoyStickPub()
-    p.run()
 
+if __name__ == "__main__":
+ #   Testing the XboxOneJoystickController
+    js = XboxOneJoystick('/dev/input/js0')
+    js.init()
+
+    while True:
+        button, button_state, axis, axis_val = js.poll()
+        if button is not None or axis is not None:
+            print(button, button_state, axis, axis_val)
+        time.sleep(0.1)

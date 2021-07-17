@@ -130,7 +130,7 @@ class Webcam(BaseCamera):
     def shutdown(self):
         # indicate that the thread should be stopped
         self.on = False
-        print('stoping Webcam')
+        print('stopping Webcam')
         time.sleep(.5)
 
 
@@ -197,7 +197,7 @@ class CSICamera(BaseCamera):
 
     def shutdown(self):
         self.running = False
-        print('stoping CSICamera')
+        print('stopping CSICamera')
         time.sleep(.5)
         del self.camera
 
@@ -283,7 +283,7 @@ class ImageListCamera(BaseCamera):
     '''
     Use the images from a tub as a fake camera output
     '''
-    def __init__(self, path_mask='~/mycar/data/**/*.jpg'):
+    def __init__(self, path_mask='~/mycar/data/**/images/*.jpg'):
         self.image_filenames = glob.glob(os.path.expanduser(path_mask), recursive=True)
 
         def get_image_index(fnm):

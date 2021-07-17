@@ -58,17 +58,11 @@ PRINT_MODEL_SUMMARY = True      #print layers and weights to stdout
 OPTIMIZER = None                #adam, sgd, rmsprop, etc.. None accepts default
 LEARNING_RATE = 0.001           #only used when OPTIMIZER specified
 LEARNING_RATE_DECAY = 0.0       #only used when OPTIMIZER specified
-CACHE_IMAGES = True             #keep images in memory. will speed succesive epochs, but crater if not enough mem.
 PRUNE_CNN = False
 PRUNE_PERCENT_TARGET = 75 # The desired percentage of pruning.
 PRUNE_PERCENT_PER_ITERATION = 20 # Percenge of pruning that is perform per iteration.
 PRUNE_VAL_LOSS_DEGRADATION_LIMIT = 0.2 # The max amout of validation loss that is permitted during pruning.
 PRUNE_EVAL_PERCENT_OF_DATASET = .05  # percent of dataset used to perform evaluation of model.
-
-# Region of interst cropping
-# only supported in Categorical and Linear models.
-ROI_CROP_TOP = 0
-ROI_CROP_BOTTOM = 0
 
 #model transfer options
 FREEZE_LAYERS = False

@@ -50,76 +50,20 @@ $(document).ready(function(){
     // UI elements update
     var updateStreamImg = function() {
         var curFrame = selectedClip().frames[currentFrameIdx];
-        $('#img-preview').attr('src', '/tub_data/' + tubId + '/' + curFrame + '_cam-image_array_.jpg');
-        $('#cur-frame').text(curFrame);
-        $.getJSON('/tub_data/' + tubId + '/' + 'record_' + curFrame + '.json', function(data) {
-            distance = Math.round(1000 * data["car/distance"]) / 1000
-            $('#dist').text(distance)
-            m_in_lap = Math.round(1000 * data["car/m_in_lap"]) / 1000
-            $('#m_in_lap').text(m_in_lap)
-            lap = data["car/lap"]
-            $('#lap').text(lap)
-            seconds = data["milliseconds"] / 1000
-            $('#seconds').text(seconds)
-
-            var angle = data["user/angle"];
-            var steeringPercent = Math.round(Math.abs(angle) * 100) + '%';
-            var steeringRounded = angle.toFixed(2);
-            $('.steering-bar .progress-bar').css('width', '0%').html('');
-            if(angle < 0) {
-                $('#angle-bar-backward').css('width', steeringPercent).html(steeringRounded);
-            }
-            if (angle > 0) {
-                $('#angle-bar-forward').css('width', steeringPercent).html(steeringRounded);
-            }
-
-            var throttle = data["user/throttle"];
-            var throttlePercent = Math.round(Math.abs(throttle) * 100) + '%';
-            var throttleRounded = throttle.toFixed(2);
-            $('.throttle-bar .progress-bar').css('width', '0%').html('');
-            $('#throttle-bar-forward').css('width', throttlePercent).html(throttleRounded);
-
-            var speed = data["car/speed"] / 4.4; // divided by car max speed
-            var speedPercent = Math.round(Math.abs(speed) * 100) + '%';
-            var speedRounded = speed.toFixed(2);
-            $('.speed-bar .progress-bar').css('width', '0%').html('');
-            $('#speed-bar-forward').css('width', speedPercent).html(speedRounded);
-
-            var accel = data["car/accel"];
-            var accel_x = -accel[0]/10;
-            var accel_x_pct = Math.round(Math.abs(accel_x) * 100) + '%';
-            var accel_x_rounded = accel_x.toFixed(2);
-            $('.accel-x-bar .progress-bar').css('width', '0%').html('');
-            if(accel_x < 0) {
-                $('#accel-x-bar-backward').css('width', accel_x_pct).html(accel_x_rounded);
-            }
-            if (accel_x > 0) {
-                $('#accel-x-bar-forward').css('width', accel_x_pct).html(accel_x_rounded);
-            }
-            var accel_y = -accel[1]/10;
-            var accel_y_pct = Math.round(Math.abs(accel_y) * 100) + '%';
-            var accel_y_rounded = accel_y.toFixed(2);
-            $('.accel-y-bar .progress-bar').css('width', '0%').html('');
-            if(accel_y < 0) {
-                $('#accel-y-bar-backward').css('width', accel_y_pct).html(accel_y_rounded);
-            }
-            if (accel_y > 0) {
-                $('#accel-y-bar-forward').css('width', accel_y_pct).html(accel_y_rounded);
-            }
-
-            var gyro = data["car/gyro"];
-            var gyro_z = gyro[2]/180;
-            var gyro_z_pct = Math.round(Math.abs(gyro_z) * 100) + '%';
-            var gyro_z_rounded = gyro_z.toFixed(2);
-            $('.gyro-z-bar .progress-bar').css('width', '0%').html('');
-            if(gyro_z < 0) {
-                $('#gyro-z-bar-backward').css('width', gyro_z_pct).html(gyro_z_rounded);
-            }
-            if (gyro_z > 0) {
-                $('#gyro-z-bar-forward').css('width', gyro_z_pct).html(gyro_z_rounded);
-            }
-
-        });
+        var frameIndex = curFrame['_index'];
+        var imagePath = curFrame['cam/image_array'];
+        $('#img-preview').attr('src', '/tub_data/' + tubId + '/' + imagePath);
+        $('#cur-frame').text(frameIndex);
+        var angle = curFrame["user/angle"];
+        var steeringPercent = Math.round(Math.abs(angle) * 100) + '%';
+        var steeringRounded = angle.toFixed(2)
+        $('.steering-bar .progress-bar').css('width', '0%').html('');
+        if(angle < 0) {
+            $('#angle-bar-backward').css('width', steeringPercent).html(steeringRounded)
+        }
+        if (angle > 0) {
+            $('#angle-bar-forward').css('width', steeringPercent).html(steeringRounded)
+        }
     };
 
     var updateStreamControls = function() {
@@ -160,7 +104,9 @@ $(document).ready(function(){
             return Math.round(frames.length/16*i);
         })
         .map(function(frameIdx) {
-            return '<img class="clip-thumbnail" id="clipThumbnail" data-clip="' + clipIdx + '" data-frame="' + frameIdx + '" src="/tub_data/' + tubId + '/' + frames[frameIdx] + '_cam-image_array_.jpg" "/>';
+            var frame = frames[frameIdx];
+            var imagePath = frame['cam/image_array'];
+            return '<img class="clip-thumbnail" id="clipThumbnail" data-clip="' + clipIdx + '" data-frame="' + frameIdx + '" src="/tub_data/' + tubId + '/' + imagePath + '" />';
         })
         .join('');
 

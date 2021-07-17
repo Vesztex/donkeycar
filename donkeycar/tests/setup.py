@@ -1,8 +1,7 @@
 import os
 import platform
 import pytest
-import numpy as np
-from donkeycar.parts.datastore import Tub
+from donkeycar.parts.tub_v2 import Tub
 from donkeycar.parts.simulation import SquareBoxCamera, MovingSquareTelemetry
 from donkeycar.management.base import CreateCar
 
@@ -29,12 +28,6 @@ def tub(tub_path):
 
 
 @pytest.fixture
-def tub_rand(tub_path):
-    t = create_random_tub(tub_path, records=128)
-    return t
-
-
-@pytest.fixture
 def tubs(tmpdir, tubs=5):
     tubs_dir = tmpdir.mkdir('tubs')
     tub_paths = [str(tubs_dir.join('tub_{}'.format(i))) for i in range(tubs)]
@@ -53,30 +46,16 @@ def create_sample_tub(path, records=128):
     for _ in range(records):
         x, y = tel.run()
         img_arr = cam.run(x, y)
-        loc = [0 for i in range(num_loc)]
+        loc = [0.0] * num_loc
         loc[1] = 1.0
-        t.put_record({'cam/image_array': img_arr,
-                      'user/angle': x,
-                      'user/throttle': y,
-                      'location/one_hot_state_array': loc})
+        t.write_record(
+            {'cam/image_array': img_arr, 'user/angle': x, 'user/throttle': y,
+             'location/one_hot_state_array': loc})
 
     global temp_tub_path
-    temp_tub_path = t.path
+    temp_tub_path = t
     print("setting temp tub path to:", temp_tub_path)
-    return t
 
-
-def create_random_tub(path, records=128):
-    inputs = ['cam/image_array']
-    types = ['image_array']
-    t = Tub(path, inputs=inputs, types=types)
-    for _ in range(records):
-        img_arr = np.random.rand(120, 160, 3) * 255
-        t.put_record({'cam/image_array': img_arr})
-
-    global temp_tub_path
-    temp_tub_path = t.path
-    print("setting temp tub path to:", temp_tub_path)
     return t
 
 
@@ -85,16 +64,16 @@ def d2_path(temp_path):
     return str(path)
 
 
-def default_template(d2_path):
+def default_template(car_dir):
     c = CreateCar()
-    c.create_car(d2_path, overwrite=True)
-    return d2_path
+    c.create_car(car_dir, template='complete', overwrite=True)
+    return car_dir
 
 
-def custom_template(d2_path, template):
+def custom_template(car_dir, template):
     c = CreateCar()
-    c.create_car(d2_path, template=template, overwrite=True)
-    return d2_path
+    c.create_car(car_dir, template=template, overwrite=True)
+    return car_dir
 
 
 def create_sample_record():

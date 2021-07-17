@@ -1,28 +1,23 @@
 import moviepy.editor as mpy
 from tensorflow.python.keras import activations
 from tensorflow.python.keras import backend as K
-
+import tensorflow as tf
+import cv2
+from matplotlib import cm
 try:
-    from vis.visualization import visualize_saliency, overlay
     from vis.utils import utils
-    from vis.backprop_modifiers import get
-    from vis.losses import ActivationMaximization
-    from vis.optimizer import Optimizer
-except ImportError:
-    raise Exception("Please install keras-vis: pip install "
-                    "git+https://github.com/autorope/keras-vis.git")
+except:
+    raise Exception("Please install keras-vis: pip install git+https://github.com/autorope/keras-vis.git")
 
 import donkeycar as dk
-from donkeycar.parts.datastore import Tub
+from donkeycar.parts.tub_v2 import Tub
 from donkeycar.utils import *
-from donkeycar.parts.transform import ImuCombinerNormaliser
 
-ONE_OVER_INT = 1.0 / 255.0
+
+DEG_TO_RAD = math.pi / 180.0
 
 
 class MakeMovie(object):
-    def __init__(self):
-        self.deg_to_rad = math.pi / 180.0
 
     def run(self, args, parser):
         '''
@@ -35,18 +30,6 @@ class MakeMovie(object):
             parser.print_help()
             return
 
-        if args.type is None and args.model is not None:
-            print("ERR>> --type argument missing. "
-                  "Required when providing a model.")
-            parser.print_help()
-            return
-
-        if args.salient:
-            if args.model is None:
-                print("ERR>> salient visualization requires a model. "
-                      "Pass with the --model arg.")
-                parser.print_help()
-
         conf = os.path.expanduser(args.config)
         if not os.path.exists(conf):
             print("No config file at location: %s. Add --config to specify\
@@ -54,115 +37,105 @@ class MakeMovie(object):
             return
 
         self.cfg = dk.load_config(conf)
+
+        if args.type is None and args.model is not None:
+            args.type = self.cfg.DEFAULT_MODEL_TYPE
+            print("Model type not provided. Using default model type from config file")
+
+        if args.salient:
+            if args.model is None:
+                print("ERR>> salient visualization requires a model. Pass with the --model arg.")
+                parser.print_help()
+
+            if args.type not in ['linear', 'categorical']:
+                print("Model type {} is not supported. Only linear or categorical is supported for salient visualization".format(args.type))
+                parser.print_help()
+                return
+
         self.tub = Tub(args.tub)
-        self.index = self.tub.get_index(shuffled=False)
+
         start = args.start
-        self.end = args.end if args.end != -1 else len(self.index)
-        if self.end >= len(self.index):
-            self.end = len(self.index) - 1
-        num_frames = self.end - start
-        self.iRec = start
+        self.end_index = args.end if args.end != -1 else len(self.tub)
+        num_frames = self.end_index - start
+
+        # Move to the correct offset
+        self.current = 0
+        self.iterator = self.tub.__iter__()
+        while self.current < start:
+            self.iterator.next()
+            self.current += 1
+
         self.scale = args.scale
         self.keras_part = None
         self.do_salient = False
-        self.imu_proc = ImuCombinerNormaliser(self.cfg)
+        self.user = args.draw_user_input
         if args.model is not None:
             self.keras_part = get_model_by_type(args.type, cfg=self.cfg)
             self.keras_part.load(args.model)
-            self.keras_part.compile()
-            self.imu_model = 'imu' in args.model
             if args.salient:
                 self.do_salient = self.init_salient(self.keras_part.model)
 
-        self.use_speed = getattr(self.cfg, 'USE_SPEED_FOR_MODEL', True)
         print('making movie', args.out, 'from', num_frames, 'images')
-        clip = mpy.VideoClip(self.make_frame,
-                             duration=((num_frames - 1) / self.cfg.DRIVE_LOOP_HZ))
-        try:
-            clip.write_videofile(args.out, fps=self.cfg.DRIVE_LOOP_HZ)
-        except OSError as e:
-            print('Error in write video occured:', e)
+        clip = mpy.VideoClip(self.make_frame, duration=((num_frames - 1) / self.cfg.DRIVE_LOOP_HZ))
+        clip.write_videofile(args.out, fps=self.cfg.DRIVE_LOOP_HZ)
 
-    def draw_user_input(self, record, img):
-        '''
-        Draw the user input as a green line on the image
-        '''
-
+    @staticmethod
+    def draw_line_into_image(angle, throttle, is_left, img, color):
         import cv2
 
-        angle = float(record["user/angle"])
-        throttle = record['car/speed'] / self.cfg.MAX_SPEED if self.use_speed \
-            else record['user/throttle']
-
         height, width, _ = img.shape
-        p1, p2 = self.make_end_points(angle, throttle, height, width, -2)
-        # user is green, pilot is blue
+        length = height
+        a1 = angle * 45.0
+        l1 = throttle * length
+        mid = width // 2 + (- 1 if is_left else +1)
+
+        p1 = tuple((mid - 2, height - 1))
+        p11 = tuple((int(p1[0] + l1 * math.cos((a1 + 270.0) * DEG_TO_RAD)),
+                     int(p1[1] + l1 * math.sin((a1 + 270.0) * DEG_TO_RAD))))
+
+        cv2.line(img, p1, p11, color, 2)
+
+    def draw_user_input(self, record, img):
+        """
+        Draw the user input as a green line on the image
+        """
+        user_angle = float(record["user/angle"])
+        user_throttle = float(record["user/throttle"])
         green = (0, 255, 0)
-        cv2.line(img, p1, p2, green, 2)
-        font = cv2.FONT_HERSHEY_PLAIN
-        bottom_left = (width - 40, height-2)
-        cv2.putText(img, text='User', org=bottom_left, fontFace=font,
-                    fontScale=1.0, color=green, lineType=1)
-        
-    def draw_model_prediction(self, record, img, imu):
-        '''
+        self.draw_line_into_image(user_angle, user_throttle, False, img, green)
+          
+    def draw_model_prediction(self, img):
+        """
         query the model for it's prediction, draw the predictions
         as a blue line on the image
-        '''
+        """
         if self.keras_part is None:
             return
 
-        import cv2
-
-        expected = self.keras_part.get_input_shape()[1:]
+        expected = tuple(self.keras_part.get_input_shapes()[0][1:])
         actual = img.shape
 
-        # normalize image before prediction
-        pred_img = img.astype(np.float32) * ONE_OVER_INT
-
-        # check input depth
+        # if model expects grey-scale but got rgb, covert
         if expected[2] == 1 and actual[2] == 3:
-            pred_img = rgb2gray(pred_img)
-            pred_img = pred_img.reshape(pred_img.shape + (1,))
-            actual = pred_img.shape
+            # normalize image before grey conversion
+            grey_img = rgb2gray(img)
+            actual = grey_img.shape
+            img = grey_img.reshape(grey_img.shape + (1,))
 
-        # if expected != actual:
-        #     print("expected input dim", expected,
-        #           "didn't match actual dim", actual)
-        #     return
+        if expected != actual:
+            print(f"expected input dim {expected} didn't match actual dim "
+                  f"{actual}")
+            return
 
-        if self.imu_model:
-            assert (imu is not None), "IMU model requires imu data"
-            angle, throttle = self.keras_part.run(pred_img, imu)
-        else:
-            angle, throttle = self.keras_part.run(pred_img)
-        height, width, _ = pred_img.shape
-
-        p1, p2 = self.make_end_points(angle, throttle, height, width, 2)
-        # user is green, pilot is blue
         blue = (0, 0, 255)
-        cv2.line(img, p1, p2, blue, 2)
+        pilot_angle, pilot_throttle = self.keras_part.run(img)
+        self.draw_line_into_image(pilot_angle, pilot_throttle, True, img, blue)
 
-        font = cv2.FONT_HERSHEY_PLAIN
-        bottom_left = (2, height-2)
-        cv2.putText(img, text='Pilot', org=bottom_left, fontFace=font,
-                    fontScale=1.0, color=blue, lineType=1)
-
-    def make_end_points(self, angle, throttle, height, width, offset):
-        length = height
-        # angle in rad around +/- 45 deg of pos y-axis
-        a = (angle * 45.0 + 270.0) * self.deg_to_rad
-        # scale length by throttle/speed
-        l = throttle * length
-        mid = width // 2 - 1
-        p1 = mid + offset, height - 1
-        p2 = int(p1[0] + l * math.cos(a)), int(p1[1] + l * math.sin(a))
-        return p1, p2
-
-    def draw_steering_distribution(self, record, img):
-        '''
-        query the model for it's prediction, draw the distribution of steering choices
-        '''
+    def draw_steering_distribution(self, img):
+        """
+        query the model for it's prediction, draw the distribution of
+        steering choices
+        """
         from donkeycar.parts.keras import KerasCategorical
 
         if self.keras_part is None or type(self.keras_part) is not KerasCategorical:
@@ -170,8 +143,9 @@ class MakeMovie(object):
 
         import cv2
 
-        pred_img = img.reshape((1,) + img.shape)
-        angle_binned, _ = self.keras_part.model.predict(pred_img)
+        pred_img = normalize_image(img)
+        pred_img = pred_img.reshape((1,) + pred_img.shape)
+        angle_binned, _ = self.keras_part.model.interpreter.predict(pred_img)
 
         x = 4
         dx = 4
@@ -187,66 +161,62 @@ class MakeMovie(object):
             x += dx
 
     def init_salient(self, model):
-        # Utility to search for layer index by name. Alternatively we can
-        # specify this as -1 since it corresponds to the last layer.
+        # Utility to search for layer index by name. 
+        # Alternatively we can specify this as -1 since it corresponds to the last layer.
         first_output_name = None
         for i, layer in enumerate(model.layers):
-            if first_output_name is None \
-                    and "dropout" not in layer.name.lower() \
-                    and "out" in layer.name.lower():
+            if first_output_name is None and "dropout" not in layer.name.lower() and "out" in layer.name.lower():
                 first_output_name = layer.name
                 layer_idx = i
 
         if first_output_name is None:
-            print("Failed to find the model layer named with 'out'. "
-                  "Skipping salient.")
+            print("Failed to find the model layer named with 'out'. Skipping salient.")
             return False
 
         print("####################")
         print("Visualizing activations on layer:", first_output_name)
         print("####################")
-
+        
         # ensure we have linear activation
         model.layers[layer_idx].activation = activations.linear
         # build salient model and optimizer
         sal_model = utils.apply_modifications(model)
-        modifier_fn = get('guided')
-        sal_model_mod = modifier_fn(sal_model)
-        losses = [
-            (ActivationMaximization(sal_model_mod.layers[layer_idx], None), -1)
-        ]
-        self.opt = Optimizer(sal_model_mod.input, losses, norm_grads=False)
+        self.sal_model = sal_model
         return True
 
     def compute_visualisation_mask(self, img):
-        grad_modifier = 'absolute'
-        grads = self.opt.minimize(seed_input=img, max_iter=1,
-                                  grad_modifier=grad_modifier, verbose=False)[1]
+        img = img.reshape((1,) + img.shape)
+        images = tf.Variable(img, dtype=float)
+        with tf.GradientTape() as tape:
+            pred = self.sal_model(images, training=False)
+            loss = 0
+            for p in pred:
+                loss = loss + p
+        grads = tape.gradient(loss, images)
+        grads = tf.math.abs(grads)
+
         channel_idx = 1 if K.image_data_format() == 'channels_first' else -1
-        grads = np.max(grads, axis=channel_idx)
+        grads = np.sum(grads, axis=channel_idx)
         res = utils.normalize(grads)[0]
         return res
 
     def draw_salient(self, img):
-        import cv2
+
         alpha = 0.004
         beta = 1.0 - alpha
-
         expected = self.keras_part.model.inputs[0].shape[1:]
         actual = img.shape
-        pred_img = img.astype(np.float32) * ONE_OVER_INT
 
-        # check input depth
+        # check input depth and convert to grey to match expected model input
         if expected[2] == 1 and actual[2] == 3:
-            pred_img = rgb2gray(pred_img)
-            pred_img = pred_img.reshape(pred_img.shape + (1,))
+            grey_img = rgb2gray(img)
+            img = grey_img.reshape(grey_img.shape + (1,))
 
-        salient_mask = self.compute_visualisation_mask(pred_img)
-        z = np.zeros_like(salient_mask)
-        salient_mask_stacked = np.dstack((z, z))
-        salient_mask_stacked = np.dstack((salient_mask_stacked, salient_mask))
-        blend = cv2.addWeighted(img.astype('float32'), alpha,
-                                salient_mask_stacked, beta, 0.0)
+        norm_img = normalize_image(img)
+        salient_mask = self.compute_visualisation_mask(norm_img)
+        salient_mask_stacked = cm.inferno(salient_mask)[:,:,0:3]
+        salient_mask_stacked = cv2.GaussianBlur(salient_mask_stacked,(3,3),cv2.BORDER_DEFAULT)
+        blend = cv2.addWeighted(img.astype('float32'), alpha, salient_mask_stacked.astype('float32'), beta, 0)
         return blend
 
     def make_frame(self, t):
@@ -257,35 +227,28 @@ class MakeMovie(object):
         a frame counter. This assumes sequential access.
         '''
 
-        if self.iRec >= self.end or self.iRec >= len(self.index):
+        if self.current >= self.end_index:
             return None
 
-        rec_ix = self.index[self.iRec]
-        rec = self.tub.get_record(rec_ix)
-        image = rec['cam/image_array']
-        accel = rec.get('car/accel')
-        gyro = rec.get('car/gyro')
-        imu = self.imu_proc.run(accel, gyro)
-
-        if self.cfg.ROI_CROP_TOP != 0 or self.cfg.ROI_CROP_BOTTOM != 0:
-            image = img_crop(image, self.cfg.ROI_CROP_TOP, self.cfg.ROI_CROP_BOTTOM)
+        rec = self.iterator.next()
+        img_path = os.path.join(self.tub.images_base_path, rec['cam/image_array'])
+        image = img_to_arr(Image.open(img_path))
 
         if self.do_salient:
             image = self.draw_salient(image)
-            image = image * 255
-            image = image.astype('uint8')
-        
-        self.draw_user_input(rec, image)
+            image = cv2.normalize(src=image, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        if self.user: self.draw_user_input(rec, image)
         if self.keras_part is not None:
-            self.draw_model_prediction(rec, image, imu)
-            self.draw_steering_distribution(rec, image)
+            self.draw_model_prediction(image)
+            self.draw_steering_distribution(image)
 
         if self.scale != 1:
-            import cv2
             h, w, d = image.shape
             dsize = (w * self.scale, h * self.scale)
-            image = cv2.resize(image, dsize=dsize, interpolation=cv2.INTER_CUBIC)
+            image = cv2.resize(image, dsize=dsize, interpolation=cv2.INTER_LINEAR)
+            image = cv2.GaussianBlur(image,(3,3),cv2.BORDER_DEFAULT)
 
-        self.iRec += 1
+        self.current += 1
         # returns a 8-bit RGB array
         return image

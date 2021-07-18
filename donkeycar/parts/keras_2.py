@@ -11,7 +11,8 @@ from tensorflow.python.keras.layers import Dense, concatenate, Conv2D, \
     Conv2DTranspose, LSTM, MaxPooling2D, TimeDistributed as TD
 
 from donkeycar.parts.interpreter import Interpreter, KerasInterpreter
-from donkeycar.parts.keras import KerasLinear
+from donkeycar.parts.keras import KerasLinear, XY
+from donkeycar.pipeline.types import TubRecord
 
 
 class KerasSquarePlus(KerasLinear):
@@ -28,13 +29,37 @@ class KerasSquarePlus(KerasLinear):
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
         self.size = kwargs.get('size', 'S').upper()
+        self.use_speed = kwargs.get('use_speed', True)
+        self.max_speed = 1.0 if not self.use_speed else kwargs['max_speed']
         super().__init__(interpreter, input_shape)
 
     def __str__(self) -> str:
         return super().__str__() + f'-{self.size}'
 
-    def make_model(self, input_shape):
-        return linear_square_plus(input_shape, size=self.size)
+    def create_model(self):
+        return linear_square_plus(self.input_shape, size=self.size)
+
+    def y_transform(self, record: Union[TubRecord, List[TubRecord]]) -> XY:
+        assert isinstance(record, TubRecord), 'TubRecord expected'
+        angle = record.underlying['user/angle']
+        if self.use_speed:
+            throttle = record.underlying['car/speed'] / self.max_speed
+        else:
+            throttle = record.underlying['user/throttle']
+        return angle, throttle
+
+    def y_translate(self, y: XY) -> Dict[str, Union[float, List[float]]]:
+        assert isinstance(y, tuple), 'Expected tuple'
+        angle, throttle = y
+        return {'angle': angle, 'throttle': throttle}
+
+    def output_shapes(self):
+        # need to cut off None from [None, 120, 160, 3] tensor shape
+        img_shape = self.get_input_shapes()[0][1:]
+        shapes = ({'img_in': tf.TensorShape(img_shape)},
+                  {'angle': tf.TensorShape([]),
+                   'throttle': tf.TensorShape([])})
+        return shapes
 
 
 class KerasSquarePlusLstm(KerasSquarePlus):
@@ -48,9 +73,10 @@ class KerasSquarePlusLstm(KerasSquarePlus):
         self.seq_length = kwargs.get('seq_length', 3)
         self.img_seq = []
         super().__init__(interpreter, input_shape, *args, **kwargs)
+        self.normaliser = kwargs['imu_normaliser']
 
-    def make_model(self, input_shape):
-        return linear_square_plus(input_shape,
+    def create_model(self):
+        return linear_square_plus(self.input_shape,
                                   size=self.size,
                                   seq_len=self.seq_length)
 
@@ -67,12 +93,51 @@ class KerasSquarePlusImu(KerasSquarePlus):
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
         self.imu_dim = kwargs.get('imu_dim', 6)
+        self.accel_norm = kwargs['accel_norm']
+        self.gyro_norm = kwargs['gyro_norm']
         super().__init__(interpreter, input_shape, *args, **kwargs)
 
-    def make_model(self, input_shape):
-        model = linear_square_plus_imu(input_shape,
-                                       imu_dim=self.imu_dim, size=self.size)
+    def create_model(self):
+        model = linear_square_plus_imu(self.input_shape, imu_dim=self.imu_dim,
+                                       size=self.size)
         return model
+
+    def x_transform(self, record: Union[TubRecord, List[TubRecord]]) -> XY:
+        assert isinstance(record, TubRecord), 'TubRecord expected'
+        img_arr = record.image(cached=True)
+        imu_arr = record.underlying['car/accel'] \
+            + record.underlying['car/gyro']
+        return img_arr, np.array(imu_arr)
+
+    def x_transform_and_process(
+            self,
+            record: Union[TubRecord, List[TubRecord]],
+            img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
+        # this transforms the record into x for training the model to x,y
+        xt = self.x_transform(record)
+        assert isinstance(xt, tuple), 'Tuple expected'
+        x_img, x_imu = xt
+        # here the image is in first slot of the tuple, second is imu
+        x_img_process = img_processor(x_img)
+        # this normalizes the imu values
+        x_accel = x_imu[:3] / self.accel_norm
+        x_gyro = x_imu[3:] / self.gyro_norm
+        x_imu_process = np.concatenate((x_accel, x_gyro))[:self.imu_dim]
+        return x_img_process, x_imu_process
+
+    def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
+        assert isinstance(x, tuple), 'Tuple required'
+        return {'img_in': x[0], 'imu_in': x[1]}
+
+    def output_shapes(self):
+        # need to cut off None from [None, 120, 160, 3] tensor shape
+        img_shape = self.get_input_shapes()[0][1:]
+        # the keys need to match the models input/output layers
+        shapes = ({'img_in': tf.TensorShape(img_shape),
+                   'imu_in': tf.TensorShape([self.imu_dim])},
+                  {'angle': tf.TensorShape([]),
+                   'throttle': tf.TensorShape([])})
+        return shapes
 
 
 class KerasSquarePlusImuLstm(KerasSquarePlusLstm):
@@ -84,8 +149,8 @@ class KerasSquarePlusImuLstm(KerasSquarePlusLstm):
         self.imu_seq = []
         super().__init__(interpreter, input_shape, *args, **kwargs)
 
-    def make_model(self, input_shape):
-        return linear_square_plus_imu(input_shape,
+    def create_model(self):
+        return linear_square_plus_imu(self.input_shape,
                                       imu_dim=self.imu_dim,
                                       size=self.size,
                                       seq_len=self.seq_length)
@@ -142,9 +207,9 @@ class KerasWorld(KerasSquarePlus):
                            name='controller')
         return controller
 
-    def make_model(self, input_shape):
+    def create_model(self):
         controller = self.make_controller()
-        pilot_input = keras.Input(shape=input_shape)
+        pilot_input = keras.Input(shape=self.input_shape)
         encoded_img = self.encoder(pilot_input)
         [angle, throttle] = controller(encoded_img)
         model = Model(pilot_input, [angle, throttle], name="world_pilot")
@@ -161,8 +226,8 @@ class KerasWorld(KerasSquarePlus):
         self.encoder = encoder
         self.latent_dim = self.encoder.outputs[0].shape[1]
         self.encoder.trainable = False
-        input_shape = encoder.inputs[0].shape[1:]
-        self.interpreter.model = self.make_model(input_shape=input_shape)
+        self.input_shape = encoder.inputs[0].shape[1:]
+        self.interpreter.model = self.create_model()
         print("done - encoder is not trainable now")
 
     @staticmethod
@@ -194,9 +259,9 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
     def transform_controller_inputs(self, inputs):
         return concatenate(inputs)
 
-    def make_model(self, input_shape):
+    def create_model(self):
         controller = self.make_controller()
-        pilot_input = keras.Input(shape=input_shape, name='img_in')
+        pilot_input = keras.Input(shape=self.input_shape, name='img_in')
         encoded_img = self.encoder(pilot_input)
         imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
         [angle, throttle] = controller([encoded_img, imu_input])
@@ -295,14 +360,14 @@ class WorldPilot(KerasWorldImu):
         state_input = keras.Input(shape=(self.state_dim,), name='state_in')
         return [latent_input, imu_input, state_input]
 
-    def make_model(self, input_shape):
+    def create_model(self):
         latent_seq_input = keras.Input(shape=(self.seq_length,
                                               self.latent_dim),
                                        name='latent_seq_in')
         drive_seq_input = keras.Input(shape=(self.seq_length, 2),
                                       name='drive_seq_in')
         [latent_out, state] = self.memory([latent_seq_input, drive_seq_input])
-        img_input = keras.Input(shape=input_shape, name='img_in')
+        img_input = keras.Input(shape=self.input_shape, name='img_in')
         latent = self.encoder(img_input)
         imu_input = keras.Input(shape=(self.imu_dim,), name='imu_in')
         controller = self.make_controller()
@@ -316,24 +381,24 @@ class WorldPilot(KerasWorldImu):
     def compile(self):
         # here we set the loss for the latent vector output to None so it
         # doesn't get used in training
-        self.interpreter.model.compile(optimizer='adam',
-                                       loss=['mse', 'mse', None])
+        self.interpreter.compile(optimizer='adam', loss=['mse', 'mse', None])
 
     def __str__(self) -> str:
         return super().__str__() + \
             f'_sd_{self.state_dim}_ld_{self.latent_dim,}_seql_{self.seq_length}'
 
     def load(self, model_path):
-        self.model = keras.models.load_model(model_path)
-        print(self.model.summary())
-        self.memory = self.model.get_layer('Memory')
+        self.interpreter.model = keras.models.load_model(model_path)
+        model = self.interpreter.model
+        print(model.summary())
+        self.memory = model.get_layer('Memory')
         # get seq length from input shape of memory model
         self.seq_length = self.memory.inputs[0].shape[1]
         # get state vector length from last output of memory model
         self.state_dim = self.memory.outputs[1].shape[1]
-        self.encoder = self.model.get_layer('encoder')
+        self.encoder = model.get_layer('encoder')
         self.latent_dim = self.encoder.outputs[0].shape[1]
-        self.imu_dim = self.model.get_layer('imu_in').output_shape[0][1]
+        self.imu_dim = model.get_layer('imu_in').output_shape[0][1]
         # fill sequence to size
         self.latent_seq = [np.zeros((self.latent_dim,))] * self.seq_length
         self.drive_seq = [np.zeros((2,))] * self.seq_length
@@ -604,8 +669,8 @@ def square_plus_output_layers(in_tensor, size, l2, model_inputs,
                       kernel_regularizer=regularizers.l2(l2),
                       name='dense' + str(i))(z)
 
-    angle_out = Dense(units=1, activation='linear', name='angle')(z)
-    throttle_out = Dense(units=1, activation='linear', name='throttle')(z)
+    angle_out = Dense(units=1, activation='tanh', name='angle')(z)
+    throttle_out = Dense(units=1, activation='sigmoid', name='throttle')(z)
     if len(model_inputs) > 1:
         name = 'SquarePlusImu_' + size + '_' + str(imu_dim)
     else:

@@ -131,17 +131,6 @@ class SimplePidController:
         return self.pid(feedback)
 
 
-class ImgPrecondition:
-    """
-    Donkey part wrapping around normalisation and cropping
-    """
-    def __init__(self, cfg):
-        self.cfg = cfg
-
-    def run(self, img_arr):
-        return normalize_and_crop(img_arr, self.cfg)
-
-
 class ImgBrightnessNormaliser:
     """
     Donkey part to normalise the image brightness, works on the original

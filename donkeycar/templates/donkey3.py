@@ -49,7 +49,7 @@ CAM_BRIGHT = 'cam/brightness_normalised'
 CAM_IMG_NORM = 'cam/normalized/cropped'
 
 
-def drive(cfg, use_pid=False, no_cam=False, model_path=None,
+def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
           web=False, fpv=False, no_tub=False, verbose=False):
     """
     Construct a working robotic vehicle from many parts. Each part runs as a job
@@ -123,12 +123,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
     # load model if present ----------------------------------------------------
     if model_path is not None:
         print("Using auto-pilot")
-        if '3d' in model_path:
-            model_type = '3d'
-        elif '.tflite' in model_path:
+        if not model_type:
             model_type = 'tflite_linear'
-            if 'lstm' in model_path:
-                model_type += '_lstm'
 
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)
@@ -141,10 +137,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None,
             img_norm = ImgBrightnessNormaliser(cfg.IMG_BRIGHTNESS, is_prop)
             car.add(img_norm, inputs=[CAM_IMG], outputs=[CAM_BRIGHT])
             img_in = CAM_BRIGHT
-        # image normalisation to [0,1] plus cropping and sending to AI pilot ---
-        car.add(ImgPrecondition(cfg), inputs=[img_in], outputs=[CAM_IMG_NORM])
         # imu transformation and addition AI input -----------------------------
-        kl_inputs = [CAM_IMG_NORM]
+        kl_inputs = [CAM_IMG]
         use_imu = 'imu' in model_path
         if use_imu:
             print('Use IMU in pilot')

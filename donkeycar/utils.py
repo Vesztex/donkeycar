@@ -294,6 +294,27 @@ def map_range(x, X_min, X_max, Y_min, Y_max):
     return int(y)
 
 
+def clamp_and_norm(vec_in, factor=1.0, is_positive=False):
+    """
+    Normalise and clamp an input vector to [-1, 1] or [0, 1]
+    :param vec_in:  list or numpy array which is expected to be in the range
+                    of [-factor, factor] or [0, factor]
+    :param factor:  normalisation factor - expected to be 1/max of the value
+                    range for that array
+    :return:
+    """
+    if type(vec_in) is list:
+        out = [min(max(0.0 if is_positive else -1.0, vec_i * factor), 1.0)
+               for vec_i in vec_in]
+        return out
+    elif type(vec_in) is np.ndarray:
+        vec = vec_in * factor
+        np.clip(vec, 0.0 if is_positive else -1.0, 1.0, out=vec)
+        return vec
+    else:
+        raise TypeError("Only works for list or numpy arrays")
+
+
 def map_range_float(x, X_min, X_max, Y_min, Y_max):
     '''
     Same as map_range but supports floats return, rounded to 2 decimal places
@@ -304,9 +325,7 @@ def map_range_float(x, X_min, X_max, Y_min, Y_max):
 
     y = ((x-X_min) / XY_ratio + Y_min)
 
-    # print("y= {}".format(y))
-
-    return round(y,2)
+    return round(y, 2)
 
 '''
 ANGLES
@@ -436,6 +455,7 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
     from donkeycar.parts.keras import KerasCategorical, KerasLinear, \
         KerasInferred, KerasIMU, KerasMemory, KerasBehavioral, KerasLocalizer, \
         KerasLSTM, Keras3D_CNN
+    from donkeycar.parts.keras_2 import KerasSquarePlus, KerasSquarePlusImu
     from donkeycar.parts.interpreter import KerasInterpreter, TfLite, TensorRT
 
     if model_type is None:
@@ -483,6 +503,14 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
     elif used_model_type == '3d':
         kl = Keras3D_CNN(interpreter=interpreter, input_shape=input_shape,
                          seq_length=cfg.SEQUENCE_LENGTH)
+    elif used_model_type == 'sq':
+        kl = KerasSquarePlus(interpreter=interpreter, input_shape=input_shape,
+                             size=cfg.NN_SIZE, max_speed=cfg.MAX_SPEED)
+    elif used_model_type == 'sq_imu':
+        kl = KerasSquarePlusImu(
+            interpreter=interpreter, input_shape=input_shape, size=cfg.NN_SIZE,
+            max_speed=cfg.MAX_SPEED, accel_norm=cfg.IMU_ACCEL_NORM,
+            gyro_norm=cfg.IMU_GYRO_NORM)
     else:
         known = [k + u for k in ('', 'tflite_', 'tensorrt_')
                  for u in used_model_type.mem]

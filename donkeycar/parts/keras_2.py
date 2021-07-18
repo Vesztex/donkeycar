@@ -115,9 +115,7 @@ class KerasSquarePlusImu(KerasSquarePlus):
         Donkeycar parts interface to run the part in the loop.
 
         :param img_arr:     uint8 [0,255] numpy array with image data
-        :param other_arr:   numpy array of additional data to be used in the
-                            pilot, like IMU array for the IMU model or a
-                            state vector in the Behavioural model
+        :param other_arr:   numpy imu array with raw data with accel / gyro
         :return:            tuple of (angle, throttle)
         """
         norm_arr = normalize_image(img_arr)

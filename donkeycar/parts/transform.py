@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-import time
 from simple_pid import PID
-import numpy as np
 from donkeycar.utils import *
-
-from donkeycar.utils import normalize_and_crop, img_to_arr, arr_to_img
 
 
 class Lambda:

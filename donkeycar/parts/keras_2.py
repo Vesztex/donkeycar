@@ -1,6 +1,7 @@
 import copy
 import time
 import numpy as np
+from typing import Dict, Tuple, Optional, Union, List, Sequence, Callable
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import regularizers
@@ -9,7 +10,7 @@ from tensorflow.python.keras.layers import Dense, concatenate, Conv2D, \
     BatchNormalization, Dropout, Flatten, Reshape, UpSampling2D, \
     Conv2DTranspose, LSTM, MaxPooling2D, TimeDistributed as TD
 
-
+from donkeycar.parts.interpreter import Interpreter, KerasInterpreter
 from donkeycar.parts.keras import KerasLinear
 
 
@@ -17,128 +18,77 @@ class KerasSquarePlus(KerasLinear):
     """
     improved cnn over standard keraslinear. the cnn translates into square
     matrices from layer one on and uses batch normalisation, average pooling
-    & l2  regularisor instead of dropout in the perceptron layers. because of
+    & l2 regularisor instead of dropout in the perceptron layers. because of
     the square form, the first layers stride need to be 3x4 (as this is the
     input picture h x w ratio). with this, the reduction in the first layer is
     larger, hence the whole model only has 5 cnn layers.
     """
-    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
+    def __init__(self,
+                 interpreter: Interpreter = KerasInterpreter(),
+                 input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
         self.size = kwargs.get('size', 'S').upper()
-        self.model = self.make_model(input_shape, roi_crop)
-        print(self.text())
-        self.compile()
+        super().__init__(interpreter, input_shape)
 
-    def text(self):
-        return 'Created ' + self.__class__.__name__ + ' NN size: ' \
-                   + str(self.size)
+    def __str__(self) -> str:
+        return super().__str__() + f'-{self.size}'
 
-    def compile(self):
-        self.model.compile(optimizer='adam', loss='mse')
-
-    def make_model(self, input_shape, roi_crop):
-        return linear_square_plus(input_shape, roi_crop, size=self.size)
+    def make_model(self, input_shape):
+        return linear_square_plus(input_shape, size=self.size)
 
 
 class KerasSquarePlusLstm(KerasSquarePlus):
     """
     LSTM version of square plus model
     """
-    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
+    def __init__(self,
+                 interpreter: Interpreter = KerasInterpreter(),
+                 input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
         self.seq_length = kwargs.get('seq_length', 3)
-        super().__init__(input_shape, roi_crop=roi_crop, *args, **kwargs)
         self.img_seq = []
+        super().__init__(interpreter, input_shape, *args, **kwargs)
 
-    def make_model(self, input_shape, roi_crop):
-        return linear_square_plus(input_shape, roi_crop,
+    def make_model(self, input_shape):
+        return linear_square_plus(input_shape,
                                   size=self.size,
                                   seq_len=self.seq_length)
 
-    def text(self):
-        return super().text() + ' Seq len: ' + str(self.seq_length)
-
-    def run(self, img_arr):
-        # if buffer empty fill to length
-        while len(self.img_seq) < self.seq_length:
-            self.img_seq.append(img_arr)
-        # pop oldest img from front and append current img at end
-        self.img_seq.pop(0)
-        self.img_seq.append(img_arr)
-        # reshape and run model
-        new_shape = (1, self.seq_length, ) + img_arr.shape
-        img_arr = np.array(self.img_seq).reshape(new_shape)
-        outputs = self.model.predict(img_arr)
-        steering = outputs[0]
-        throttle = outputs[1]
-        return steering[0][0], throttle[0][0]
+    def __str__(self) -> str:
+        return super().__str__() + f'-{self.size}-seq:{self.seq_length}'
 
 
 class KerasSquarePlusImu(KerasSquarePlus):
     """
     The model is a variation of the SquarePlus model that also uses imu data
     """
-    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
+    def __init__(self,
+                 interpreter: Interpreter = KerasInterpreter(),
+                 input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
         self.imu_dim = kwargs.get('imu_dim', 6)
-        super().__init__(input_shape, roi_crop, *args, **kwargs)
+        super().__init__(interpreter, input_shape, *args, **kwargs)
 
-    def make_model(self, input_shape, roi_crop):
-        model = linear_square_plus_imu(input_shape, roi_crop,
+    def make_model(self, input_shape):
+        model = linear_square_plus_imu(input_shape,
                                        imu_dim=self.imu_dim, size=self.size)
         return model
 
-    def text(self):
-        return super().text() + ' Imu dim ' + str(self.imu_dim)
-
-    def run(self, img_arr, imu_arr=None):
-        img_arr = img_arr.reshape((1,) + img_arr.shape)
-        if imu_arr is None:
-            imu_arr = np.zeros((1, 6))
-        else:
-            imu_arr = np.array(imu_arr).reshape(1, self.imu_dim)
-        outputs = self.model.predict(x=[img_arr, imu_arr])
-        steering = outputs[0]
-        throttle = outputs[1]
-        return steering[0][0], throttle[0][0]
-
 
 class KerasSquarePlusImuLstm(KerasSquarePlusLstm):
-    def __init__(self, input_shape=(120, 160, 3), roi_crop=(0, 0),
+    def __init__(self,
+                 interpreter: Interpreter = KerasInterpreter(),
+                 input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
         self.imu_dim = kwargs.get('imu_dim', 6)
         self.imu_seq = []
-        super().__init__(input_shape=input_shape, roi_crop=roi_crop,
-                         *args, **kwargs)
+        super().__init__(interpreter, input_shape, *args, **kwargs)
 
-    def make_model(self, input_shape, roi_crop):
-        return linear_square_plus_imu(input_shape, roi_crop,
+    def make_model(self, input_shape):
+        return linear_square_plus_imu(input_shape,
                                       imu_dim=self.imu_dim,
                                       size=self.size,
                                       seq_len=self.seq_length)
-
-    def run(self, img_arr, imu_arr):
-        # convert imu python list into numpy array first, img_arr is already
-        # numpy array
-        imu_arr = np.array(imu_arr)
-        # if buffer empty fill to length
-        while len(self.img_seq) < self.seq_length:
-            self.img_seq.append(img_arr)
-            self.imu_seq.append(imu_arr)
-        # pop oldest img / imu from front and append current img / imu at end
-        self.img_seq.pop(0)
-        self.img_seq.append(img_arr)
-        self.imu_seq.pop(0)
-        self.imu_seq.append(imu_arr)
-        # reshape and run model
-        new_img_shape = (1, self.seq_length, ) + img_arr.shape
-        img_arr = np.array(self.img_seq).reshape(new_img_shape)
-        new_imu_shape = (1, self.seq_length, ) + imu_arr.shape
-        imu_arr = np.array(self.imu_seq).reshape(new_imu_shape)
-        outputs = self.model.predict([img_arr, imu_arr])
-        steering = outputs[0]
-        throttle = outputs[1]
-        return steering[0][0], throttle[0][0]
 
 
 class KerasWorld(KerasSquarePlus):
@@ -146,14 +96,15 @@ class KerasWorld(KerasSquarePlus):
     World model for pilot. Allows pre-trained model from which it only takes
     the encoder that transforms images into latent vectors.
     """
-
-    def __init__(self, input_shape=(144, 192, 3), roi_crop=(0, 0),
+    def __init__(self,
+                 interpreter: Interpreter = KerasInterpreter(),
+                 input_shape: Tuple[int, ...] = (144, 192, 3),
                  encoder_path=None, *args, **kwargs):
         self.encoder_path = encoder_path
         self.latent_dim = kwargs.get('latent_dim', 128)
         self.encoder = self.make_encoder(input_shape)
         self.encoder.trainable = self.encoder_path is None
-        super().__init__(input_shape, roi_crop, size='R', *args, **kwargs)
+        super().__init__(interpreter, input_shape, size='R', *args, **kwargs)
 
     def make_encoder(self, input_shape):
         if self.encoder_path is None:
@@ -191,7 +142,7 @@ class KerasWorld(KerasSquarePlus):
                            name='controller')
         return controller
 
-    def make_model(self, input_shape, roi_crop):
+    def make_model(self, input_shape):
         controller = self.make_controller()
         pilot_input = keras.Input(shape=input_shape)
         encoded_img = self.encoder(pilot_input)
@@ -199,11 +150,8 @@ class KerasWorld(KerasSquarePlus):
         model = Model(pilot_input, [angle, throttle], name="world_pilot")
         return model
 
-    def text(self):
-        text = super().text()
-        if self.encoder_path is not None:
-            text += ' with encoder from : ' + str(self.encoder_path)
-        return text
+    def __str__(self) -> str:
+        return super().__str__() + f'-enc:{self.encoder_path}'
 
     def load_encoder(self, model_path):
         print('Loading encoder from', model_path, 'into world model...', end='')
@@ -214,10 +162,11 @@ class KerasWorld(KerasSquarePlus):
         self.latent_dim = self.encoder.outputs[0].shape[1]
         self.encoder.trainable = False
         input_shape = encoder.inputs[0].shape[1:]
-        self.model = self.make_model(input_shape=input_shape, roi_crop=(0, 0))
+        self.interpreter.model = self.make_model(input_shape=input_shape)
         print("done - encoder is not trainable now")
 
-    def encoder_checks(self, encoder):
+    @staticmethod
+    def encoder_checks(encoder):
         assert type(encoder) is tf.keras.Model, \
             'first layer of model needs to be a model'
         assert encoder.name == 'encoder', \
@@ -230,9 +179,11 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
     into latent vectors.
     """
 
-    def __init__(self, input_shape=(144, 192, 3), roi_crop=(0, 0),
+    def __init__(self,
+                 interpreter: Interpreter = KerasInterpreter(),
+                 input_shape: Tuple[int, ...] = (144, 192, 3),
                  encoder_path=None, *args, **kwargs):
-        super().__init__(input_shape, roi_crop,
+        super().__init__(interpreter, input_shape,
                          encoder_path=encoder_path, *args, **kwargs)
 
     def make_controller_inputs(self):
@@ -243,7 +194,7 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
     def transform_controller_inputs(self, inputs):
         return concatenate(inputs)
 
-    def make_model(self, input_shape, roi_crop):
+    def make_model(self, input_shape):
         controller = self.make_controller()
         pilot_input = keras.Input(shape=input_shape, name='img_in')
         encoded_img = self.encoder(pilot_input)
@@ -296,13 +247,12 @@ class WorldMemory:
         return model
 
     def load(self, model_path):
-        prev = self.model_id()
+        prev = str(self)
         self.model = keras.models.load_model(model_path)
-        print("Load model: overwriting " + prev + " with " + self.model_id())
+        print(f"Load model: overwriting {prev} with {self}")
 
-    def model_id(self):
-        return 'world_memory layers: ' + str(self.layers) + ' units: ' \
-               + str(self.units)
+    def __str__(self) -> str:
+        return type(self).__name__ + f'_l:{self.layers}_units:{self.units}'
 
     def compile(self):
         # here we set the loss for the internal state output to None so it
@@ -314,8 +264,11 @@ class WorldMemory:
 
 
 class WorldPilot(KerasWorldImu):
-    def __init__(self, encoder_path=None, memory_path=None,
-                 input_shape=(144, 192, 3), roi_crop=(0, 0), *args, **kwargs):
+    def __init__(self,
+                 interpreter: Interpreter = KerasInterpreter(),
+                 input_shape: Tuple[int, ...] = (144, 192, 3),
+                 encoder_path=None, memory_path=None,
+                 *args, **kwargs):
         if memory_path:
             assert encoder_path, "Need to provide encoder path too"
             self.memory = keras.models.load_model(memory_path)
@@ -323,7 +276,7 @@ class WorldPilot(KerasWorldImu):
             self.seq_length = self.memory.inputs[0].shape[1]
             # get state vector length from last output of memory model
             self.state_dim = self.memory.outputs[1].shape[1]
-            super().__init__(input_shape=input_shape, roi_crop=roi_crop,
+            super().__init__(interpreter, input_shape,
                              encoder_path=encoder_path)
             # fill sequence to size
             self.latent_seq = [np.zeros((self.latent_dim,))] * self.seq_length
@@ -342,7 +295,7 @@ class WorldPilot(KerasWorldImu):
         state_input = keras.Input(shape=(self.state_dim,), name='state_in')
         return [latent_input, imu_input, state_input]
 
-    def make_model(self, input_shape, roi_crop):
+    def make_model(self, input_shape):
         latent_seq_input = keras.Input(shape=(self.seq_length,
                                               self.latent_dim),
                                        name='latent_seq_in')
@@ -363,11 +316,12 @@ class WorldPilot(KerasWorldImu):
     def compile(self):
         # here we set the loss for the latent vector output to None so it
         # doesn't get used in training
-        self.model.compile(optimizer='adam', loss=['mse', 'mse', None])
+        self.interpreter.model.compile(optimizer='adam',
+                                       loss=['mse', 'mse', None])
 
-    def model_id(self):
-        return 'WorldPilot_sd_{:}_ld_{:}_seql_{:}'\
-            .format(self.state_dim, self.latent_dim, self.seq_length)
+    def __str__(self) -> str:
+        return super().__str__() + \
+            f'_sd_{self.state_dim}_ld_{self.latent_dim,}_seql_{self.seq_length}'
 
     def load(self, model_path):
         self.model = keras.models.load_model(model_path)

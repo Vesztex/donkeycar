@@ -13,6 +13,7 @@ from tensorflow.python.keras.layers import Dense, concatenate, Conv2D, \
 from donkeycar.parts.interpreter import Interpreter, KerasInterpreter
 from donkeycar.parts.keras import KerasLinear, XY
 from donkeycar.pipeline.types import TubRecord
+from donkeycar.utils import normalize_image
 
 
 class KerasSquarePlus(KerasLinear):
@@ -101,6 +102,27 @@ class KerasSquarePlusImu(KerasSquarePlus):
         model = linear_square_plus_imu(self.input_shape, imu_dim=self.imu_dim,
                                        size=self.size)
         return model
+
+    def normalize_imu(self, accel, gyro):
+        accel_norm = np.array(accel) / self.accel_norm
+        gyro_norm = np.array(gyro) / self.gyro_norm
+        imu = np.concatenate((accel_norm, gyro_norm))[:self.imu_dim]
+        return imu
+
+    def run(self, img_arr: np.ndarray, other_arr: List[float] = None) \
+            -> Tuple[Union[float, np.ndarray], ...]:
+        """
+        Donkeycar parts interface to run the part in the loop.
+
+        :param img_arr:     uint8 [0,255] numpy array with image data
+        :param other_arr:   numpy array of additional data to be used in the
+                            pilot, like IMU array for the IMU model or a
+                            state vector in the Behavioural model
+        :return:            tuple of (angle, throttle)
+        """
+        norm_arr = normalize_image(img_arr)
+        np_imu_array = self.normalize_imu(other_arr[:3], other_arr[3:])
+        return self.inference(norm_arr, np_imu_array)
 
     def x_transform(self, record: Union[TubRecord, List[TubRecord]]) -> XY:
         assert isinstance(record, TubRecord), 'TubRecord expected'

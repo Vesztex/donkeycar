@@ -716,7 +716,9 @@ class OverlayImage(FullImage):
         self.last_output = (0, 0)
 
     def augment(self, img_arr):
-        if pilot_screen().auglist:
+        if pilot_screen().trans_list:
+            img_arr = pilot_screen().transformation.run(img_arr)
+        if pilot_screen().aug_list:
             img_arr = pilot_screen().augmentation.run(img_arr)
         return img_arr
 
@@ -765,8 +767,10 @@ class PilotScreen(Screen):
     index = NumericProperty(None, force_dispatch=True)
     current_record = ObjectProperty(None)
     keys_enabled = BooleanProperty(False)
-    auglist = ListProperty(force_dispatch=True)
+    aug_list = ListProperty(force_dispatch=True)
     augmentation = ObjectProperty()
+    trans_list = ListProperty(force_dispatch=True)
+    transformation = ObjectProperty()
     config = ObjectProperty()
 
     def on_index(self, obj, index):
@@ -806,45 +810,50 @@ class PilotScreen(Screen):
     def set_brightness(self, val=None):
         if self.ids.button_bright.state == 'down':
             self.config.AUG_MULTIPLY_RANGE = (val, val)
-            if 'MULTIPLY' not in self.auglist:
-                self.auglist.append('MULTIPLY')
-        elif 'MULTIPLY' in self.auglist:
-            self.auglist.remove('MULTIPLY')
+            if 'MULTIPLY' not in self.aug_list:
+                self.aug_list.append('MULTIPLY')
+        elif 'MULTIPLY' in self.aug_list:
+            self.aug_list.remove('MULTIPLY')
         # update dependency
-        self.on_auglist(None, None)
+        self.on_aug_list(None, None)
 
     def set_blur(self, val=None):
         if self.ids.button_blur.state == 'down':
             self.config.AUG_BLUR_RANGE = (val, val)
-            if 'BLUR' not in self.auglist:
-                self.auglist.append('BLUR')
-        elif 'BLUR' in self.auglist:
-            self.auglist.remove('BLUR')
+            if 'BLUR' not in self.aug_list:
+                self.aug_list.append('BLUR')
+        elif 'BLUR' in self.aug_list:
+            self.aug_list.remove('BLUR')
         # update dependency
-        self.on_auglist(None, None)
+        self.on_aug_list(None, None)
 
-    def on_auglist(self, obj, auglist):
-        self.config.AUGMENTATIONS = self.auglist
-        self.augmentation = ImageAugmentation(self.config)
+    def on_aug_list(self, obj, aug_list):
+        self.config.AUGMENTATIONS = self.aug_list
+        self.augmentation = ImageAugmentation(self.config, 'AUGMENTATIONS')
+        self.on_current_record(None, self.current_record)
+
+    def on_trans_list(self, obj, trans_list):
+        self.config.TRANSFORMATIONS = self.trans_list
+        self.transformation = ImageAugmentation(self.config, 'TRANSFORMATIONS')
         self.on_current_record(None, self.current_record)
 
     def set_mask(self, state):
         if state == 'down':
             self.ids.status.text = 'Trapezoidal mask on'
-            self.auglist = ['TRAPEZE'] + self.auglist
+            self.trans_list.append('TRAPEZE')
         else:
             self.ids.status.text = 'Trapezoidal mask off'
-            if 'TRAPEZE' in self.auglist:
-                self.auglist.remove('TRAPEZE')
+            if 'TRAPEZE' in self.trans_list:
+                self.trans_list.remove('TRAPEZE')
 
     def set_crop(self, state):
         if state == 'down':
             self.ids.status.text = 'Crop on'
-            self.auglist = ['CROP'] + self.auglist
+            self.trans_list.append('CROP')
         else:
             self.ids.status.text = 'Crop off'
-            if 'CROP' in self.auglist:
-                self.auglist.remove('CROP')
+            if 'CROP' in self.trans_list:
+                self.trans_list.remove('CROP')
 
     def status(self, msg):
         self.ids.status.text = msg

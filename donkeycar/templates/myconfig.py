@@ -80,7 +80,8 @@ OVERWRITE_LATENT = False
 
 
 # PI DATA
-PI_HOSTNAME = 'donkeypi'
+PI_HOSTNAME = 'donkeypi.local'
+PI_USERNAME = 'pi'
 
 # AUTOPILOT
 AI_THROTTLE_MULT = 1.0

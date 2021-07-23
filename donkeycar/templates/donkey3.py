@@ -13,26 +13,23 @@ Usage:
 Options:
     -h --help        Show this screen.
 """
-
 from docopt import docopt
 
 import donkeycar as dk
 from donkeycar.parts.camera import PiCamera, FrameStreamer
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
     RCReceiver, ModeSwitch
-from donkeycar.parts.datastore import TubWiper, TubHandler
+from donkeycar.parts.tub_v2 import TubWiper, TubWriter
 from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.file_watcher import FileWatcher
-from donkeycar.parts.keras import ModelLoader
-from donkeycar.parts.transform import SimplePidController, ImgPrecondition, \
-    ImgBrightnessNormaliser, ImuCombinerNormaliser, SpeedSwitch, \
-    SpeedRescaler, RecordingCondition, SteeringSwitch
+from donkeycar.parts.keras_2 import ModelLoader
+from donkeycar.parts.transform import SimplePidController, \
+    ImuCombinerNormaliser, SpeedSwitch, \
+    SpeedRescaler, RecordingCondition
 from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
 from donkeycar.parts.imu import Mpu6050Ada
-
-from tensorflow.python.framework.ops import disable_eager_execution
-disable_eager_execution()
+from donkeycar.pipeline.augmentations import ImageAugmentation
 
 
 class TypePrinter:
@@ -45,8 +42,6 @@ class TypePrinter:
 
 # define some strings that are used in the vehicle data flow
 CAM_IMG = 'cam/image_array'
-CAM_BRIGHT = 'cam/brightness_normalised'
-CAM_IMG_NORM = 'cam/normalized/cropped'
 
 
 def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
@@ -128,17 +123,14 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
 
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)
-
-        # image brightness normalisation and precondition (clip and [0, 1]
-        # normalisation)
-        img_in = CAM_IMG
-        if hasattr(cfg, 'IMG_BRIGHTNESS'):
-            is_prop = getattr(cfg, 'IMG_BRIGHTNESS_PROPORTIONAL', True)
-            img_norm = ImgBrightnessNormaliser(cfg.IMG_BRIGHTNESS, is_prop)
-            car.add(img_norm, inputs=[CAM_IMG], outputs=[CAM_BRIGHT])
-            img_in = CAM_BRIGHT
-        # imu transformation and addition AI input -----------------------------
         kl_inputs = [CAM_IMG]
+        # Add image transformations like crop or trapezoidal mask
+        if hasattr(cfg, 'TRANSFORMATIONS') and cfg.TRANSFORMATIONS:
+            outputs = ['cam/image_array_aug']
+            car.add(ImageAugmentation(cfg, 'TRANSFORMATIONS'),
+                    inputs=kl_inputs, outputs=outputs)
+            kl_inputs = outputs
+        # imu transformation and addition AI input -----------------------------
         use_imu = 'imu' in model_path
         if use_imu:
             print('Use IMU in pilot')
@@ -187,7 +179,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
                            left_pulse=cfg.STEERING_LEFT_PWM,
                            right_pulse=cfg.STEERING_RIGHT_PWM)
 
-    steering_in = 'pilot/angle' if  model_path else 'user/angle'
+    steering_in = 'pilot/angle' if model_path else 'user/angle'
     car.add(steering, inputs=[steering_in], threaded=True)
 
     # create and add the PWM throttle controller for esc
@@ -220,19 +212,15 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
                  'str']
 
         # multiple tubs
-        tub_handler = TubHandler(path=cfg.DATA_PATH)
-        tub = tub_handler.new_tub_writer(inputs=inputs,
-                                         types=types,
-                                         allow_reverse=False)
-        car.add(tub,
-                inputs=inputs,
-                outputs=["tub/num_records"],
+        tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs,
+                               types=types)
+        car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],
                 run_condition='recording')
 
         # add a tub wiper that is triggered by channel 3 on the RC, but only
         # if we don't use channel 3 for switching between ai & manual
         if model_path is None:
-            tub_wiper = TubWiper(tub, num_records=car_frequency)
+            tub_wiper = TubWiper(tub_writer.tub, num_records=car_frequency)
             car.add(tub_wiper, inputs=['user/wiper_on'])
         elif record_on_ai:
             class Combiner:
@@ -243,7 +231,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
             car.add(Combiner(), inputs=['user/wiper_on', 'user/mode'],
                     outputs=['user/clean'])
             # delete last two seconds when we go from pilot speed to manual
-            tub_wiper = TubWiper(tub, num_records=2 * car_frequency)
+            tub_wiper = TubWiper(tub_writer.tub, num_records=2 * car_frequency)
             car.add(tub_wiper, inputs=['user/clean'])
 
     # run the vehicle

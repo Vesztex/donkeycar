@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 import logging
 import imgaug.augmenters as iaa
@@ -32,6 +31,8 @@ class Augmentations(object):
         Especially useful in filtering out uninteresting features from an
         input image.
         """
+        import cv2
+
         def _transform_images(images, random_state, parents, hooks):
             # Transform a batch of images
             transformed = []

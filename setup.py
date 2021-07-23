@@ -50,7 +50,8 @@ setup(name='donkeycar',
           'progress',
           'typing_extensions',
           'pyfiglet',
-          'psutil'
+          'psutil',
+          'imgaug'
       ],
       extras_require={
           'pi': [
@@ -70,7 +71,6 @@ setup(name='donkeycar',
           ],
           'pc': [
               'matplotlib',
-              'imgaug',
               'kivy'
           ],
           'dev': [

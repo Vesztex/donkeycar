@@ -148,9 +148,11 @@ def drive(cfg, model_path=None, model_type=None):
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path=model_path)
         inputs = ['cam/image_array']
-        if hasattr(cfg, 'AUGMENTATIONS'):
+        # Add image transformations like crop or trapezoidal mask
+        if hasattr(cfg, 'TRANSFORMATIONS'):
             outputs = ['cam/image_array_aug']
-            car.add(ImageAugmentation(cfg), inputs=inputs, outputs=outputs)
+            car.add(ImageAugmentation(cfg, 'TRANSFORMATIONS'),
+                    inputs=inputs, outputs=outputs)
             inputs = outputs
 
         outputs = ['pilot/angle', 'pilot/throttle']

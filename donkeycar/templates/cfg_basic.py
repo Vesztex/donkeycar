@@ -22,7 +22,7 @@ MODELS_PATH = os.path.join(CAR_PATH, 'models')
 
 #VEHICLE
 DRIVE_LOOP_HZ = 20
-MAX_LOOPS = 100000
+MAX_LOOPS = None
 
 #CAMERA
 CAMERA_TYPE = "PICAM"   # (PICAM|WEBCAM|CVCAM|CSIC|V4L|D435|MOCK|IMAGE_LIST)
@@ -105,15 +105,20 @@ MODEL_CATEGORICAL_MAX_THROTTLE_RANGE = 0.5
 #RNN or 3D
 SEQUENCE_LENGTH = 3
 
-# Augmentations
+# Augmentations and Transformations
 AUGMENTATIONS = []
-# Number of pixels to crop, requires 'CROP' in AUGMENTATIONS to be set
+TRANSFORMATIONS = []
+# Settings for brightness and blur, use 'MULTIPLY' and/or 'BLUR' in
+# AUGMENTATIONS
+AUG_MULTIPLY_RANGE = (0.5, 1.5)
+AUG_BLUR_RANGE = (0.0, 3.0)
+# Number of pixels to crop, requires 'CROP' in TRANSFORMATIONS to be set
 ROI_CROP_TOP = 45
 ROI_CROP_BOTTOM = 0
 ROI_CROP_RIGHT = 0
 ROI_CROP_LEFT = 0
 # For trapezoidal see explanation in augmentations.py, requires 'TRAPEZE' in
-# AUGMENTATIONS to be set
+# TRANSFORMATIONS to be set
 ROI_TRAPEZE_LL = 0
 ROI_TRAPEZE_LR = 160
 ROI_TRAPEZE_UL = 20

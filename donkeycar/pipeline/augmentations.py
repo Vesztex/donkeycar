@@ -71,13 +71,18 @@ class Augmentations(object):
 
 
 class ImageAugmentation:
-    def __init__(self, cfg):
-        aug_list = getattr(cfg, 'AUGMENTATIONS', [])
+    def __init__(self, cfg, key):
+        aug_list = getattr(cfg, key, [])
         augmentations = [ImageAugmentation.create(a, cfg) for a in aug_list]
         self.augmentations = iaa.Sequential(augmentations)
 
     @classmethod
     def create(cls, aug_type: str, config: Config) -> iaa.meta.Augmenter:
+        """ Augmenatition factory. Cropping and trapezoidal mask are
+            transfomations which should be applied in training, validation and
+            inference. Multiply, Blur and similar are augmentations which should
+            be used only in training. """
+
         if aug_type == 'CROP':
             logger.info(f'Creating augmentation {aug_type} with ROI_CROP ' 
                         f'L: {config.ROI_CROP_LEFT}, '

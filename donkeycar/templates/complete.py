@@ -462,10 +462,10 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
 
         if cfg.TRAIN_LOCALIZER:
             outputs.append("pilot/loc")
-
-        if hasattr(cfg, 'AUGMENTATIONS'):
-            V.add(ImageAugmentation(cfg), inputs=['cam/image_array'],
-                  outputs=['cam/image_array_aug'])
+        # Add image transformations like crop or trapezoidal mask
+        if hasattr(cfg, 'TRANSFORMATIONS'):
+            V.add(ImageAugmentation(cfg, 'TRANSFORMATIONS'),
+                  inputs=['cam/image_array'], outputs=['cam/image_array_aug'])
             inputs = ['cam/image_array_aug'] + inputs[1:]
 
         V.add(kl, inputs=inputs, outputs=outputs, run_condition='run_pilot')
@@ -504,13 +504,12 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
     aiLauncher = AiLaunch(cfg.AI_LAUNCH_DURATION, cfg.AI_LAUNCH_THROTTLE, cfg.AI_LAUNCH_KEEP_ENABLED)
 
     V.add(aiLauncher,
-        inputs=['user/mode', 'throttle'],
-        outputs=['throttle'])
+          inputs=['user/mode', 'throttle'],
+          outputs=['throttle'])
 
     if (cfg.CONTROLLER_TYPE != "pigpio_rc") and (cfg.CONTROLLER_TYPE != "MM1"):
         if isinstance(ctr, JoystickController):
             ctr.set_button_down_trigger(cfg.AI_LAUNCH_ENABLE_BUTTON, aiLauncher.enable_ai_launch)
-
 
     class AiRunCondition:
         '''
@@ -523,7 +522,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
 
     V.add(AiRunCondition(), inputs=['user/mode'], outputs=['ai_running'])
 
-    #Ai Recording
+    # Ai Recording
     class AiRecordingCondition:
         '''
         return True when ai mode, otherwize respect user mode recording flag
@@ -536,7 +535,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
     if cfg.RECORD_DURING_AI:
         V.add(AiRecordingCondition(), inputs=['user/mode', 'recording'], outputs=['recording'])
 
-    #Drive train setup
+    # Drive train setup
     if cfg.DONKEY_GYM or cfg.DRIVE_TRAIN_TYPE == "MOCK":
         pass
     elif cfg.DRIVE_TRAIN_TYPE == "I2C_SERVO":
@@ -556,7 +555,6 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         V.add(steering, inputs=['angle'], threaded=True)
         V.add(throttle, inputs=['throttle'], threaded=True)
 
-
     elif cfg.DRIVE_TRAIN_TYPE == "DC_STEER_THROTTLE":
         from donkeycar.parts.actuator import Mini_HBridge_DC_Motor_PWM
 
@@ -565,7 +563,6 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
 
         V.add(steering, inputs=['angle'])
         V.add(throttle, inputs=['throttle'])
-
 
     elif cfg.DRIVE_TRAIN_TYPE == "DC_TWO_WHEEL":
         from donkeycar.parts.actuator import TwoWheelSteeringThrottle, Mini_HBridge_DC_Motor_PWM
@@ -594,18 +591,16 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
 
         V.add(left_motor, inputs=['left_motor_speed'])
         V.add(right_motor, inputs=['right_motor_speed'])
-        
 
     elif cfg.DRIVE_TRAIN_TYPE == "SERVO_HBRIDGE_PWM":
         from donkeycar.parts.actuator import ServoBlaster, PWMSteering
         steering_controller = ServoBlaster(cfg.STEERING_CHANNEL) #really pin
-        #PWM pulse values should be in the range of 100 to 200
+        # PWM pulse values should be in the range of 100 to 200
         assert(cfg.STEERING_LEFT_PWM <= 200)
         assert(cfg.STEERING_RIGHT_PWM <= 200)
         steering = PWMSteering(controller=steering_controller,
-                                        left_pulse=cfg.STEERING_LEFT_PWM,
-                                        right_pulse=cfg.STEERING_RIGHT_PWM)
-
+                               left_pulse=cfg.STEERING_LEFT_PWM,
+                               right_pulse=cfg.STEERING_RIGHT_PWM)
 
         from donkeycar.parts.actuator import Mini_HBridge_DC_Motor_PWM
         motor = Mini_HBridge_DC_Motor_PWM(cfg.HBRIDGE_PIN_FWD, cfg.HBRIDGE_PIN_BWD)
@@ -639,7 +634,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         oled_part = OLEDPart(cfg.SSD1306_128_32_I2C_ROTATION, cfg.SSD1306_RESOLUTION, auto_record_on_throttle)
         V.add(oled_part, inputs=['recording', 'tub/num_records', 'user/mode'], outputs=[], threaded=True)
 
-    #add tub to save data
+    # add tub to save data
 
     if cfg.USE_LIDAR:
         inputs = ['cam/image_array', 'lidar/dist_array', 'user/angle', 'user/throttle', 'user/mode']
@@ -723,7 +718,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
             ctr.set_tub(tub_writer.tub)
             ctr.print_controls()
 
-    #run the vehicle for 20 seconds
+    # run the vehicle
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS)
 
 

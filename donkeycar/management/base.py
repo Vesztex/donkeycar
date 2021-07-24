@@ -87,7 +87,7 @@ class CreateCar(BaseCommand):
 
         # these are needed in case None is passed as path
         path = path or '~/mycar'
-        template = template or 'complete'
+        template = template or 'donkey3'
 
         print("Creating car folder: {}".format(path))
         path = make_dir(path)

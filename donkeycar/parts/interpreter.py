@@ -46,8 +46,11 @@ def keras_to_tflite(model, out_filename, data_gen=None):
         converter.inference_output_type = tf.uint8
         logger.info("using data generator to create int optimized weights for "
                     "Coral TPU")
-    tflite_model = converter.convert()
-    open(out_filename, "wb").write(tflite_model)
+    try:
+        tflite_model = converter.convert()
+        open(out_filename, "wb").write(tflite_model)
+    except Exception as e:
+        logger.error(f'Tflite conversion failed: {e}')
 
 
 def saved_model_to_tensor_rt(saved_path: str, tensor_rt_path: str):

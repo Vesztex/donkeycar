@@ -21,8 +21,10 @@ class PilotDatabase:
         if os.path.exists(self.path):
             with open(self.path, "r") as read_file:
                 data = json.load(read_file)
+                logger.info(f'Found model database {self.path}')
                 return data
         else:
+            logger.warning(f'No model database found at {self.path}')
             return []
 
     def generate_model_name(self) -> Tuple[str, int]:
@@ -49,6 +51,7 @@ class PilotDatabase:
         try:
             with open(self.path, "w") as data_file:
                 json.dump(self.entries, data_file)
+                logger.info(f'Writing database file: {self.path}')
         except Exception as e:
             logger.error(f'Failed writing database file: {e}')
 

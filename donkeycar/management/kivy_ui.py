@@ -908,7 +908,8 @@ class TrainScreen(Screen):
             self.ids.transfer_spinner.text = 'Choose transfer model'
             self.reload_database()
         except Exception as e:
-            self.ids.status.text = f'Train error {e}'
+            Logger.error(e)
+            self.ids.status.text = f'Train failed see console'
 
     def train(self, model_type):
         self.config.SHOW_PLOT = False

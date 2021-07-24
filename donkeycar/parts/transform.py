@@ -224,8 +224,6 @@ class SpeedRescaler:
         self.max_speed = cfg.MAX_SPEED
 
     def run(self, norm_speed):
-        if not isinstance(norm_speed, float):
-            return 0
         return norm_speed * self.max_speed
 
 

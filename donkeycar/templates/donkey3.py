@@ -164,6 +164,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
 
     # drive by pid w/ speed
     if use_pid:
+        car.add(Renamer(), inputs=['user/throttle'], outputs=['throttle'])
         # use pid either for rc control output or for ai output
         # convert throttle to speed
         car.add(SpeedRescaler(cfg), inputs=['throttle'], outputs=['speed'])
@@ -172,8 +173,6 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
                                   debug=verbose)
         car.add(pid, inputs=['speed', 'car/inst_speed'],
                 outputs=['pid/throttle'])
-    else:
-        car.add(Renamer(), inputs=['user/throttle'], outputs=['throttle'])
 
     # create and add the PWM steering controller
     steering_controller = PCA9685(cfg.STEERING_CHANNEL)

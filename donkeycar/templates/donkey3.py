@@ -40,6 +40,11 @@ class TypePrinter:
         print("Type of", self.type_name, type(in_type))
 
 
+class Renamer:
+    def run(self, data):
+        return data
+
+
 # define some strings that are used in the vehicle data flow
 CAM_IMG = 'cam/image_array'
 
@@ -112,9 +117,6 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     car.add(rc_throttle, outputs=['user/throttle', 'user/throttle_on'])
     car.add(rc_wiper, outputs=['user/wiper', 'user/wiper_on'])
 
-    # convert user throttle to user speed --------------------------------------
-    car.add(SpeedRescaler(cfg), inputs=['user/throttle'], outputs=['user/speed'])
-
     # load model if present ----------------------------------------------------
     if model_path is not None:
         print("Using auto-pilot")
@@ -139,11 +141,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
                     outputs=['car/imu'])
             kl_inputs.append('car/imu')
 
-        kl_outputs = ['pilot/angle', 'pilot/speed_norm']
+        kl_outputs = ['pilot/angle', 'pilot/throttle']
         car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
-        # pilot spits out speed in [0,1] transform back into real speed
-        car.add(SpeedRescaler(cfg), inputs=['pilot/speed_norm'],
-                outputs=['pilot/speed'])
         # add file watcher and model loader so model can be reloaded
         f = FileWatcher(model_path)
         car.add(f, outputs=['model/update'])
@@ -160,18 +159,21 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
 
         # This part dispatches between user or ai depending on the switch state
         switch = SpeedSwitch(cfg)
-        car.add(switch, inputs=['user/mode', 'user/speed', 'pilot/speed'],
-                outputs=['pilot_or_user/speed'])
+        car.add(switch, inputs=['user/mode', 'user/throttle', 'pilot/throttle'],
+                outputs=['throttle'])
 
     # drive by pid w/ speed
     if use_pid:
         # use pid either for rc control output or for ai output
-        speed = 'pilot_or_user/speed' if model_path is not None else \
-            'user/speed'
+        # convert throttle to speed
+        car.add(SpeedRescaler(cfg), inputs=['throttle'], outputs=['speed'])
         # add pid controller to convert throttle value into speed
         pid = SimplePidController(p=cfg.PID_P, i=cfg.PID_I, d=cfg.PID_D,
                                   debug=verbose)
-        car.add(pid, inputs=[speed, 'car/inst_speed'], outputs=['pid/throttle'])
+        car.add(pid, inputs=['speed', 'car/inst_speed'],
+                outputs=['pid/throttle'])
+    else:
+        car.add(Renamer(), inputs=['user/throttle'], outputs=['throttle'])
 
     # create and add the PWM steering controller
     steering_controller = PCA9685(cfg.STEERING_CHANNEL)
@@ -189,7 +191,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
                            zero_pulse=cfg.THROTTLE_STOPPED_PWM,
                            min_pulse=cfg.THROTTLE_REVERSE_PWM)
     # feed signal which is either rc (user) or ai
-    throttle_input = 'pid/throttle' if use_pid else 'user/throttle'
+    throttle_input = 'pid/throttle' if use_pid else 'throttle'
     car.add(throttle, inputs=[throttle_input], threaded=True)
 
     # if we want to record a tub -----------------------------------------------
@@ -202,7 +204,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
 
         # add tub to save data
         inputs = [CAM_IMG,
-                  'user/angle', 'user/throttle', 'pilot/angle', 'pilot/speed',
+                  'user/angle', 'user/throttle', 'pilot/angle',
+                  'pilot/throttle',
                   'user/mode', 'car/speed', 'car/inst_speed', 'car/distance',
                   'car/m_in_lap', 'car/lap', 'car/accel', 'car/gyro',
                   'timestamp']

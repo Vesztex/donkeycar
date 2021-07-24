@@ -3,9 +3,11 @@ actuators.py
 Classes to control the motors and servos. These classes
 are wrapped in a mixer class before being used in the drive loop.
 """
-
+import logging
 import time
 import donkeycar as dk
+
+logger = logging.getLogger(__name__)
 
 
 class PCA9685:
@@ -13,7 +15,8 @@ class PCA9685:
     PWM motor controler using PCA9685 boards.
     This is used for most RC Cars
     '''
-    def __init__(self, channel, address=0x40, frequency=60, busnum=None, init_delay=0.1):
+    def __init__(self, channel, address=0x40, frequency=60,
+                 busnum=None, init_delay=0.1):
 
         self.default_freq = 60
         self.pwm_scale = frequency / self.default_freq
@@ -72,14 +75,15 @@ class PiGPIO_PWM():
         self.pgio.stop()
 
     def set_pulse(self, pulse):
-#
         self.output = pulse * 200
         if self.output > 0:
-            self.pgio.hardware_PWM(self.pin, self.freq, int(self.output if self.inverted == False else 1e6 - self.output))
-
+            self.pgio.hardware_PWM(self.pin, self.freq,
+                                   int(self.output if self.inverted is False
+                                       else 1e6 - self.output))
 
     def run(self, pulse):
         self.set_pulse(pulse)
+
 
 class PWMSteering:
     """
@@ -99,7 +103,7 @@ class PWMSteering:
         self.pulse = dk.utils.map_range(0, self.LEFT_ANGLE, self.RIGHT_ANGLE,
                                         self.left_pulse, self.right_pulse)
         self.running = True
-        print('PWM Steering created')
+        logger.info('PWM Steering created')
 
     def update(self):
         while self.running:
@@ -143,11 +147,11 @@ class PWMThrottle:
         self.pulse = zero_pulse
 
         # send zero pulse to calibrate ESC
-        print("Init ESC")
+        logger.info("Init ESC")
         self.controller.set_pulse(self.zero_pulse)
         time.sleep(1)
         self.running = True
-        print('PWM Throttle created')
+        logger.info('PWM Throttle created')
 
     def update(self):
         while self.running:
@@ -169,6 +173,7 @@ class PWMThrottle:
         # stop vehicle
         self.run(0)
         self.running = False
+
 
 class JHat:
     '''
@@ -202,6 +207,7 @@ class JHat:
 
     def run(self, pulse):
         self.set_pulse(pulse)
+
 
 class JHatReader:
     '''
@@ -255,9 +261,6 @@ class JHatReader:
     def shutdown(self):
         self.running = False
         time.sleep(0.1)
-
-
-
 
 
 class Adafruit_DCMotor_Hat:
@@ -593,10 +596,11 @@ class RCReceiver:
         else:
             self.no_action = (self.MAX_OUT - self.MIN_OUT) / 2.0
 
-        self.factor = (self.MAX_OUT - self.MIN_OUT) / (self.max_pwm - self.min_pwm)
+        self.factor = (self.MAX_OUT - self.MIN_OUT) \
+                      / (self.max_pwm - self.min_pwm)
         self.pi.set_mode(self.gpio, pigpio.INPUT)
         self.cb = self.pi.callback(self.gpio, pigpio.EITHER_EDGE, self._cbf)
-        print('RCReceiver gpio ' + str(gpio) + ' created')
+        logger.info(f'RCReceiver gpio {gpio} created')
 
     def _update_param(self, tick):
         """ Helper function for callback function _cbf.
@@ -774,7 +778,6 @@ class RPi_GPIO_Servo(object):
         #print(pulse, self.throttle)
         self.pwm.ChangeDutyCycle(self.throttle)
 
-
     def shutdown(self):
         import RPi.GPIO as GPIO
         self.pwm.stop()
@@ -840,6 +843,7 @@ class ModeSwitch:
         self._num_modes = num_modes
         self._current_mode = 0
         self._active_loop = False
+        logger.info(f'ModeSwitch of {num_modes} modes created')
 
     def run(self, is_active):
         """

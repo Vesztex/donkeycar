@@ -200,7 +200,8 @@ class ImuCombinerNormaliser:
 
 
 class SpeedSwitch:
-    """ Class to switch between user speed or pilot speed """    def __init__(self, cfg):
+    """ Class to switch between user speed or pilot speed """
+    def __init__(self, cfg):
         self.throttle_mult = cfg.AI_THROTTLE_MULT
 
     def run(self, user_mode, user_speed, pilot_speed):

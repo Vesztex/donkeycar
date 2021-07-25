@@ -1032,7 +1032,7 @@ class CarScreen(Screen):
                   == 'down']
         # build filter: for example this rsyncs all .tfilte models
         # --include="*/" --include="*.tflite" --exclude="*"
-        filter = ['--include=*/']
+        filter = ['--include=*/', '--include=database.json']
         for ext in select:
             filter.append(f'--include=*.{ext}')
         # if nothing selected, sync all
@@ -1045,7 +1045,7 @@ class CarScreen(Screen):
         Logger.info('car push: ' + ' '.join(cmd))
         proc = Popen(cmd, shell=False, stdout=PIPE,
                      encoding='utf-8', universal_newlines=True)
-        repeats = 1
+        repeats = 0
         call = partial(self.show_progress, proc, repeats, False)
         event = Clock.schedule_interval(call, 0.0001)
 
@@ -1058,20 +1058,22 @@ class CarScreen(Screen):
         while True:
             stdout_data = proc.stdout.readline()
             if stdout_data:
-                # find 'to-check=33/4551)' which is end of line
-                pattern = 'to-check=(.*)\)'
+                # find 'to-check=33/4551)' in OSX or 'to-chk=33/4551)' in
+                # Linux which is end of line
+                pattern = 'to-(check|chk)=(.*)\)'
                 res = re.search(pattern, stdout_data)
                 if res:
                     if count < repeats:
                         count += 1
                     else:
-                        remain, total = tuple(res.group(1).split('/'))
+                        remain, total = tuple(res.group(2).split('/'))
                         bar = 100 * (1. - float(remain) / float(total))
                         if is_pull:
                             self.pull_bar = bar
                         else:
                             self.push_bar = bar
-                        return True
+                        # reset counter
+                        count = 0
             else:
                 # end of stream command completed
                 if is_pull:

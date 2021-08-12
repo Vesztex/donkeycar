@@ -41,23 +41,30 @@ class TubRecord(object):
         self.underlying = underlying
         self._image: Optional[Any] = None
 
-    def image(self, cached=True, as_nparray=True) -> np.ndarray:
+    def image(self, cached=True, as_nparray=True, transformation=None) -> \
+            np.ndarray:
         """Loads the image for you
-
         Args:
-            cached (bool, optional): whether to cache the image. Defaults to True.
-            as_nparray (bool, optional): whether to convert the image to a np array of uint8.
-                                         Defaults to True. If false, returns result of Image.open()
+            cached (bool, optional): whether to cache the image. Defaults to
+                                     True.
+            as_nparray (bool, optional): whether to convert the image to a np
+                                         array of uint8. Defaults to True. If
+                                         false, returns result of Image.open()
+            transformation (bool, optional): image transformation to be
+                                            applied
 
         Returns:
             np.ndarray: [description]
         """
+
         if self._image is None:
             image_path = self.underlying['cam/image_array']
             full_path = os.path.join(self.base_path, 'images', image_path)
 
             if as_nparray:
                 _image = load_image(full_path, cfg=self.config)
+                if transformation:
+                    _image = transformation(_image)
             else:
                 # If you just want the raw Image
                 _image = load_pil_image(full_path, cfg=self.config)

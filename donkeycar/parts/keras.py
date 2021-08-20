@@ -407,10 +407,6 @@ class KerasMemory(KerasLinear):
         img_arr_norm = normalize_image(img_arr)
         return super().inference(img_arr_norm, np_mem_arr)
 
-    def x_transform(self, records: Union[TubRecord, List[TubRecord]]) -> XY:
-        """ Return x from record, here x = image, previous angle/throttle
-            values """
-
     def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
         """ Translates x into dictionary where all model input layer's names
             must be matched by dictionary keys. """
@@ -777,9 +773,6 @@ class Keras3D_CNN(KerasPilot):
 
     def compile(self):
         self.interpreter.compile(loss='mse', optimizer=self.optimizer)
-
-    def x_transform(self, records: Union[TubRecord, List[TubRecord]]) -> XY:
-        """ Return x from record, here x = stacked images """
 
     def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
         """ Translates x into dictionary where all model input layer's names

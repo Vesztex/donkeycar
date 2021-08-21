@@ -165,7 +165,7 @@ def train(cfg: Config, tub_paths: str, model: str = None,
         'History': history.history,
         'Transfer': os.path.basename(transfer) if transfer else None,
         'Comment': comment,
-        'Config': str(cfg)
+        'Config': cfg.__dict__
     }
     database.add_entry(database_entry)
     database.write()

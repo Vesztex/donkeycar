@@ -1,13 +1,14 @@
 import copy
 import os
-from typing import Any, List, Optional, TypeVar, Iterator, Iterable
+from typing import Any, List, Optional, TypeVar, Iterator, Iterable, \
+    Callable, Union
 import logging
 import numpy as np
 from donkeycar.config import Config
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.utils import load_image, load_pil_image
 from typing_extensions import TypedDict
-
+from PIL.Image import Image
 
 logger = logging.getLogger(__name__)
 
@@ -44,23 +45,29 @@ class TubRecord(object):
         self.underlying = underlying
         self._image: Optional[Any] = None
 
-    def image(self, cached=True, as_nparray=True) -> np.ndarray:
+    def image(self, cached: bool = True,
+              as_nparray: bool = True,
+              transformation:  Callable[[np.ndarray], np.ndarray] = None) \
+            -> np.ndarray:
         """Loads the image for you
-
         Args:
-            cached (bool, optional): whether to cache the image. Defaults to True.
-            as_nparray (bool, optional): whether to convert the image to a np array of uint8.
-                                         Defaults to True. If false, returns result of Image.open()
+            cached:         whether to cache the image. Defaults to True.
+            as_nparray:     whether to convert the image to a np.array of
+                            uint8. Defaults to True. If false, returns result
+                            of Image.open()
+            transformation: image transformation to be applied
 
-        Returns:
-            np.ndarray: [description]
+        Returns: Image, either np array or Pil image
         """
+
         if self._image is None:
             image_path = self.underlying['cam/image_array']
             full_path = os.path.join(self.base_path, 'images', image_path)
 
             if as_nparray:
                 _image = load_image(full_path, cfg=self.config)
+                if transformation:
+                    _image = transformation(_image)
             else:
                 # If you just want the raw Image
                 _image = load_pil_image(full_path, cfg=self.config)
@@ -90,7 +97,7 @@ class TubDataset(object):
         self.train_filter = getattr(config, 'TRAIN_FILTER', None)
         self.seq_size = seq_size
 
-    def get_records(self):
+    def get_records(self) -> Union[List[TubRecord], List[List[TubRecord]]]:
         if not self.records:
             filtered_records = 0
             logger.info(f'Loading tubs from paths {self.tub_paths}')

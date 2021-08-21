@@ -52,8 +52,10 @@ SHOW_PLOT = False
 VERBOSE_TRAIN = True
 USE_EARLY_STOP = True
 EARLY_STOP_PATIENCE = 10
-MIN_DELTA = .00001
+MIN_DELTA = .000001
 PRINT_MODEL_SUMMARY = True
+USE_SPEED_FOR_MODEL = True
+
 
 # model transfer options
 FREEZE_LAYERS = False
@@ -96,3 +98,11 @@ WEB_INIT_MODE = "user"
 
 # DRIVING
 AI_THROTTLE_MULT = 1.0
+
+# RPi
+PI_USERNAME = "pi"
+PI_HOSTNAME = "donkeypi.local"
+
+# FPV MONITOR
+PC_HOSTNAME = "DirksMacBook.home"
+FPV_PORT = 13000

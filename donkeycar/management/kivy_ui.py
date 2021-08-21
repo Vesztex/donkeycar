@@ -33,7 +33,6 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import SpinnerOption, Spinner
 
 from donkeycar import load_config
-from donkeycar.parts.keras import KerasMemory
 from donkeycar.parts.keras_2 import KerasSquarePlusImu
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.augmentations import ImageAugmentation
@@ -737,9 +736,7 @@ class OverlayImage(FullImage):
         if not self.pilot:
             return img_arr
 
-        if isinstance(self.pilot, KerasMemory):
-            args = (aug_img_arr, np.array(self.last_output))
-        elif isinstance(self.pilot, KerasSquarePlusImu):
+        if isinstance(self.pilot, KerasSquarePlusImu):
             imu = record.underlying['car/accel'] + record.underlying['car/gyro']
             args = (aug_img_arr, imu)
         else:

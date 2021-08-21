@@ -11,7 +11,7 @@ from tensorflow.python.keras.layers import Dense, concatenate, Conv2D, \
     Conv2DTranspose, LSTM, MaxPooling2D, TimeDistributed as TD
 
 from donkeycar.parts.interpreter import Interpreter, KerasInterpreter
-from donkeycar.parts.keras import KerasLinear, XY
+from donkeycar.parts.keras import KerasLinear, XY, KerasMemory
 from donkeycar.pipeline.types import TubRecord
 from donkeycar.utils import normalize_image
 
@@ -60,6 +60,51 @@ class KerasSquarePlus(KerasLinear):
         shapes = ({'img_in': tf.TensorShape(img_shape)},
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])})
+        return shapes
+
+
+class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
+    def __init__(self,
+                 interpreter: Interpreter = KerasInterpreter(),
+                 input_shape: Tuple[int, ...] = (120, 160, 3),
+                 *args, **kwargs):
+        super().__init__(interpreter, input_shape, *args, **kwargs)
+
+    def create_model(self):
+        return linear_square_plus(self.input_shape, size=self.size)
+
+    def run(self, img_arr: np.ndarray, other_arr: List[float] = None) -> \
+            Tuple[Union[float, np.ndarray], ...]:
+        # Only called at start to fill the previous values
+
+        np_mem_arr = np.array(self.mem_seq).reshape((2 * self.mem_length,))
+        img_arr_norm = normalize_image(img_arr)
+        angle, throttle = super().inference(img_arr_norm, np_mem_arr)
+        # fill new values into back of history list for next call
+        self.mem_seq.popleft()
+        self.mem_seq.append([angle, throttle])
+        return angle, throttle
+
+    def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
+        """ Translates x into dictionary where all model input layer's names
+            must be matched by dictionary keys. """
+        assert(isinstance(x, tuple)), 'Tuple expected'
+        img_arr, mem = x
+        return {'img_in': img_arr, 'mem_in': mem}
+
+    def y_transform(self, records: Union[TubRecord, List[TubRecord]]) -> XY:
+        assert isinstance(records, list), 'List[TubRecord] expected'
+        angle = records[-1].underlying['user/angle']
+        throttle = records[-1].underlying['user/throttle']
+        return angle, throttle
+
+    def output_shapes(self):
+        # need to cut off None from [None, 120, 160, 3] tensor shape
+        img_shape = self.get_input_shapes()[0][1:]
+        shapes = ({'img_in': tf.TensorShape(img_shape),
+                   'mem_in': tf.TensorShape(2 * self.mem_length)},
+                  {'n_outputs0': tf.TensorShape([]),
+                   'n_outputs1': tf.TensorShape([])})
         return shapes
 
 

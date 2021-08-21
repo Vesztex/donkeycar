@@ -416,13 +416,14 @@ class KerasMemory(KerasLinear):
 
     def create_model(self):
         return default_memory(self.input_shape,
-                              self.mem_length, self.mem_depth, )
+                              self.mem_length, self.mem_depth)
 
     def load(self, model_path: str) -> None:
         super().load(model_path)
         self.mem_length = self.interpreter.get_input_shapes()[1][1] // 2
         self.mem_seq = deque([[0, self.mem_start_speed]] * self.mem_length)
-        logger.info(f'Loaded memory model with mem length {self.mem_length}')
+        logger.info(f'Loaded {type(self).__name__} model with mem length'
+                    f' {self.mem_length}')
 
     def run(self, img_arr: np.ndarray, other_arr: List[float] = None) -> \
             Tuple[Union[float, np.ndarray], ...]:

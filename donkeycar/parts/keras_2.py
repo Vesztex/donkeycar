@@ -71,19 +71,31 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
         super().__init__(interpreter, input_shape, *args, **kwargs)
 
     def create_model(self):
-        return linear_square_plus(self.input_shape, size=self.size)
+        return linear_square_plus_mem(self.input_shape, self.size,
+                                      self.mem_length, self.mem_depth)
 
-    def run(self, img_arr: np.ndarray, other_arr: List[float] = None) -> \
-            Tuple[Union[float, np.ndarray], ...]:
-        # Only called at start to fill the previous values
+    def get_throttle(self, record):
+        if self.use_speed:
+            return record.underlying['car/speed'] / self.max_speed
+        else:
+            return record.underlying['user/throttle']
 
-        np_mem_arr = np.array(self.mem_seq).reshape((2 * self.mem_length,))
-        img_arr_norm = normalize_image(img_arr)
-        angle, throttle = super().inference(img_arr_norm, np_mem_arr)
-        # fill new values into back of history list for next call
-        self.mem_seq.popleft()
-        self.mem_seq.append([angle, throttle])
-        return angle, throttle
+    def x_transform_and_process(
+            self,
+            record: Union[TubRecord, List[TubRecord]],
+            img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
+        """ Transforms the record into x for training the model to x,y,
+            here we assume the model only takes the image as input. """
+        assert isinstance(record, list), 'List[TubRecord] expected'
+        assert len(record) == self.mem_length + 1, \
+            f"Record list of length {self.mem_length} required but " \
+            f"{len(record)} was passed"
+        img_arr = record[-1].image(cached=True, as_nparray=True,
+                                   transformation=img_processor)
+        mem = [[r.underlying['user/angle'], self.get_throttle(r)]
+               for r in record[:-1]]
+        mem_arr = np.array(mem).reshape((2 * self.mem_length,))
+        return img_arr, mem_arr
 
     def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
         """ Translates x into dictionary where all model input layer's names
@@ -95,7 +107,7 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
     def y_transform(self, records: Union[TubRecord, List[TubRecord]]) -> XY:
         assert isinstance(records, list), 'List[TubRecord] expected'
         angle = records[-1].underlying['user/angle']
-        throttle = records[-1].underlying['user/throttle']
+        throttle = self.get_throttle(records[-1])
         return angle, throttle
 
     def output_shapes(self):
@@ -103,8 +115,8 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
         img_shape = self.get_input_shapes()[0][1:]
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'mem_in': tf.TensorShape(2 * self.mem_length)},
-                  {'n_outputs0': tf.TensorShape([]),
-                   'n_outputs1': tf.TensorShape([])})
+                  {'angle': tf.TensorShape([]),
+                   'throttle': tf.TensorShape([])})
         return shapes
 
 
@@ -718,8 +730,31 @@ def linear_square_plus_imu(input_shape=(120, 160, 3),
     return model
 
 
+def linear_square_plus_mem(input_shape=(120, 160, 3),
+                           size='S', mem_length=3, mem_depth=0):
+    l2 = 0.001
+    drop2 = 0.1
+    img_in = Input(shape=input_shape, name='img_in')
+    mem_in = Input(shape=(2 * mem_length,), name='mem_in')
+    x = img_in
+    x = linear_square_plus_cnn(x, size)
+    y = mem_in
+    for i in range(mem_depth):
+        y = Dense(4 * mem_length, activation='relu', name=f'mem_{i}')(y)
+        y = Dropout(drop2)(y)
+    for i in range(1, mem_length):
+        y = Dense(2 * (mem_length - i), activation='relu', name=f'mem_c_{i}')(y)
+        y = Dropout(drop2)(y)
+
+    z = concatenate([x, y])
+    inputs = [img_in, mem_in]
+    model = square_plus_output_layers(z, size, l2, inputs, None, None,
+                                      mem_length)
+    return model
+
+
 def square_plus_output_layers(in_tensor, size, l2, model_inputs,
-                              imu_dim=None, seq_len=None):
+                              imu_dim=None, seq_len=None, mem_len=None):
     layers = square_plus_dense(size)
     z = in_tensor
     for i, l in zip(range(len(layers)), layers):
@@ -737,7 +772,13 @@ def square_plus_output_layers(in_tensor, size, l2, model_inputs,
     angle_out = Dense(units=1, activation='tanh', name='angle')(z)
     throttle_out = Dense(units=1, activation='sigmoid', name='throttle')(z)
     if len(model_inputs) > 1:
-        name = 'SquarePlusImu_' + size + '_' + str(imu_dim)
+        if imu_dim:
+            name = 'SquarePlusImu_' + size + '_' + str(imu_dim)
+        elif mem_len:
+            name = 'SquarePlusMem_' + size + '_' + str(mem_len)
+            assert seq_len is None, "SquarePlusMem doesn't work with LSTM"
+        else:
+            raise RuntimeError("Needs imu or mem length")
     else:
         name = 'SquarePlus_' + size
     if seq_len:

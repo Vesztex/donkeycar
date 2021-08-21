@@ -19,10 +19,14 @@ class PilotDatabase:
 
     def read(self) -> List[Dict]:
         if os.path.exists(self.path):
-            with open(self.path, "r") as read_file:
-                data = json.load(read_file)
-                logger.info(f'Found model database {self.path}')
-                return data
+            try:
+                with open(self.path, "r") as read_file:
+                    data = json.load(read_file)
+                    logger.info(f'Found model database {self.path}')
+                    return data
+            except Exception as e:
+                logger.error(f"Could not open database file because: {e}")
+                return []
         else:
             logger.warning(f'No model database found at {self.path}')
             return []
@@ -50,7 +54,8 @@ class PilotDatabase:
     def write(self):
         try:
             with open(self.path, "w") as data_file:
-                json.dump(self.entries, data_file)
+                json.dump(self.entries, data_file,
+                          default=lambda o: '<not serializable>')
                 logger.info(f'Writing database file: {self.path}')
         except Exception as e:
             logger.error(f'Failed writing database file: {e}')

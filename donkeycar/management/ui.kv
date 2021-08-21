@@ -8,7 +8,7 @@
 #:set layout_height common_height + layout_pad_x
 #:set layout_height_double 2 * common_height + layout_pad_x
 #:set layout_pad_xy [layout_pad_x, layout_pad_x // 2]
-#:set supported_models ['linear', 'categorical', 'inferred', 'memory', 'behavior', 'localizer', 'rnn', '3d', 'sq', 'sq_imu']
+#:set supported_models ['linear', 'categorical', 'inferred', 'memory', 'behavior', 'localizer', 'rnn', '3d', 'sq', 'sq_imu', 'sq_mem']
 #:set drive_models [pre + t for pre in['', 'tflite_', 'tensorrt_'] for t in supported_models ]
 
 <PaddedBoxLayout>:

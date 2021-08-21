@@ -23,8 +23,6 @@ from PIL import Image
 import numpy as np
 
 logger = logging.getLogger(__name__)
-
-
 ONE_BYTE_SCALE = 1.0 / 255.0
 
 
@@ -455,7 +453,8 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
     from donkeycar.parts.keras import KerasCategorical, KerasLinear, \
         KerasInferred, KerasIMU, KerasMemory, KerasBehavioral, KerasLocalizer, \
         KerasLSTM, Keras3D_CNN
-    from donkeycar.parts.keras_2 import KerasSquarePlus, KerasSquarePlusImu
+    from donkeycar.parts.keras_2 import KerasSquarePlus, KerasSquarePlusImu, \
+        KerasSquarePlusMemory
     from donkeycar.parts.interpreter import KerasInterpreter, TfLite, TensorRT
 
     if model_type is None:
@@ -514,6 +513,14 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
             use_speed=cfg.USE_SPEED_FOR_MODEL,
             max_speed=cfg.MAX_SPEED, accel_norm=cfg.IMU_ACCEL_NORM,
             gyro_norm=cfg.IMU_GYRO_NORM)
+    elif used_model_type == 'sq_mem':
+        mem_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
+        mem_depth = getattr(cfg, 'MEM_DEPTH', 0)
+        kl = KerasSquarePlusMemory(
+            interpreter=interpreter, input_shape=input_shape, size=cfg.NN_SIZE,
+            use_speed=cfg.USE_SPEED_FOR_MODEL,
+            max_speed=cfg.MAX_SPEED,
+            mem_length=mem_length, mem_depth=mem_depth)
     else:
         known = [k + u for k in ('', 'tflite_', 'tensorrt_')
                  for u in used_model_type.mem]

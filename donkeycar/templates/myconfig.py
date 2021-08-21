@@ -63,6 +63,11 @@ USE_SPEED_FOR_MODEL = True
 NN_SIZE = 'S'
 BATCH_SIZE = 1024
 
+# To suppress records when standing or just starting.
+def filter_record(record):
+    return record['car/speed'] > 0.5
+TRAIN_FILTER = filter_record
+
 CACHE_IMAGES = False
 FREEZE_LAYERS = False
 NUM_LAST_LAYERS_TO_TRAIN = None  # important to overwrite default of 7

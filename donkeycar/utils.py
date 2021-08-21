@@ -505,10 +505,13 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
                          seq_length=cfg.SEQUENCE_LENGTH)
     elif used_model_type == 'sq':
         kl = KerasSquarePlus(interpreter=interpreter, input_shape=input_shape,
-                             size=cfg.NN_SIZE, max_speed=cfg.MAX_SPEED)
+                             size=cfg.NN_SIZE,
+                             use_speed=cfg.USE_SPEED_FOR_MODEL,
+                             max_speed=cfg.MAX_SPEED)
     elif used_model_type == 'sq_imu':
         kl = KerasSquarePlusImu(
             interpreter=interpreter, input_shape=input_shape, size=cfg.NN_SIZE,
+            use_speed=cfg.USE_SPEED_FOR_MODEL,
             max_speed=cfg.MAX_SPEED, accel_norm=cfg.IMU_ACCEL_NORM,
             gyro_norm=cfg.IMU_GYRO_NORM)
     else:

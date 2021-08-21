@@ -164,16 +164,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         else:
             raise(Exception("Unkown camera type: %s" % cfg.CAMERA_TYPE))
 
-        # add lidar
-        if cfg.USE_LIDAR:
-            from donkeycar.parts.lidar import RPLidar
-            if cfg.LIDAR_TYPE == 'RP':
-                print("adding RP lidar part")
-                lidar = RPLidar(lower_limit = cfg.LIDAR_LOWER_LIMIT, upper_limit = cfg.LIDAR_UPPER_LIMIT)
-                V.add(lidar, inputs=[],outputs=['lidar/dist_array'], threaded=True)
-            if cfg.LIDAR_TYPE == 'YD':
-                print("YD Lidar not yet supported")
-
+        
         # Donkey gym part will output position information if it is configured
         if cfg.DONKEY_GYM:
             if cfg.SIM_RECORD_LOCATION:
@@ -187,6 +178,16 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
             
         V.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
 
+    # add lidar
+    if cfg.USE_LIDAR:
+        from donkeycar.parts.lidar import RPLidar
+        if cfg.LIDAR_TYPE == 'RP':
+            print("adding RP lidar part")
+            lidar = RPLidar(lower_limit = cfg.LIDAR_LOWER_LIMIT, upper_limit = cfg.LIDAR_UPPER_LIMIT)
+            V.add(lidar, inputs=[],outputs=['lidar/dist_array'], threaded=True)
+        if cfg.LIDAR_TYPE == 'YD':
+            print("YD Lidar not yet supported")
+    
 #This web controller will create a web server that is capable
     #of managing steering, throttle, and modes, and more.
     ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT, mode=cfg.WEB_INIT_MODE)
@@ -377,8 +378,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         inputs = ['cam/image_array',
                   'imu/acl_x', 'imu/acl_y', 'imu/acl_z',
                   'imu/gyr_x', 'imu/gyr_y', 'imu/gyr_z']
-    elif cfg.USE_LIDAR:
-        inputs = ['cam/image_array', 'lidar/dist_array']
+
     else:
         inputs = ['cam/image_array']
 
@@ -417,7 +417,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
 
         model_reload_cb = None
 
-        if '.h5' in model_path or '.trt' in model_path or 'tflite' in \
+        if '.h5' in model_path or '.trt' in model_path or '.tflite' in \
                 model_path or '.savedmodel' in model_path:
             # load the whole model with weigths, etc
             load_model(kl, model_path)
@@ -463,13 +463,13 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         if cfg.TRAIN_LOCALIZER:
             outputs.append("pilot/loc")
         # Add image transformations like crop or trapezoidal mask
-        if hasattr(cfg, 'TRANSFORMATIONS'):
+        if hasattr(cfg, 'TRANSFORMATIONS') and cfg.TRANSFORMATIONS:
             V.add(ImageAugmentation(cfg, 'TRANSFORMATIONS'),
-                  inputs=['cam/image_array'], outputs=['cam/image_array_aug'])
-            inputs = ['cam/image_array_aug'] + inputs[1:]
+                  inputs=['cam/image_array'], outputs=['cam/image_array_trans'])
+            inputs = ['cam/image_array_trans'] + inputs[1:]
 
         V.add(kl, inputs=inputs, outputs=outputs, run_condition='run_pilot')
-    
+
     if cfg.STOP_SIGN_DETECTOR:
         from donkeycar.parts.object_detector.stop_sign_detector \
             import StopSignDetector

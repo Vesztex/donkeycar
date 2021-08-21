@@ -149,8 +149,8 @@ def drive(cfg, model_path=None, model_type=None):
         kl.load(model_path=model_path)
         inputs = ['cam/image_array']
         # Add image transformations like crop or trapezoidal mask
-        if hasattr(cfg, 'TRANSFORMATIONS'):
-            outputs = ['cam/image_array_aug']
+        if hasattr(cfg, 'TRANSFORMATIONS') and cfg.TRANSFORMATIONS:
+            outputs = ['cam/image_array_trans']
             car.add(ImageAugmentation(cfg, 'TRANSFORMATIONS'),
                     inputs=inputs, outputs=outputs)
             inputs = outputs

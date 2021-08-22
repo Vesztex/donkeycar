@@ -119,7 +119,7 @@ class Vehicle:
         """
         self.parts.remove(part)
 
-    def start(self, rate_hz=10, max_loop_count=None, verbose=False):
+    def start(self, rate_hz=10, max_loop_count=None):
         """
         Start vehicle's main drive loop.
 
@@ -171,12 +171,8 @@ class Vehicle:
                     self.loop_exceed += 1
                     self.excess_time -= sleep_time
                     # print a message when could not maintain loop rate.
-                    if verbose:
-                        logger.info('WARN::Vehicle: jitter violation in vehicle loop '
-                              'with {0:4.0f}ms'.format(abs(1000 * sleep_time)))
-
-                if verbose and self.loop_count % 200 == 0:
-                    self.profiler.report()
+                    logger.warning(f'jitter violation in vehicle loop with '
+                                   f'{abs(1000 * sleep_time):4.0f}ms')
                 self.loop_count += 1
         except KeyboardInterrupt:
             pass
@@ -226,10 +222,10 @@ class Vehicle:
                 logger.error(e)
 
         count = max(self.loop_count, 1)
-        print('Ran {:} vehicle loops with {:.2f}% exceeding loop time. '
-              'Average excess time {:.1f}ms, average loop time {:.1f}ms.'
-              .format(self.loop_count,
-                      100.0 * self.loop_exceed / count,
-                      1000.0 * self.excess_time / count,
-                      1000.0 * self.run_time / count))
+        logger.info('Ran {:} vehicle loops with {:.2f}% exceeding loop time. '
+                    'Average excess time {:.1f}ms, average loop time {:.1f}ms.'
+                    .format(self.loop_count,
+                            100.0 * self.loop_exceed / count,
+                            1000.0 * self.excess_time / count,
+                            1000.0 * self.run_time / count))
         self.profiler.report()

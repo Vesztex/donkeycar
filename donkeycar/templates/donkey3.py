@@ -236,8 +236,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
             car.add(tub_wiper, inputs=['user/clean'])
 
     # run the vehicle
-    car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS,
-              verbose=verbose)
+    car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
 
 
 def calibrate(cfg):

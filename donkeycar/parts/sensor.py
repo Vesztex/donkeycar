@@ -8,6 +8,9 @@ import time
 from json import dump
 from os.path import join
 from os import getcwd
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Odometer:
@@ -46,7 +49,7 @@ class Odometer:
         # pigpio callback mechanics
         self._pi.set_pull_up_down(self._gpio, pigpio.PUD_UP)
         self._cb = self._pi.callback(self._gpio, pigpio.EITHER_EDGE, self._cbf)
-        print("Odometer added at gpio {}".format(gpio))
+        logger.info(f"Odometer added at gpio {gpio}")
 
     def _cbf(self, gpio, level, tick):
         """ Callback function for pigpio interrupt gpio. Signature is determined
@@ -81,8 +84,8 @@ class Odometer:
             self._max_speed = max(self._max_speed, speed)
         self._last_tick_speed = self._last_tick
         distance = float(self._distance) / float(self._tick_per_meter)
-        if self._debug:
-            print("Speed", speed, "InstSpeed", inst_speed, "Distance", distance)
+        logger.debug(f"Speed: {speed} InstSpeed: {inst_speed} Distance: "
+                     f"{distance}")
         return speed, inst_speed, distance
 
     def shutdown(self):

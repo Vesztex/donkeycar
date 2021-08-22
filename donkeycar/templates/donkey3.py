@@ -56,7 +56,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     input.
     """
     if verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG, force=True)
 
     if no_cam:
         assert model_path is None, "Can't drive with pilot but w/o camera"
@@ -87,8 +87,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     # add odometer -------------------------------------------------------------
     odo = Odometer(gpio=cfg.ODOMETER_GPIO,
                    tick_per_meter=cfg.TICK_PER_M,
-                   weight=0.025,
-                   debug=verbose)
+                   weight=0.025)
     car.add(odo, outputs=['car/speed', 'car/inst_speed', 'car/distance'])
 
     # add lap timer ------------------------------------------------------------

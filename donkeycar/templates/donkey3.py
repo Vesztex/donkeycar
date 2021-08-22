@@ -16,6 +16,7 @@ Options:
 from docopt import docopt
 import logging
 import donkeycar as dk
+import donkeycar.parts
 from donkeycar.parts.camera import PiCamera, FrameStreamer
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
     RCReceiver, ModeSwitch
@@ -54,7 +55,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     framework handles passing named outputs to parts requesting the same named
     input.
     """
-    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
+    # logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
+    donkeycar.parts.logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
     if no_cam:
         assert model_path is None, "Can't drive with pilot but w/o camera"

@@ -48,7 +48,7 @@ class Renamer:
 CAM_IMG = 'cam/image_array'
 
 
-def drive(cfg, use_pid=False, no_cam=False, model_path=None, type=None,
+def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
           web=False, fpv=False, no_tub=False, verbose=False):
     """
     Construct a working robotic vehicle from many parts. Each part runs as a job
@@ -119,10 +119,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, type=None,
     # load model if present ----------------------------------------------------
     if model_path is not None:
         print("Using auto-pilot")
-        if not type:
+        if not model_type:
             model_type = 'tflite_linear'
 
-        kl = dk.utils.get_model_by_type(type, cfg)
+        kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)
         kl_inputs = [CAM_IMG]
         # Add image transformations like crop or trapezoidal mask
@@ -294,7 +294,7 @@ if __name__ == '__main__':
     args = docopt(__doc__)
     config = dk.load_config()
     if args['drive']:
-        drive(config,
+        drive(cfg=config,
               use_pid=args['--pid'],
               no_cam=args['--no_cam'],
               model_path=args['--model'],
@@ -302,7 +302,7 @@ if __name__ == '__main__':
               fpv=args['--fpv'],
               no_tub=args['--no_tub'],
               verbose=args['--verbose'],
-              type=args['--type'])
+              model_type=args['--type'])
     elif args['calibrate']:
         calibrate(config)
     elif args['stream']:

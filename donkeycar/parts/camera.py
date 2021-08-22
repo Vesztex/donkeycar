@@ -17,7 +17,8 @@ class BaseCamera:
 
 
 class PiCamera(BaseCamera):
-    def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20, vflip=False, hflip=False):
+    def __init__(self, image_w=160, image_h=120, image_d=3,
+                 framerate=20, vflip=False, hflip=False):
         from picamera.array import PiRGBArray
         from picamera import PiCamera
 
@@ -41,7 +42,7 @@ class PiCamera(BaseCamera):
 
         print('PiCamera loaded with frame size {} and frame rate {}...'
               ' warming camera'.format(resolution, framerate))
-        time.sleep(1)
+        time.sleep(2)
 
     def run(self):
         f = next(self.stream)

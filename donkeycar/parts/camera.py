@@ -42,7 +42,7 @@ class PiCamera(BaseCamera):
 
         print('PiCamera loaded with frame size {} and frame rate {}...'
               ' warming camera'.format(resolution, framerate))
-        time.sleep(2)
+        time.sleep(1)
 
     def run(self):
         f = next(self.stream)

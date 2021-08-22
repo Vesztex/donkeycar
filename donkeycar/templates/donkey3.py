@@ -14,7 +14,7 @@ Options:
     -h --help        Show this screen.
 """
 from docopt import docopt
-
+import logging
 import donkeycar as dk
 from donkeycar.parts.camera import PiCamera, FrameStreamer
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
@@ -30,6 +30,9 @@ from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
 from donkeycar.parts.imu import Mpu6050Ada
 from donkeycar.pipeline.augmentations import ImageAugmentation
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 class TypePrinter:
@@ -119,7 +122,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
 
     # load model if present ----------------------------------------------------
     if model_path is not None:
-        print("Using auto-pilot")
+        logger.info("Using auto-pilot")
         if not model_type:
             model_type = 'tflite_linear'
 
@@ -135,7 +138,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         # imu transformation and addition AI input -----------------------------
         use_imu = 'imu' in model_path
         if use_imu:
-            print('Use IMU in pilot')
+            logger.info('Using IMU in pilot')
             imu_prep = ImuCombinerNormaliser(cfg)
             car.add(imu_prep, inputs=['car/accel', 'car/gyro'],
                     outputs=['car/imu'])

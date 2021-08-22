@@ -183,20 +183,18 @@ class TfLite(Interpreter):
     def load(self, model_path):
         assert os.path.splitext(model_path)[1] == '.tflite', \
             'TFlitePilot should load only .tflite files'
-        logger.info(f'Loading model {model_path}')
         # Load TFLite model and allocate tensors.
         self.interpreter = tf.lite.Interpreter(model_path=model_path)
         self.interpreter.allocate_tensors()
-
         # Get input and output tensors.
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
-
         # Get Input shape
         self.input_shapes = []
-        logger.info('Load model with tflite input tensor details:')
+        logger.info(f'Load tflite model {model_path} with tflite input '
+                    'tensor details:')
         for detail in self.input_details:
-            logger.debug(detail)
+            logger.info(detail)
             self.input_shapes.append(detail['shape'])
 
     def compile(self, **kwargs):

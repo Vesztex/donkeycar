@@ -119,6 +119,7 @@ class KerasPilot(ABC):
                                 state vector in the Behavioural model
             :return:            tuple of (angle, throttle)
         """
+        assert type(img_arr) is np.ndarray, "image array must be numpy array"
         out = self.interpreter.predict(img_arr, other_arr)
         return self.interpreter_to_output(out)
 

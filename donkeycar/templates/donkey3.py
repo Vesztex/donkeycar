@@ -24,7 +24,7 @@ from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.file_watcher import FileWatcher
 from donkeycar.parts.keras_2 import ModelLoader
 from donkeycar.parts.transform import SimplePidController, \
-    ImuCombinerNormaliser, SpeedSwitch, \
+    ImuCombinerNormaliser, ThrottleSwitch, \
     SpeedRescaler, RecordingCondition
 from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
@@ -33,14 +33,6 @@ from donkeycar.pipeline.augmentations import ImageAugmentation
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-
-
-class TypePrinter:
-    def __init__(self, type_name):
-        self.type_name = type_name
-
-    def run(self, in_type):
-        print("Type of", self.type_name, type(in_type))
 
 
 class Renamer:
@@ -63,6 +55,9 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     framework handles passing named outputs to parts requesting the same named
     input.
     """
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG)
+
     if no_cam:
         assert model_path is None, "Can't drive with pilot but w/o camera"
 
@@ -161,19 +156,19 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         car.add(mode_switch, inputs=['user/wiper_on'], outputs=['user/mode'])
 
         # This part dispatches between user or ai depending on the switch state
-        switch = SpeedSwitch(cfg)
+        switch = ThrottleSwitch(cfg)
         car.add(switch, inputs=['user/mode', 'user/throttle', 'pilot/throttle'],
                 outputs=['throttle'])
-
+    else:
+        # rename the usr throttle
+        car.add(Renamer(), inputs=['user/throttle'], outputs=['throttle'])
     # drive by pid w/ speed
     if use_pid:
-        car.add(Renamer(), inputs=['user/throttle'], outputs=['throttle'])
         # use pid either for rc control output or for ai output
         # convert throttle to speed
         car.add(SpeedRescaler(cfg), inputs=['throttle'], outputs=['speed'])
         # add pid controller to convert throttle value into speed
-        pid = SimplePidController(p=cfg.PID_P, i=cfg.PID_I, d=cfg.PID_D,
-                                  debug=verbose)
+        pid = SimplePidController(p=cfg.PID_P, i=cfg.PID_I, d=cfg.PID_D)
         car.add(pid, inputs=['speed', 'car/inst_speed'],
                 outputs=['pid/throttle'])
 
@@ -277,7 +272,7 @@ def calibrate(cfg):
     donkey_car.add(Plotter(), inputs=['user/angle', 'user/steering_on',
                                       'user/throttle', 'user/throttle_on',
                                       'user/wiper', 'user/wiper_on'])
-    # run the vehicle at 5Hz to keep network traffic down
+    # run the vehicle at 10Hz to keep network traffic down
     donkey_car.start(rate_hz=10, max_loop_count=cfg.MAX_LOOPS)
 
 

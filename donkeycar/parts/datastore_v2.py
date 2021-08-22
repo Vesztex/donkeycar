@@ -2,8 +2,11 @@ import json
 import mmap
 import os
 import time
+import logging
 from pathlib import Path
 
+
+logger = logging.getLogger(__name__)
 
 NEWLINE = '\n'
 NEWLINE_STRIP = '\r\n'
@@ -244,18 +247,21 @@ class Manifest(object):
         has_catalogs = False
 
         if self.manifest_path.exists():
-            self.seekeable = Seekable(self.manifest_path, read_only=self.read_only)
+            self.seekeable = Seekable(self.manifest_path,
+                                      read_only=self.read_only)
             if self.seekeable.has_content():
                 self._read_contents()
             has_catalogs = len(self.catalog_paths) > 0
-
+            logger.info(f'Found datastore at {self.base_path.as_posix()}')
         else:
             created_at = time.time()
             self.manifest_metadata['created_at'] = created_at
             if not self.base_path.exists():
                 self.base_path.mkdir(parents=True, exist_ok=True)
-                print(f'Created a new datastore at {self.base_path.as_posix()}')
-            self.seekeable = Seekable(self.manifest_path, read_only=self.read_only)
+                logger.info(f'Created a new datastore at'
+                            f' {self.base_path.as_posix()}')
+            self.seekeable = Seekable(self.manifest_path,
+                                      read_only=self.read_only)
 
         if not has_catalogs:
             self._write_contents()
@@ -263,7 +269,7 @@ class Manifest(object):
         else:
             last_known_catalog = os.path.join(self.base_path,
                                               self.catalog_paths[-1])
-            print(f'Using catalog {last_known_catalog}')
+            logger.info(f'Using last catalog {last_known_catalog}')
             self.current_catalog = Catalog(last_known_catalog,
                                            read_only=self.read_only,
                                            start_index=self.current_index)
@@ -293,6 +299,7 @@ class Manifest(object):
             record_indexes = {record_indexes}
         self.deleted_indexes.update(record_indexes)
         self._update_catalog_metadata(update=True)
+        logger.info(f'Deleted records {record_indexes}')
 
     def restore_records(self, record_indexes):
         # Does not actually delete the record, but marks it as deleted.
@@ -300,6 +307,7 @@ class Manifest(object):
             record_indexes = {record_indexes}
         self.deleted_indexes.difference_update(record_indexes)
         self._update_catalog_metadata(update=True)
+        logger.info(f'Restored records {record_indexes}')
 
     def _add_catalog(self):
         current_length = len(self.catalog_paths)
@@ -431,7 +439,7 @@ class ManifestIterator(object):
                         record = json.loads(contents)
                         return record
                     except Exception:
-                        print(f'Ignoring record at index {current_index}')
+                        logger.error(f'Failed loading record {current_index}')
                         continue
             else:
                 self.current_catalog = None

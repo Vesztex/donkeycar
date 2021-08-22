@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
 from simple_pid import PID
 from donkeycar.utils import *
+
+
+logger = logging.getLogger(__name__)
 
 
 class Lambda:
@@ -118,17 +122,18 @@ class SimplePidController:
     """
     Donkey part wrap of SimplePid https://github.com/m-lundberg/simple-pid
     """
-    def __init__(self, p, i, d, debug=False):
+    def __init__(self, p, i, d):
         self.pid = PID(Kp=p, Ki=i, Kd=d)
         self.pid.output_limits = (0, None)
-        self.debug = debug
+        logger.info(f"Created SimpePid part p: {p}, i:{i}, d:{d}")
 
     def run(self, set_point, feedback):
         self.pid.setpoint = set_point
-        if self.debug:
-            print('setpoint {0:4.2f} feedback {1:4.2f}'
-                  .format(set_point, feedback))
-        return self.pid(feedback)
+        logger.debug(f'PID setpoint: {set_point:4.2f} feedback:'
+                     f' {feedback:4.2f}')
+        # for 0 input, return 0 out
+        out = 0 if set_point == 0 else self.pid(feedback)
+        return out
 
 
 class ImgBrightnessNormaliser:
@@ -199,7 +204,7 @@ class ImuCombinerNormaliser:
         return combined
 
 
-class SpeedSwitch:
+class ThrottleSwitch:
     """ Class to switch between user speed or pilot speed """
     def __init__(self, cfg):
         self.throttle_mult = cfg.AI_THROTTLE_MULT

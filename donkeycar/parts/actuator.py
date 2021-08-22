@@ -861,7 +861,7 @@ class ModeSwitch:
                     self._current_mode = 0
                 # activate the loop tracker
                 self._active_loop = True
-                print("Switched to mode", self._current_mode)
+                logger.info("Switched to mode", self._current_mode)
         else:
             # trigger released, reset active loop
             self._active_loop = False

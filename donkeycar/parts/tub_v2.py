@@ -161,5 +161,5 @@ class TubWiper:
                 # increase the loop counter
                 self._active_loop = True
         else:
-            # trigger released, reset active loop
+            # trigger released, reset active loop status
             self._active_loop = False

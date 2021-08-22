@@ -3,12 +3,17 @@ import time
 import board
 import busio
 import adafruit_mpu6050
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 SENSOR_MPU6050 = 'mpu6050'
 SENSOR_MPU9250 = 'mpu9250'
 
 DLP_SETTING_DISABLED = 0
 CONFIG_REGISTER = 0x1A
+
 
 class IMU:
     '''
@@ -99,7 +104,7 @@ class IMU:
 
 class Mpu6050Ada:
     def __init__(self):
-        print("Creating Adafruit Mpu6050", end='')
+        logger.info("Creating Adafruit Mpu6050 ...")
         i2c = busio.I2C(board.SCL, board.SDA)
         self.mpu = adafruit_mpu6050.MPU6050(i2c)
         self.mpu.accelerometer_range = adafruit_mpu6050.Range.RANGE_2_G
@@ -120,13 +125,12 @@ class Mpu6050Ada:
         for _ in range(num_loops):
             for i in range(3):
                 accel[i] += self.mpu.acceleration[i]
-                gyro[i] = self.mpu.gyro[i]
+                gyro[i] += self.mpu.gyro[i]
             # wait for 25ms
             time.sleep(0.025)
-            print('.', end='')
         self.accel_zero = [a / num_loops for a in accel]
         self.gyro_zero = [g / num_loops for g in gyro]
-        print('calibrated')
+        logger.info('... Mpu6050 calibrated')
 
     def update(self):
         while self.on:
@@ -149,6 +153,7 @@ class Mpu6050Ada:
 
 
 if __name__ == "__main__":
+    import sys
     count = 0
     p = Mpu6050Ada()
     while True:
@@ -159,6 +164,7 @@ if __name__ == "__main__":
             count += 1
         except KeyboardInterrupt:
             break
+    sys.exit(0)
 
     iter = 0
     import sys

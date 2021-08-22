@@ -11,6 +11,7 @@ from progress.bar import IncrementalBar
 import donkeycar as dk
 from donkeycar.management.joystick_creator import CreateJoystick
 from donkeycar.management.tub import TubManager
+from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.types import TubRecord, TubDataset
 from donkeycar.utils import *
 
@@ -484,6 +485,27 @@ class Train(BaseCommand):
                   f"'tensorflow' or 'pytorch'")
 
 
+class ModelDatabase(BaseCommand):
+
+    def parse_args(self, args):
+        parser = argparse.ArgumentParser(prog='models',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
+        parser.add_argument('--group', action="store_true",
+                            default=False,
+                            help='group tubs and plot separately')
+        parsed_args = parser.parse_args(args)
+        return parsed_args
+
+    def run(self, args):
+        args = self.parse_args(args)
+        cfg = load_config(args.config)
+        p = PilotDatabase(cfg)
+        pilot_txt, tub_txt, _ = p.pretty_print(args.group)
+        print(pilot_txt)
+        print(tub_txt)
+
+
 class Gui(BaseCommand):
     def run(self, args):
         from donkeycar.management.kivy_ui import main
@@ -505,6 +527,7 @@ def execute_from_command_line():
         'cnnactivations': ShowCnnActivations,
         'update': UpdateCar,
         'train': Train,
+        'models': ModelDatabase,
         'ui': Gui,
     }
     

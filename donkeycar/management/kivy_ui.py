@@ -940,33 +940,12 @@ class TrainScreen(Screen):
             self.database = PilotDatabase(self.config)
 
     def on_database(self, obj, database):
-        if self.ids.check.state == 'down':
-            self.pilot_df, self.tub_df = self.database.to_df_tubgrouped()
-            self.ids.scroll_tubs.text = self.tub_df.to_string()
-        else:
-            self.pilot_df = self.database.to_df()
-            self.tub_df = pd.DataFrame()
-            self.ids.scroll_tubs.text = ''
-
-        self.pilot_df.drop(columns=['History', 'Config'], errors='ignore',
-                           inplace=True)
-        text = self.pilot_df.to_string(formatters=self.formatter())
-        self.ids.scroll_pilots.text = text
-        values = ['Choose transfer model']
-        if not self.pilot_df.empty:
-            values += self.pilot_df['Name'].tolist()
+        group_tubs = self.ids.check.state == 'down'
+        pilot_txt, tub_txt, pilot_names = self.database.pretty_print(group_tubs)
+        self.ids.scroll_tubs.text = tub_txt
+        self.ids.scroll_pilots.text = pilot_txt
+        values = ['Choose transfer model'] + pilot_names
         self.ids.transfer_spinner.values = values
-
-    @staticmethod
-    def formatter():
-        def time_fmt(t):
-            fmt = '%Y-%m-%d %H:%M:%S'
-            return datetime.fromtimestamp(t).strftime(format=fmt)
-
-        def transfer_fmt(model_name):
-            return model_name.replace('.h5', '')
-
-        return {'Time': time_fmt, 'Transfer': transfer_fmt}
 
 
 class CarScreen(Screen):

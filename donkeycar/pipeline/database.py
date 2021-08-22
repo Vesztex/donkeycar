@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import os
 import time
@@ -90,3 +91,28 @@ class PilotDatabase:
             zip(d.values(), [k.split(',') for k in d.keys()]),
             columns=['TubGroup', 'Tubs']).explode('Tubs')
         return df_pilots, df_tubs
+
+    @staticmethod
+    def formatter():
+        def time_fmt(t):
+            fmt = '%Y-%m-%d %H:%M:%S'
+            return datetime.fromtimestamp(t).strftime(format=fmt)
+
+        def transfer_fmt(model_name):
+            return model_name.replace('.h5', '')
+
+        return {'Time': time_fmt, 'Transfer': transfer_fmt}
+
+    def pretty_print(self, group_tubs=False):
+        if group_tubs:
+            pilot_df, tub_df = self.to_df_tubgrouped()
+            tub_text = tub_df.to_string()
+        else:
+            pilot_df = self.to_df()
+            tub_text = ''
+
+        pilot_df.drop(columns=['History', 'Config'], errors='ignore',
+                      inplace=True)
+        pilot_text = pilot_df.to_string(formatters=self.formatter())
+        pilot_names = pilot_df['Name'].tolist() if not pilot_df.empty else []
+        return pilot_text, tub_text, pilot_names

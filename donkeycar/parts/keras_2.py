@@ -733,7 +733,7 @@ def linear_square_plus_imu(input_shape=(120, 160, 3),
 def linear_square_plus_mem(input_shape=(120, 160, 3),
                            size='S', mem_length=3, mem_depth=0):
     l2 = 0.001
-    drop2 = 0.1
+    drop2 = 0.1 #0.02 #0.1
     img_in = Input(shape=input_shape, name='img_in')
     mem_in = Input(shape=(2 * mem_length,), name='mem_in')
     x = img_in
@@ -742,7 +742,7 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
     for i in range(mem_depth):
         y = Dense(4 * mem_length, activation='relu', name=f'mem_{i}')(y)
         y = Dropout(drop2)(y)
-    for i in range(1, mem_length):
+    for i in range(1, mem_length):  # memlength # memlength-1
         y = Dense(2 * (mem_length - i), activation='relu', name=f'mem_c_{i}')(y)
         y = Dropout(drop2)(y)
 

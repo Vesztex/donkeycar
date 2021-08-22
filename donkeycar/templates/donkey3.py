@@ -5,7 +5,8 @@ controller. Also provide a calibration of the RC throttle and
 steering triggers.
 
 Usage:
-    manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web] [--fpv] [--no_tub] [--verbose] [--type]
+    manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web]\
+ [--fpv] [--no_tub] [--verbose] [--type=<model_type>]
     manage.py (calibrate)
     manage.py (stream)
 

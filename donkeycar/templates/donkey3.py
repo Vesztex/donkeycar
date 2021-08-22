@@ -6,7 +6,7 @@ steering triggers.
 
 Usage:
     manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web] \
-    [--fpv] [--no_tub] [--verbose]
+    [--fpv] [--no_tub] [--verbose] [--model_type]
     manage.py (calibrate)
     manage.py (stream)
 

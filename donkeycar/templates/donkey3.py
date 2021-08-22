@@ -56,7 +56,6 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     framework handles passing named outputs to parts requesting the same named
     input.
     """
-    # logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
     if verbose:
         donkeycar.parts.logger.setLevel(logging.DEBUG)
 

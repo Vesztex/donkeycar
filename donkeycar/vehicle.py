@@ -152,7 +152,7 @@ class Vehicle:
                     entry.get('thread').start()
 
             # wait until the parts warm up.
-            logger.info('Starting vehicle at {} Hz'.format(rate_hz))
+            logger.info(f'Starting vehicle at {rate_hz} Hz')
 
             loop_count = 0
             while self.on:
@@ -170,9 +170,10 @@ class Vehicle:
                 else:
                     self.loop_exceed += 1
                     self.excess_time -= sleep_time
-                    # print a message when could not maintain loop rate.
-                    logger.warning(f'jitter violation in vehicle loop with '
-                                   f'{abs(1000 * sleep_time):4.0f}ms')
+                    # print a message when exceeding more than 1ms
+                    if sleep_time < -0.001:
+                        logger.warning(f'jitter violation in vehicle loop with '
+                                       f'{abs(1000 * sleep_time):4.0f}ms')
                 self.loop_count += 1
         except KeyboardInterrupt:
             pass

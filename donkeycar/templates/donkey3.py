@@ -6,7 +6,7 @@ steering triggers.
 
 Usage:
     manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web] \
-    [--fpv] [--no_tub] [--verbose] [--model_type]
+    [--fpv] [--no_tub] [--verbose] [--type]
     manage.py (calibrate)
     manage.py (stream)
 
@@ -49,7 +49,7 @@ class Renamer:
 CAM_IMG = 'cam/image_array'
 
 
-def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
+def drive(cfg, use_pid=False, no_cam=False, model_path=None, type=None,
           web=False, fpv=False, no_tub=False, verbose=False):
     """
     Construct a working robotic vehicle from many parts. Each part runs as a job
@@ -120,10 +120,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     # load model if present ----------------------------------------------------
     if model_path is not None:
         print("Using auto-pilot")
-        if not model_type:
+        if not type:
             model_type = 'tflite_linear'
 
-        kl = dk.utils.get_model_by_type(model_type, cfg)
+        kl = dk.utils.get_model_by_type(type, cfg)
         kl.load(model_path)
         kl_inputs = [CAM_IMG]
         # Add image transformations like crop or trapezoidal mask

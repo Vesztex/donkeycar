@@ -1,5 +1,9 @@
 import sys
 from pyfiglet import Figlet
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 f = Figlet(font='speed')
 __version__ = '4.3.0'

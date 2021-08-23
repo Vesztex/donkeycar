@@ -104,7 +104,7 @@ class TubDataset(object):
             for tub in self.tubs:
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)
-                    if self.train_filter and not self.train_filter(underlying):
+                    if self.train_filter and not self.train_filter(record):
                         filtered_records += 1
                     else:
                         self.records.append(record)

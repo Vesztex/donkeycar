@@ -33,7 +33,6 @@ from donkeycar.parts.imu import Mpu6050Ada
 from donkeycar.pipeline.augmentations import ImageAugmentation
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 class Renamer:

@@ -642,7 +642,8 @@
                     self.disabled = True
                     root.pull(tub_dir_spinner.text)
             ProgressBar:
-                value: root.pull_bar
+                id: pull_bar
+                #value: root.pull_bar
         Label:
             #size_hint_y: None
             #height: common_height
@@ -677,7 +678,8 @@
                     self.disabled = True
                     root.send_pilot()
             ProgressBar:
-                value: root.push_bar
+                id: push_bar
+                # value: root.push_bar
 
         Label:
             # size_hint_y: None

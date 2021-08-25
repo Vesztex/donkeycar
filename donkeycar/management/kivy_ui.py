@@ -996,7 +996,6 @@ class CarScreen(Screen):
         repeats = 100
         call = partial(self.show_progress, proc, repeats, True)
         event = Clock.schedule_interval(call, 0.0001)
-        #self.show_progress(proc, repeats, True, None)
 
     def send_pilot(self):
         src = self.config.MODELS_PATH
@@ -1021,10 +1020,14 @@ class CarScreen(Screen):
                      encoding='utf-8', universal_newlines=True)
         repeats = 0
         call = partial(self.show_progress, proc, repeats, False)
-        event = Clock.schedule_once(call, 0.01)
+        event = Clock.schedule_interval(call, 0.0001)
 
     def show_progress(self, proc, repeats, is_pull, e):
-        if proc.poll() is not None:
+        # find 'to-check=33/4551)' in OSX or 'to-chk=33/4551)' in
+        # Linux which is end of line
+        pattern = 'to-(check|chk)=(.*)\)'
+
+        def end():
             # call ended this stops the schedule
             if is_pull:
                 button = self.ids.pull_tub
@@ -1034,15 +1037,15 @@ class CarScreen(Screen):
                 self.ids.push_bar.value = 0
                 self.update_pilots()
             button.disabled = False
+
+        if proc.poll() is not None:
+            end()
             return False
         # find the next repeats lines with update info
         count = 0
         while True:
             stdout_data = proc.stdout.readline()
             if stdout_data:
-                # find 'to-check=33/4551)' in OSX or 'to-chk=33/4551)' in
-                # Linux which is end of line
-                pattern = 'to-(check|chk)=(.*)\)'
                 res = re.search(pattern, stdout_data)
                 if res:
                     if count < repeats:
@@ -1057,14 +1060,7 @@ class CarScreen(Screen):
                         return True
             else:
                 # end of stream command completed
-                if is_pull:
-                    button = self.ids.pull_tub
-                    self.ids.pull_bar.value = 0
-                else:
-                    button = self.ids.send_pilots
-                    self.ids.push_bar.value = 0
-                    self.update_pilots()
-                button.disabled = False
+                end()
                 return False
 
     def connected(self, event):

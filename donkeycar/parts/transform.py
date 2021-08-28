@@ -124,15 +124,14 @@ class SimplePidController:
     """
     def __init__(self, p, i, d):
         self.pid = PID(Kp=p, Ki=i, Kd=d)
-        self.pid.output_limits = (0, None)
-        logger.info(f"Created SimpePid part p: {p}, i:{i}, d:{d}")
+        self.pid.output_limits = (0, 1)
+        logger.info(f"Created SimplePid part p: {p}, i:{i}, d:{d}")
 
     def run(self, set_point, feedback):
         self.pid.setpoint = set_point
         logger.debug(f'PID setpoint: {set_point:4.2f} feedback:'
                      f' {feedback:4.2f}')
-        # for 0 input, return 0 out
-        out = 0 if set_point == 0 else self.pid(feedback)
+        out = self.pid(feedback)
         return out
 
 

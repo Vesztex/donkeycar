@@ -108,10 +108,12 @@ class LapTimer:
     """
     LapTimer to count the number of laps, and lap times, based on gpio counts
     """
-    def __init__(self, gpio=16, trigger=5, min_time=1.0, debug=None):
+    def __init__(self, gpio=16, trigger=5, min_time=5.0):
         """
-        :param gpio: gpio of sensor being connected
-        :param debug: if debug info should be printed
+        :param gpio:        pin for data connection to sensor
+        :param trigger:     how many consecutive readings are required for a
+                            lap counter increase
+        :param min_time:    how many seconds are required between laps
         """
         import pigpio
         self.gpio = gpio
@@ -122,7 +124,6 @@ class LapTimer:
         self.lap_lenghts = []
         self.distance = 0.0
         self.last_distance = 0.0
-        self.debug = debug
         self.running = True
         self.count_lo = 0
         self.trigger = trigger

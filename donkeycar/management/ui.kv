@@ -482,8 +482,10 @@
     font_name: 'data/fonts/RobotoMono-Regular.ttf'
     font_size: 12 if platform == 'linux' else 24
     size_hint_y: None
+    size_hint_x: None
     height: self.texture_size[1]
-    text_size: self.width, None
+    width: self.texture_size[0]
+    #text_size: self.width, None
 
 <TransferSelector>:
     title: 'Choose transfer model'

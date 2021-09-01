@@ -21,7 +21,7 @@ class PartProfiler:
         self.records = {}
 
     def profile_part(self, p):
-        self.records[p] = { "times" : [] }
+        self.records[p] = {"times": []}
 
     def on_part_start(self, p):
         self.records[p]['times'].append(time.time())
@@ -29,10 +29,8 @@ class PartProfiler:
     def on_part_finished(self, p):
         now = time.time()
         prev = self.records[p]['times'][-1]
-        delta = now - prev
         thresh = 0.000001
-        if delta < thresh or delta > 100000.0:
-            delta = thresh
+        delta = max(now - prev, thresh)
         self.records[p]['times'][-1] = delta
 
     def report(self):
@@ -90,20 +88,18 @@ class Vehicle:
             run_condition : str
                 Channel name if a part should be run or not
         """
-        assert type(inputs) is list, "inputs is not a list: %r" % inputs
-        assert type(outputs) is list, "outputs is not a list: %r" % outputs
-        assert type(threaded) is bool, "threaded is not a boolean: %r" % threaded
+        assert type(inputs) is list, f"inputs is not a list: {repr(inputs)}"
+        assert type(outputs) is list, f"outputs is not a list: {repr(outputs)}"
+        assert type(threaded) is bool, f"threaded is not a boolean: " \
+                                       f"{repr(threaded)}"
+
         if run_condition:
             assert type(run_condition) is str, \
-                "run_condition is not a str: %r" % threaded
+                f"run_condition is not a str: {repr(threaded)}"
 
-        p = part
-        logger.info('Adding part {}.'.format(p.__class__.__name__))
-        entry = {}
-        entry['part'] = p
-        entry['inputs'] = inputs
-        entry['outputs'] = outputs
-        entry['run_condition'] = run_condition
+        logger.info(f'Adding part {part.__class__.__name__}.')
+        entry = {'part': part, 'inputs': inputs, 'outputs': outputs,
+                 'run_condition': run_condition}
 
         if threaded:
             t = Thread(target=part.update, args=())
@@ -154,7 +150,6 @@ class Vehicle:
             # wait until the parts warm up.
             logger.info(f'Starting vehicle at {rate_hz} Hz')
 
-            loop_count = 0
             while self.on:
                 start_time = time.time()
                 self.update_parts()
@@ -170,10 +165,13 @@ class Vehicle:
                 else:
                     self.loop_exceed += 1
                     self.excess_time -= sleep_time
-                    # print a message when exceeding more than 1ms
-                    if sleep_time < -0.001:
+                # print a message when exceeding more than 1ms but at
+                # most all 10s:
+                if self.loop_count % (10 * rate_hz):
+                    avg_exceed_time = 1e3 * self.excess_time / self.loop_count
+                    if avg_exceed_time > 1:
                         logger.warning(f'jitter violation in vehicle loop with '
-                                       f'{abs(1000 * sleep_time):4.0f}ms')
+                                       f'{avg_exceed_time:5.1f}ms')
                 self.loop_count += 1
         except KeyboardInterrupt:
             pass
@@ -223,10 +221,10 @@ class Vehicle:
                 logger.error(e)
 
         count = max(self.loop_count, 1)
-        logger.info('Ran {:} vehicle loops with {:.2f}% exceeding loop time. '
-                    'Average excess time {:.1f}ms, average loop time {:.1f}ms.'
-                    .format(self.loop_count,
-                            100.0 * self.loop_exceed / count,
-                            1000.0 * self.excess_time / count,
-                            1000.0 * self.run_time / count))
+        logger.info(f'Ran {self.loop_count} vehicle loops with '
+                    f'{100.0 * self.loop_exceed / count:.2f}% ' 
+                    f'exceeding loop time. Average excess time '
+                    f'{1000.0 * self.excess_time / count:.1f}ms, average loop '
+                    f'time {1000.0 * self.run_time / count:.1f}ms.')
+
         self.profiler.report()

@@ -108,10 +108,12 @@ class LapTimer:
     """
     LapTimer to count the number of laps, and lap times, based on gpio counts
     """
-    def __init__(self, gpio=16, trigger=5, min_time=1.0, debug=None):
+    def __init__(self, gpio=16, trigger=5, min_time=5.0):
         """
-        :param gpio: gpio of sensor being connected
-        :param debug: if debug info should be printed
+        :param gpio:        pin for data connection to sensor
+        :param trigger:     how many consecutive readings are required for a
+                            lap counter increase
+        :param min_time:    how many seconds are required between laps
         """
         import pigpio
         self.gpio = gpio
@@ -122,12 +124,11 @@ class LapTimer:
         self.lap_lenghts = []
         self.distance = 0.0
         self.last_distance = 0.0
-        self.debug = debug
         self.running = True
         self.count_lo = 0
         self.trigger = trigger
         self.min_time = min_time
-        print("LapTimerThreaded added at gpio {}".format(gpio))
+        logger.info(f"LapTimerThreaded added at gpio {gpio}")
 
     def update(self):
         """
@@ -138,6 +139,7 @@ class LapTimer:
             # Signal detected: if pin is lo
             if current_state == 0:
                 self.count_lo += 1
+                logger.debug(f'Laptimer signal low detected')
             # No signal: pin is high
             else:
                 # assume when seeing enough consecutive lo this was a real
@@ -147,8 +149,8 @@ class LapTimer:
                     dt = now - self.last_time
                     # only count lap if more than min_time passed
                     if dt > self.min_time:
-                        print('Lap {0} detected after {1:6.3f}s'
-                              .format(self.lap_count, dt))
+                        logger.info(f'Lap {self.lap_count} detected after '
+                                    f'{dt:6.3f}s')
                         self.last_time = now
                         self.lap_count += 1
                         self.lap_times.append(dt)
@@ -175,11 +177,11 @@ class LapTimer:
         Donkey parts interface
         """
         self.running = False
-        print("Lap Summary: (times in s)")
+        logger.info("Lap Summary: (times in s)")
         pt = PrettyTable()
         pt.field_names = ['Lap', 'Time', 'Distance']
         for i, (t, l) in enumerate(zip(self.lap_times, self.lap_lenghts)):
             pt.add_row([i, '{0:6.3f}'.format(t), '{0:6.3f}'.format(l)])
-        print(pt)
+        logger.info('\n' + str(pt))
 
 

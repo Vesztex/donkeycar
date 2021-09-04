@@ -69,7 +69,10 @@ class Tub(object):
             index = record['_index']
             contents['_timestamp_ms'] = record['_timestamp_ms']
             contents['_index'] = index
-            contents['_session_id'] = record['_session_id']
+            # session id is optional and not necessary in all tubs
+            session_id = record.get('_session_id')
+            if session_id:
+                contents['_session_id'] = session_id
         else:
             index = None
             contents['_timestamp_ms'] = int(round(time.time() * 1000))

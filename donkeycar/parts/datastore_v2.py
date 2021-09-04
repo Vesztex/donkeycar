@@ -91,7 +91,8 @@ class Seekable(object):
         return contents.rstrip(NEWLINE_STRIP)
 
     def seek_line_start(self, line_number):
-        self.file.seek(self._line_start_offset(line_number))
+        line_start = self._line_start_offset(line_number)
+        self.file.seek(line_start)
 
     def seek_end_of_file(self):
         self.file.seek(self.total_length)
@@ -158,10 +159,13 @@ class Catalog(object):
     def _exit_handler(self):
         self.close()
 
-    def write_record(self, record):
+    def write_record(self, record, index=None):
         # Add record and update manifest
         contents = json.dumps(record, allow_nan=False, sort_keys=True)
-        self.seekable.writeline(contents)
+        if index:
+            self.seekable.update_line(index + 1, contents)
+        else:
+            self.seekable.writeline(contents)
         line_lengths = self.seekable.line_lengths
         self.manifest.update_line_lengths(line_lengths)
 
@@ -277,21 +281,27 @@ class Manifest(object):
         # tub, when Tub.write_record() is called.
         self.session_id = self.create_new_session()
 
-    def write_record(self, record):
-        new_catalog = self.current_index > 0 \
-                      and (self.current_index % self.max_len) == 0
-        if new_catalog:
-            self._add_catalog()
+    def write_record(self, record, index=None):
+        if index is None:
+            new_catalog = self.current_index > 0 \
+                          and (self.current_index % self.max_len) == 0
+            if new_catalog:
+                self._add_catalog()
 
-        self.current_catalog.write_record(record)
-        self.current_index += 1
-        # Update metadata to keep track of the last index
-        self._update_catalog_metadata(update=True)
-        # Set session_id update status to True if this method is called at
-        # least once. Then session id metadata  will be updated when the
-        # session gets closed
-        if not self._updated_session:
-            self._updated_session = True
+            self.current_catalog.write_record(record)
+            self.current_index += 1
+            # Update metadata to keep track of the last index
+            self._update_catalog_metadata(update=True)
+            # Set session_id update status to True if this method is called at
+            # least once. Then session id metadata  will be updated when the
+            # session gets closed
+            if not self._updated_session:
+                self._updated_session = True
+        else:
+            self._set_catalog(index)
+            relative_index = index % self.max_len
+            self.current_catalog.write_record(record, relative_index)
+            self._reset_catalog()
 
     def delete_records(self, record_indexes):
         # Does not actually delete the record, but marks it as deleted.
@@ -377,6 +387,29 @@ class Manifest(object):
         sessions['all_full_ids'].append(this_full_id)
         self.manifest_metadata['sessions'] = sessions
         return this_full_id
+
+    def _set_catalog(self, index):
+        catalog_num = index // self.max_len
+        # current catalog is at end so only reset catalog if needed
+        if catalog_num != len(self.catalog_paths) - 1:
+            self.current_catalog.close()
+            catalog_path = os.path.join(self.base_path,
+                                        self.catalog_paths[catalog_num])
+            self.current_catalog = Catalog(
+                path=catalog_path, read_only=self.read_only,
+                start_index=self.max_len * catalog_num)
+
+    def _reset_catalog(self):
+        if self.current_index > 0:
+            # current index already points at the next index to be written
+            catalog_num = (self.current_index - 1) // self.max_len
+            if catalog_num < len(self.catalog_paths) - 1:
+                self.current_catalog.close()
+                catalog_path = os.path.join(self.base_path,
+                                            self.catalog_paths[catalog_num])
+                self.current_catalog = Catalog(
+                    path=catalog_path, read_only=self.read_only,
+                    start_index=self.max_len * catalog_num)
 
     def close(self):
         """ Closing tub closes open files for catalog, catalog manifest and

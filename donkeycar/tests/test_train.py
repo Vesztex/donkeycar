@@ -36,6 +36,7 @@ def base_config() -> Config:
     cfg.BEHAVIOR_LIST = ['Left_Lane', "Right_Lane"]
     cfg.NUM_LOCATIONS = 3
     cfg.SEQUENCE_LENGTH = 3
+    cfg.CACHE_IMAGES = True
     return cfg
 
 

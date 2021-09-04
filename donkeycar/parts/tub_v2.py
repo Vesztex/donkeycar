@@ -36,6 +36,7 @@ class Tub(object):
         Can handle various data types including images.
         """
         contents = dict()
+        is_overwrite = '_index' in record
         for key, value in record.items():
             if value is None:
                 continue
@@ -63,13 +64,19 @@ class Tub(object):
                     image_path = os.path.join(self.images_base_path, name)
                     image.save(image_path)
                     contents[key] = name
+        # Private properties, allow record overwriting if '_index' is given
+        if is_overwrite:
+            index = record['_index']
+            contents['_timestamp_ms'] = record['_timestamp_ms']
+            contents['_index'] = index
+            contents['_session_id'] = record['_session_id']
+        else:
+            index = None
+            contents['_timestamp_ms'] = int(round(time.time() * 1000))
+            contents['_index'] = self.manifest.current_index
+            contents['_session_id'] = self.manifest.session_id
 
-        # Private properties
-        contents['_timestamp_ms'] = int(round(time.time() * 1000))
-        contents['_index'] = self.manifest.current_index
-        contents['_session_id'] = self.manifest.session_id
-
-        self.manifest.write_record(contents)
+        self.manifest.write_record(contents, index)
 
     def delete_records(self, record_indexes):
         self.manifest.delete_records(record_indexes)

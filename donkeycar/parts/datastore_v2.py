@@ -367,7 +367,7 @@ class Manifest(object):
         catalog_metadata['paths'] = self.catalog_paths
         catalog_metadata['current_index'] = self.current_index
         catalog_metadata['max_len'] = self.max_len
-        catalog_metadata['deleted_indexes'] = list(self.deleted_indexes)
+        catalog_metadata['deleted_indexes'] = sorted(list(self.deleted_indexes))
         self.catalog_metadata = catalog_metadata
         self.seekeable.writeline(json.dumps(catalog_metadata))
 

@@ -45,7 +45,7 @@ class TubRecord(object):
         self.underlying = underlying
         self._image: Optional[Any] = None
 
-    def image(self, cached: bool = True,
+    def image(self, cached: bool = None,
               as_nparray: bool = True,
               transformation:  Callable[[np.ndarray], np.ndarray] = None) \
             -> np.ndarray:
@@ -72,6 +72,8 @@ class TubRecord(object):
                 # If you just want the raw Image
                 _image = load_pil_image(full_path, cfg=self.config)
 
+            if cached is None:
+                cached = self.config.CACHE_IMAGES
             if cached:
                 self._image = _image
         else:

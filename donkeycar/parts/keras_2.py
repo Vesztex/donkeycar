@@ -90,7 +90,7 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
         assert len(record) == self.mem_length + 1, \
             f"Record list of length {self.mem_length} required but " \
             f"{len(record)} was passed"
-        img_arr = record[-1].image(cached=True, as_nparray=True,
+        img_arr = record[-1].image(cached=None, as_nparray=True,
                                    transformation=img_processor)
         mem = [[r.underlying['user/angle'], self.get_throttle(r)]
                for r in record[:-1]]
@@ -181,7 +181,7 @@ class KerasSquarePlusImu(KerasSquarePlus):
 
     def x_transform(self, record: Union[TubRecord, List[TubRecord]]) -> XY:
         assert isinstance(record, TubRecord), 'TubRecord expected'
-        img_arr = record.image(cached=True)
+        img_arr = record.image(cached=None)
         imu_arr = record.underlying['car/accel'] \
             + record.underlying['car/gyro']
         return img_arr, np.array(imu_arr)

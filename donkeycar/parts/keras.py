@@ -232,7 +232,7 @@ class KerasPilot(ABC):
             applies an image augmentation. Here we assume the model only takes
             the image as input. """
         assert isinstance(record, TubRecord), "TubRecord required"
-        img_arr = record.image(cached=True, as_nparray=True,
+        img_arr = record.image(cached=None, as_nparray=True,
                                transformation=img_processor)
         return img_arr
 
@@ -454,7 +454,7 @@ class KerasMemory(KerasLinear):
         assert len(record) == self.mem_length + 1, \
             f"Record list of length {self.mem_length} required but " \
             f"{len(record)} was passed"
-        img_arr = record[-1].image(cached=True, as_nparray=True,
+        img_arr = record[-1].image(cached=None, as_nparray=True,
                                    transformation=img_processor)
         mem = [[r.underlying['user/angle'], r.underlying['user/throttle']]
                for r in record[:-1]]
@@ -550,7 +550,7 @@ class KerasIMU(KerasPilot):
             record: Union[TubRecord, List[TubRecord]],
             img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
         assert isinstance(record, TubRecord), 'TubRecord expected'
-        img_arr = record.image(cached=True, as_nparray=True,
+        img_arr = record.image(cached=None, as_nparray=True,
                                transformation=img_processor)
         imu_arr = [record.underlying[k] for k in self.imu_vec]
         return img_arr, np.array(imu_arr)
@@ -603,7 +603,7 @@ class KerasBehavioral(KerasCategorical):
             record: Union[TubRecord, List[TubRecord]],
             img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
         assert isinstance(record, TubRecord), 'TubRecord expected'
-        img_arr = record.image(cached=True, as_nparray=True,
+        img_arr = record.image(cached=None, as_nparray=True,
                                transformation=img_processor)
         bhv_arr = record.underlying['behavior/one_hot_state_array']
         return img_arr, np.array(bhv_arr)
@@ -713,7 +713,7 @@ class KerasLSTM(KerasPilot):
         assert len(records) == self.seq_length, \
             f"Record list of length {self.seq_length} required but " \
             f"{len(records)} was passed"
-        img_arrays = [rec.image(cached=True, as_nparray=True,
+        img_arrays = [rec.image(cached=None, as_nparray=True,
                                 transformation=img_processor) for rec in records]
         return np.array(img_arrays)
 
@@ -798,7 +798,7 @@ class Keras3D_CNN(KerasPilot):
         assert len(record) == self.seq_length, \
             f"Record list of length {self.seq_length} required but " \
             f"{len(record)} was passed"
-        img_arrays = [rec.image(cached=True, as_nparray=True,
+        img_arrays = [rec.image(cached=None, as_nparray=True,
                                 transformation=img_processor) for rec
                       in record]
         return np.array(img_arrays)

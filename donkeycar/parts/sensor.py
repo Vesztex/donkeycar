@@ -94,11 +94,10 @@ class Odometer:
         """
         import pigpio
         self._cb.cancel()
-        print('Maximum speed {0:4.2f}, total distance {1:4.2f}'
-              .format(self._max_speed,
-                      float(self._distance) / float(self._tick_per_meter)))
+        logger.info(f'Maximum speed {self._max_speed:4.2f}, total distance '
+                    f'{self._distance / float(self._tick_per_meter):4.2f}')
         if self._debug:
-            print('Total num ticks {}'.format(self._distance))
+            logger.info(f'Total num ticks {self._distance}')
             path = join(getcwd(), 'odo.json')
             with open(path, "w") as outfile:
                 dump(self._debug_data, outfile, indent=4)
@@ -128,7 +127,7 @@ class LapTimer:
         self.count_lo = 0
         self.trigger = trigger
         self.min_time = min_time
-        logger.info(f"LapTimerThreaded added at gpio {gpio}")
+        logger.info(f"Lap timer added at gpio {gpio}")
 
     def update(self):
         """
@@ -139,7 +138,7 @@ class LapTimer:
             # Signal detected: if pin is lo
             if current_state == 0:
                 self.count_lo += 1
-                logger.debug(f'Laptimer signal low detected')
+                logger.debug(f'Lap timer signal low detected')
             # No signal: pin is high
             else:
                 # assume when seeing enough consecutive lo this was a real
@@ -181,7 +180,7 @@ class LapTimer:
         pt = PrettyTable()
         pt.field_names = ['Lap', 'Time', 'Distance']
         for i, (t, l) in enumerate(zip(self.lap_times, self.lap_lenghts)):
-            pt.add_row([i, '{0:6.3f}'.format(t), '{0:6.3f}'.format(l)])
+            pt.add_row([i, f'{t:6.3f}', f'{l:6.3f}'])
         logger.info('\n' + str(pt))
 
 

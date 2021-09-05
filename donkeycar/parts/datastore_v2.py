@@ -309,7 +309,8 @@ class Manifest(object):
             record_indexes = {record_indexes}
         self.deleted_indexes.update(record_indexes)
         self._update_catalog_metadata(update=True)
-        logger.info(f'Deleted records {record_indexes}')
+        logger.info(f'Deleted records {min(record_indexes)} - '
+                    f'{max(record_indexes)}')
 
     def restore_records(self, record_indexes):
         # Does not actually delete the record, but marks it as deleted.
@@ -317,7 +318,8 @@ class Manifest(object):
             record_indexes = {record_indexes}
         self.deleted_indexes.difference_update(record_indexes)
         self._update_catalog_metadata(update=True)
-        logger.info(f'Restored records {record_indexes}')
+        logger.info(f'Restored records {min(record_indexes)} - '
+                    f'{max(record_indexes)}')
 
     def _add_catalog(self):
         current_length = len(self.catalog_paths)

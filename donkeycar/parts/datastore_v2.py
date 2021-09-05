@@ -1,3 +1,4 @@
+import atexit
 import json
 import mmap
 import os
@@ -248,7 +249,9 @@ class Manifest(object):
         self.catalog_metadata = dict()
         self.deleted_indexes = set()
         self._updated_session = False
+        self._is_closed = False
         has_catalogs = False
+
 
         if self.manifest_path.exists():
             self.seekeable = Seekable(self.manifest_path,
@@ -280,6 +283,13 @@ class Manifest(object):
         # Create a new session_id, which will be added to each record in the
         # tub, when Tub.write_record() is called.
         self.session_id = self.create_new_session()
+
+        def exit_hook():
+            logger.error("Unexpected manifest closure")
+            if not self._is_closed:
+                self.close()
+        # Automatically save config when program ends
+        atexit.register(exit_hook)
 
     def write_record(self, record, index=None):
         if index is None:
@@ -422,6 +432,7 @@ class Manifest(object):
             self.seekeable.update_line(4, json.dumps(self.manifest_metadata))
         self.current_catalog.close()
         self.seekeable.close()
+        self._is_closed = True
 
     def __iter__(self):
         return ManifestIterator(self)

@@ -33,6 +33,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import SpinnerOption, Spinner
 
 from donkeycar import load_config
+from donkeycar.parts.datastore_v2 import Manifest
 from donkeycar.parts.keras_2 import KerasSquarePlusImu
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.augmentations import ImageAugmentation
@@ -251,6 +252,8 @@ class TubLoader(BoxLayout, FileChooserBase):
             tub_screen().status(f'Path {self.file_path} is not a valid tub.')
             return False
         try:
+            if self.tub:
+                self.tub.close()
             self.tub = Tub(self.file_path)
         except Exception as e:
             tub_screen().status(f'Failed loading tub: {str(e)}')
@@ -986,9 +989,14 @@ class CarScreen(Screen):
     def pull(self, tub_dir):
         target = f'{self.config.PI_USERNAME}@{self.config.PI_HOSTNAME}' + \
                f':{os.path.join(self.car_dir, tub_dir)}'
+        dest = self.config.DATA_PATH
+        self.deleted_indexes = None
         if self.ids.create_dir.state == 'normal':
             target += '/'
-        dest = self.config.DATA_PATH
+            tub = tub_screen().ids.tub_loader.tub
+            if tub:
+                self.deleted_indexes = tub.manifest.deleted_indexes
+                tub.close()
         cmd = ['rsync', '-rv', '--progress', '--partial', target, dest]
         Logger.info('car pull: ' + str(cmd))
         proc = Popen(cmd, shell=False, stdout=PIPE, text=True,
@@ -1032,6 +1040,12 @@ class CarScreen(Screen):
             if is_pull:
                 button = self.ids.pull_tub
                 self.ids.pull_bar.value = 0
+                # merge in previous deleted indexes which now might have been
+                # overwritten
+                tub_screen().ids.tub_loader.update_tub()
+                tub = tub_screen().ids.tub_loader.tub
+                if tub and self.deleted_indexes:
+                    tub.manifest.add_deleted_indexes(self.deleted_indexes)
             else:
                 button = self.ids.send_pilots
                 self.ids.push_bar.value = 0

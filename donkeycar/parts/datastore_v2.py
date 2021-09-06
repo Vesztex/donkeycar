@@ -252,7 +252,6 @@ class Manifest(object):
         self._is_closed = False
         has_catalogs = False
 
-
         if self.manifest_path.exists():
             self.seekeable = Seekable(self.manifest_path,
                                       read_only=self.read_only)
@@ -285,7 +284,7 @@ class Manifest(object):
         self.session_id = self.create_new_session()
 
         def exit_hook():
-            logger.error("Unexpected manifest closure")
+            logger.error("Unexpected manifest closing")
             if not self._is_closed:
                 self.close()
         # Automatically save config when program ends
@@ -399,6 +398,12 @@ class Manifest(object):
         sessions['all_full_ids'].append(this_full_id)
         self.manifest_metadata['sessions'] = sessions
         return this_full_id
+
+    def add_deleted_indexes(self, indexes):
+        if isinstance(indexes, int):
+            indexes = {indexes}
+        self.deleted_indexes.update(indexes)
+        self._update_catalog_metadata(update=True)
 
     def _set_catalog(self, index):
         catalog_num = index // self.max_len

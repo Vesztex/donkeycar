@@ -990,13 +990,8 @@ class CarScreen(Screen):
         target = f'{self.config.PI_USERNAME}@{self.config.PI_HOSTNAME}' + \
                f':{os.path.join(self.car_dir, tub_dir)}'
         dest = self.config.DATA_PATH
-        self.deleted_indexes = None
         if self.ids.create_dir.state == 'normal':
             target += '/'
-            tub = tub_screen().ids.tub_loader.tub
-            if tub:
-                self.deleted_indexes = tub.manifest.deleted_indexes
-                tub.close()
         cmd = ['rsync', '-rv', '--progress', '--partial', target, dest]
         Logger.info('car pull: ' + str(cmd))
         proc = Popen(cmd, shell=False, stdout=PIPE, text=True,
@@ -1042,10 +1037,13 @@ class CarScreen(Screen):
                 self.ids.pull_bar.value = 0
                 # merge in previous deleted indexes which now might have been
                 # overwritten
-                tub_screen().ids.tub_loader.update_tub()
-                tub = tub_screen().ids.tub_loader.tub
-                if tub and self.deleted_indexes:
-                    tub.manifest.add_deleted_indexes(self.deleted_indexes)
+                old_tub = tub_screen().ids.tub_loader.tub
+                if old_tub:
+                    deleted_indexes = old_tub.manifest.deleted_indexes
+                    tub_screen().ids.tub_loader.update_tub()
+                    if deleted_indexes:
+                        new_tub = tub_screen().ids.tub_loader.tub
+                        new_tub.manifest.add_deleted_indexes(deleted_indexes)
             else:
                 button = self.ids.send_pilots
                 self.ids.push_bar.value = 0
@@ -1179,6 +1177,7 @@ class DonkeyApp(App):
         Clock.schedule_once(self.tub_screen.ids.tub_loader.update_tub)
 
     def build(self):
+        Window.bind(on_request_close=self.on_request_close)
         self.start_screen = StartScreen(name='donkey')
         self.tub_screen = TubScreen(name='tub')
         self.train_screen = TrainScreen(name='train')
@@ -1195,10 +1194,18 @@ class DonkeyApp(App):
         sm.add_widget(self.car_screen)
         return sm
 
+    def on_request_close(self, *args):
+        tub = self.tub_screen.ids.tub_loader.tub
+        if tub:
+            tub.close()
+        Logger.info("Good bye Donkey")
+        return False
+
 
 def main():
     tub_app = DonkeyApp()
     tub_app.run()
+
 
 
 if __name__ == '__main__':

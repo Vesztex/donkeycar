@@ -284,7 +284,7 @@ class Manifest(object):
         self.session_id = self.create_new_session()
 
         def exit_hook():
-            logger.error("Unexpected manifest closing")
+            logger.error(f"Unexpected closing manifest {self.base_path}")
             if not self._is_closed:
                 self.close()
         # Automatically save config when program ends
@@ -438,6 +438,7 @@ class Manifest(object):
         self.current_catalog.close()
         self.seekeable.close()
         self._is_closed = True
+        logger.info(f'Closing manifest {self.base_path}')
 
     def __iter__(self):
         return ManifestIterator(self)

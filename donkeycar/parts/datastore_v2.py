@@ -284,8 +284,8 @@ class Manifest(object):
         self.session_id = self.create_new_session()
 
         def exit_hook():
-            logger.error(f"Unexpected closing manifest {self.base_path}")
             if not self._is_closed:
+                logger.error(f"Unexpected closing manifest {self.base_path}")
                 self.close()
         # Automatically save config when program ends
         atexit.register(exit_hook)

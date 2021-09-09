@@ -124,8 +124,9 @@ class TubWriter(object):
     A Donkey part, which can write records to the datastore.
     """
     def __init__(self, base_path, inputs=[], types=[], metadata=[],
-                 max_catalog_len=1000):
+                 max_catalog_len=1000, lap_timer=None):
         self.tub = Tub(base_path, inputs, types, metadata, max_catalog_len)
+        self.lap_timer = lap_timer
 
     def run(self, *args):
         assert len(self.tub.inputs) == len(args), \
@@ -138,6 +139,10 @@ class TubWriter(object):
         return self.tub.__iter__()
 
     def close(self):
+        # insert lap times into metadata of tub before closing
+        if self.lap_timer:
+            self.tub.manifest.metadata[self.tub.manifest.session_id] \
+                = dict(laptimer=self.lap_timer.to_list())
         self.tub.close()
 
     def shutdown(self):

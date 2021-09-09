@@ -183,4 +183,7 @@ class LapTimer:
             pt.add_row([i, f'{t:6.3f}', f'{l:6.3f}'])
         logger.info('\n' + str(pt))
 
-
+    def to_list(self):
+        info = [dict(lap=i, time=t, distance=l) for i, (t, l) in
+                enumerate(zip(self.lap_times, self.lap_lenghts))]
+        return info

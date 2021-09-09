@@ -195,18 +195,15 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         car.add(rec_cond, inputs=rec_inputs, outputs=['recording'])
 
         # add tub to save data
-        inputs = [CAM_IMG,
-                  'user/angle', 'user/throttle', 'pilot/angle',
+        inputs = [CAM_IMG, 'user/angle', 'user/throttle', 'pilot/angle',
                   'pilot/throttle',
                   'user/mode', 'car/speed', 'car/inst_speed', 'car/distance',
                   'car/m_in_lap', 'car/lap', 'car/accel', 'car/gyro']
         types = ['image_array', 'float', 'float', 'float', 'float',
                  'int', 'float', 'float', 'float',
                  'float', 'int', 'vector', 'vector']
-
-        # multiple tubs
         tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs,
-                               types=types)
+                               types=types, lap_timer=lap)
         car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],
                 run_condition='recording')
 

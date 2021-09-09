@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 '''
 Usage:
-    convert_to_tub_v2.py --tub=<path> --output=<path>
+    convert_to_tub_v2.py --tub=<path> --output=<path> --ts_key=<None>
 
 Note:
     This script converts the old datastore format to the new datastore format.
@@ -11,6 +11,7 @@ import json
 import os
 import traceback
 from pathlib import Path
+from datetime import datetime as dt
 
 from docopt import docopt
 from PIL import Image
@@ -20,12 +21,13 @@ from donkeycar.parts.datastore import Tub as LegacyTub
 from donkeycar.parts.tub_v2 import Tub
 
 
-def convert_to_tub_v2(paths, output_path):
+def convert_to_tub_v2(paths, output_path, time_stamp_key=None):
     """
     Convert from old tubs to new one
 
     :param paths:               legacy tub paths
     :param output_path:         new tub output path
+    :param time_stamp_key:      key for timestamp in iso format
     :return:                    None
     """
     empty_record = {'__empty__': True}
@@ -52,6 +54,10 @@ def convert_to_tub_v2(paths, output_path):
                 image_path = os.path.join(legacy_tub.path, image_path)
                 image_data = Image.open(image_path)
                 record['cam/image_array'] = image_data
+                if time_stamp_key:
+                    ts = dt.fromisoformat(record[time_stamp_key]).timestamp()
+                    record['_timestamp_ms'] = ts
+
                 # first record or they are continuous, just append
                 if not previous_index or current_index == previous_index + 1:
                     output_tub.write_record(record)
@@ -83,5 +89,6 @@ if __name__ == '__main__':
 
     input_path = args["--tub"]
     output_path = args["--output"]
+    timestamp_key = args["--ts_key"]
     paths = input_path.split(',')
-    convert_to_tub_v2(paths, output_path)
+    convert_to_tub_v2(paths, output_path, timestamp_key)

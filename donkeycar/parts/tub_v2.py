@@ -75,7 +75,10 @@ class Tub(object):
                 contents['_session_id'] = session_id
         else:
             index = None
-            contents['_timestamp_ms'] = int(round(time.time() * 1000))
+            # if timestamp already given in input dict then use it, otherwise
+            # create from current time
+            ts = record.get('_timestamp_ms') or int(round(time.time() * 1000))
+            contents['_timestamp_ms'] = ts
             contents['_index'] = self.manifest.current_index
             contents['_session_id'] = self.manifest.session_id
 

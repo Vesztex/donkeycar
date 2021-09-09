@@ -21,7 +21,6 @@ from donkeycar.parts.camera import PiCamera, FrameStreamer
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
     RCReceiver, ModeSwitch
 from donkeycar.parts.tub_v2 import TubWiper, TubWriter
-from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.file_watcher import FileWatcher
 from donkeycar.parts.keras_2 import ModelLoader
 from donkeycar.parts.transform import SimplePidController, \
@@ -65,9 +64,6 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         use_pid = True
 
     car = dk.vehicle.Vehicle()
-    clock = Timestamp()
-    car.add(clock, outputs=['timestamp'])
-
     # handle record on ai: only record if cam is on and no auto-pilot ----------
     record_on_ai = getattr(cfg, 'RECORD_DURING_AI', False)
     # reduce car and camera frequency if we record on AI driving
@@ -203,12 +199,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
                   'user/angle', 'user/throttle', 'pilot/angle',
                   'pilot/throttle',
                   'user/mode', 'car/speed', 'car/inst_speed', 'car/distance',
-                  'car/m_in_lap', 'car/lap', 'car/accel', 'car/gyro',
-                  'timestamp']
+                  'car/m_in_lap', 'car/lap', 'car/accel', 'car/gyro']
         types = ['image_array', 'float', 'float', 'float', 'float',
                  'int', 'float', 'float', 'float',
-                 'float', 'int', 'vector', 'vector',
-                 'str']
+                 'float', 'int', 'vector', 'vector']
 
         # multiple tubs
         tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs,
@@ -247,10 +241,6 @@ def calibrate(cfg):
     recording, so we print its values here, too.
     """
     donkey_car = dk.vehicle.Vehicle()
-
-    clock = Timestamp()
-    donkey_car.add(clock, outputs=['timestamp'])
-
     # create the RC receiver
     rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
     rc_throttle = RCReceiver(cfg.THROTTLE_RC_GPIO)
@@ -276,8 +266,6 @@ def calibrate(cfg):
 
 def stream(cfg):
     car = dk.vehicle.Vehicle()
-    clock = Timestamp()
-    car.add(clock, outputs=['timestamp'])
     hz = 20
     cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
                    image_d=cfg.IMAGE_DEPTH, framerate=hz)

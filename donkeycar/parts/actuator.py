@@ -835,14 +835,16 @@ class ModeSwitch:
     each continuous activation. A new mode switch requires to release of the
     input trigger.
     """
-    def __init__(self, num_modes=1):
+    def __init__(self, num_modes=1, min_loops=0):
         """
         :param int num_modes: number of modes
+        :param int min_loops: min number of active loops before state is changed
         """
         assert num_modes >= 1, "Need >=1 modes in ModeSwitch part"
         self._num_modes = num_modes
         self._current_mode = 0
-        self._active_loop = False
+        self._active_loop_count = 0
+        self._min_loops = min_loops
         logger.info(f'ModeSwitch of {num_modes} modes created')
 
     def run(self, is_active):
@@ -853,20 +855,38 @@ class ModeSwitch:
         """
         # only run if input is true and debounced
         if is_active:
-            if not self._active_loop:
+            # increase the active loop count
+            self._active_loop_count += 1
+            if self._active_loop_count >= self._min_loops:
                 # action command
                 self._current_mode += 1
                 # if we run over the end set back to mode 0
                 if self._current_mode == self._num_modes:
                     self._current_mode = 0
-                # activate the loop tracker
-                self._active_loop = True
+                # reset the loop tracker
+                self._active_loop_count = 0
                 logger.info(f"Switched to mode {self._current_mode}")
+
         else:
-            # trigger released, reset active loop
-            self._active_loop = False
+            # trigger released, reset active loop count
+            self._active_loop_count = 0
 
         return self._current_mode
+
+
+class ThrottleOffSwitch(ModeSwitch):
+    """ Use ModeSwitch when pressing negative throttle for a bit to stop the
+        car."""
+    def __init__(self, min_loops=40, throttle_val=-0.6):
+        super().__init__(num_modes=2, min_loops=min_loops)
+        self._throttle_val = throttle_val
+
+    def run(self, throttle_in):
+        trigger = throttle_in < self._throttle_val
+        stop = super().run(trigger) == 1
+        if stop:
+            logger.info("Stopping the car by negative throttle")
+        return stop
 
 
 class ArduinoFirmata:

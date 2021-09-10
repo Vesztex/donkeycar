@@ -156,7 +156,10 @@ class Vehicle:
                 # stop drive loop if loop_count exceeds max_loop_count
                 if max_loop_count and self.loop_count > max_loop_count:
                     self.on = False
-
+                # stop drive loop if a part publishes a 'user/stop' entry
+                stop = self.mem.get(['user/stop'])
+                if stop and stop[0]:
+                    self.on = False
                 this_loop_time = time.time() - start_time
                 sleep_time = loop_time - this_loop_time
                 self.run_time += this_loop_time

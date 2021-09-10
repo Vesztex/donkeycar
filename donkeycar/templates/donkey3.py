@@ -19,7 +19,7 @@ import donkeycar as dk
 import donkeycar.parts
 from donkeycar.parts.camera import PiCamera, FrameStreamer
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
-    RCReceiver, ModeSwitch
+    RCReceiver, ModeSwitch, ThrottleOffSwitch
 from donkeycar.parts.tub_v2 import TubWiper, TubWriter
 from donkeycar.parts.file_watcher import FileWatcher
 from donkeycar.parts.keras_2 import ModelLoader
@@ -56,10 +56,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     """
     if verbose:
         donkeycar.logger.setLevel(logging.DEBUG)
-
     if no_cam:
         assert model_path is None, "Can't drive with pilot but w/o camera"
-
     if model_path is not None:
         use_pid = True
 
@@ -133,7 +131,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
             car.add(imu_prep, inputs=['car/accel', 'car/gyro'],
                     outputs=['car/imu'])
             kl_inputs.append('car/imu')
-
+        # add auto pilot and model reloader ------------------------------------
         kl_outputs = ['pilot/angle', 'pilot/throttle']
         car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
         # add file watcher and model loader so model can be reloaded
@@ -144,9 +142,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
                 threaded=True)
 
         # if driving w/ ai switch between user throttle or pilot throttle by
-        # pressing channel 3 on the remote control we have 3 modes,
-        # user/steering + user/speed, pilot/steering + user/speed,
-        # pilot/steering + pilot/speed
+        # pressing channel 3 on the remote control we have 2 modes,
+        # pilot/steering + user/speed, or pilot/steering + pilot/speed
         mode_switch = ModeSwitch(num_modes=2)
         car.add(mode_switch, inputs=['user/wiper_on'], outputs=['user/mode'])
 
@@ -157,12 +154,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     else:
         # rename the usr throttle
         car.add(Renamer(), inputs=['user/throttle'], outputs=['throttle'])
-    # drive by pid w/ speed
     if use_pid:
-        # use pid either for rc control output or for ai output
-        # convert throttle to speed
+        # drive by pid: first convert throttle to speed
         car.add(SpeedRescaler(cfg), inputs=['throttle'], outputs=['speed'])
-        # add pid controller to convert throttle value into speed
+        # add pid controller to convert (user/pilot) speed into throttle
         pid = SimplePidController(p=cfg.PID_P, i=cfg.PID_I, d=cfg.PID_D)
         car.add(pid, inputs=['speed', 'car/inst_speed'],
                 outputs=['pid/throttle'])
@@ -224,6 +219,9 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
             tub_wiper = TubWiper(tub_writer.tub, num_records=2 * car_frequency)
             car.add(tub_wiper, inputs=['user/clean'])
 
+    # pressing full break for 1s will stop the car (even when wifi disconnects)
+    kill_switch = ThrottleOffSwitch(min_loops=car_frequency)
+    car.add(kill_switch, inputs=["user/throttle"], outputs=['user/stop'])
     # run the vehicle
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
 

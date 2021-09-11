@@ -73,7 +73,7 @@ class PiCamera(BaseCamera):
     def shutdown(self):
         # indicate that the thread should be stopped
         self.on = False
-        logger.inf('Stopping PiCamera')
+        logger.info('Stopping PiCamera')
         time.sleep(.5)
         self.stream.close()
         self.rawCapture.close()

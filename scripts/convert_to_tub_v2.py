@@ -55,8 +55,9 @@ def convert_to_tub_v2(paths, output_path, time_stamp_key=None):
                 image_data = Image.open(image_path)
                 record['cam/image_array'] = image_data
                 if time_stamp_key:
+                    # donkey tub timestamp is in ms rounded to full int
                     ts = dt.fromisoformat(record[time_stamp_key]).timestamp()
-                    record['_timestamp_ms'] = ts
+                    record['_timestamp_ms'] = int(round(ts * 1000))
 
                 # first record or they are continuous, just append
                 if not previous_index or current_index == previous_index + 1:

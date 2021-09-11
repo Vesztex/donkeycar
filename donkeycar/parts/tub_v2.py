@@ -97,6 +97,36 @@ class Tub(object):
     def restore_records(self, record_indexes):
         self.manifest.restore_records(record_indexes)
 
+    def write_lap_times(self, overwrite=False):
+        records = list(self)
+        session_id = None
+        lap = 0
+        time_stamp_ms = None
+        lap_times = []
+        res = {}
+        for record in records:
+            this_session_id = record.get('_session_id')
+            if this_session_id != session_id:
+                if session_id:
+                    res[session_id] = lap_times
+                    lap_times.clear()
+                session_id = this_session_id
+                time_stamp_ms = record['_timestamp_ms']
+                dist = record['car/distance']
+            this_lap = record['car/lap']
+            if this_lap != lap:
+                this_time_stamp_ms = record['_timestamp_ms']
+                lap_time = (this_time_stamp_ms - time_stamp_ms) / 1000
+                this_dist = record['car/distance']
+                lap_dist = this_dist - dist
+                lap_times.append(dict(lap=lap, time=lap_time, distance=lap_dist))
+                lap = this_lap
+                time_stamp_ms = this_time_stamp_ms
+                dist = this_dist
+        # add last session id
+        res[session_id] = lap_times
+        logger.info(f'Created lap times {res}')
+
     def close(self):
         logger.info(f'Closing tub {self.base_path}')
         self.manifest.close()

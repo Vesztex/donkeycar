@@ -4,10 +4,13 @@ import numpy as np
 from PIL import Image
 import io
 import base64
+import logging
 from socket import socket, gaierror, AF_INET, SOCK_DGRAM
 import glob
 from donkeycar.utils import rgb2gray
 from donkeycar.utils import arr_to_binary
+
+logger = logging.getLogger(__name__)
 
 
 class BaseCamera:
@@ -40,8 +43,8 @@ class PiCamera(BaseCamera):
         self.on = True
         self.image_d = image_d
 
-        print('PiCamera loaded with frame size {} and frame rate {}...'
-              ' warming camera'.format(resolution, framerate))
+        logger.info(f'PiCamera loaded with frame size {resolution} and frame '
+                    f'rate {framerate}...warming camera')
         time.sleep(1)
 
     def run(self):
@@ -70,7 +73,7 @@ class PiCamera(BaseCamera):
     def shutdown(self):
         # indicate that the thread should be stopped
         self.on = False
-        print('Stopping PiCamera')
+        logger.inf('Stopping PiCamera')
         time.sleep(.5)
         self.stream.close()
         self.rawCapture.close()
@@ -87,7 +90,7 @@ class Webcam(BaseCamera):
         pygame.init()
         pygame.camera.init()
         l = pygame.camera.list_cameras()
-        print('cameras', l)
+        logger.info('cameras', l)
         self.cam = pygame.camera.Camera(l[iCam], resolution, "RGB")
         self.resolution = resolution
         self.cam.start()
@@ -99,7 +102,7 @@ class Webcam(BaseCamera):
         self.on = True
         self.image_d = image_d
 
-        print('WebcamVideoStream loaded.. .warming camera')
+        logger.info('WebcamVideoStream loaded.. .warming camera')
 
         time.sleep(2)
 

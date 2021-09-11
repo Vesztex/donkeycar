@@ -434,6 +434,7 @@ class Manifest(object):
         # If records were received, write updated session_id dictionary into
         # the metadata, otherwise keep the session_id information unchanged
         if self._updated_session:
+            self.seekeable.update_line(3, json.dumps(self.metadata))
             self.seekeable.update_line(4, json.dumps(self.manifest_metadata))
         self.current_catalog.close()
         self.seekeable.close()

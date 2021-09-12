@@ -97,10 +97,11 @@ class Tub(object):
     def restore_records(self, record_indexes):
         self.manifest.restore_records(record_indexes)
 
-    def write_lap_times(self, overwrite=False):
+    def write_lap_times(self, overwrite=True):
         records = list(self)
         session_id = None
         lap = 0
+        dist = 0
         time_stamp_ms = None
         lap_times = []
         res = {}
@@ -125,7 +126,14 @@ class Tub(object):
                 dist = this_dist
         # add last session id
         res[session_id] = lap_times
-        logger.info(f'Created lap times {res}')
+        for sess_id, v in res:
+            meta_session_id_dict = self.manifest.metadata.get(sess_id)
+            if not meta_session_id_dict:
+                self.manifest.metadata[sess_id] = dict(laptimer=v)
+            elif 'laptimer' in meta_session_id_dict and overwrite or \
+                    'laptimer' not in meta_session_id_dict:
+                meta_session_id_dict['laptimer'] = v
+        logger.info(f'Generated lap times {res}')
 
     def close(self):
         logger.info(f'Closing tub {self.base_path}')

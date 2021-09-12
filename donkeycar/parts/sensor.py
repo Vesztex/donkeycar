@@ -148,14 +148,15 @@ class LapTimer:
                     dt = now - self.last_time
                     # only count lap if more than min_time passed
                     if dt > self.min_time:
-                        logger.info(f'Lap {self.lap_count} detected after '
-                                    f'{dt:6.3f}s')
                         self.last_time = now
-                        self.lap_count += 1
                         self.lap_times.append(dt)
                         this_lap_dist = self.distance - self.last_distance
                         self.last_distance = self.distance
                         self.lap_lenghts.append(this_lap_dist)
+                        logger.info(f'Lap {self.lap_count} of length '
+                                    f'{this_lap_dist:6.3f}m detected after '
+                                    f'{dt:6.3f}s')
+                        self.lap_count += 1
                 # reset lo counter
                 self.count_lo = 0
             # Sleep for 0.5 ms. At 5m/s car makes 2.5mm / 0.5ms. At that speed

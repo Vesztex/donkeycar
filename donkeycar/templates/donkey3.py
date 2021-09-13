@@ -9,6 +9,7 @@ Usage:
  [--fpv] [--no_tub] [--verbose] [--type=<model_type>]
     manage.py (calibrate)
     manage.py (stream)
+    manage.py (led)
 
 Options:
     -h --help        Show this screen.
@@ -270,6 +271,17 @@ def stream(cfg):
     car.start(rate_hz=hz, max_loop_count=cfg.MAX_LOOPS)
 
 
+def led(cfg):
+    import time
+    pca = PCA9685(15)
+    pca.set_pulse(8000)
+    time.sleep(2)
+    pca.set_pulse(16000)
+    time.sleep(2)
+    pca.set_pulse(4000)
+    print('done')
+
+
 if __name__ == '__main__':
     args = docopt(__doc__)
     config = dk.load_config()
@@ -287,3 +299,5 @@ if __name__ == '__main__':
         calibrate(config)
     elif args['stream']:
         stream(config)
+    elif args['led']:
+        led(config)

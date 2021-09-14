@@ -1001,22 +1001,26 @@ class CarScreen(Screen):
         event = Clock.schedule_interval(call, 0.0001)
 
     def send_pilot(self):
-        src = self.config.MODELS_PATH
+        # add trailing '/'
+        src = os.path.join(self.config.MODELS_PATH,'')
         # check if any sync buttons are pressed and update path accordingly
         buttons = ['h5', 'savedmodel', 'tflite', 'trt']
         select = [btn for btn in buttons if self.ids[f'btn_{btn}'].state
                   == 'down']
-        # build filter: for example this rsyncs all .tfilte models
-        # --include="*/" --include="*.tflite" --exclude="*"
-        filter = ['--include=*/', '--include=database.json']
+        # build filter: for example this rsyncs all .tfilte and .trt models
+        # --include=*.trt/*** --include=*.tflite --exclude=*
+        filter = ['--include=database.json']
         for ext in select:
+            if ext in ['savedmodel', 'trt']:
+                ext += '/***'
             filter.append(f'--include=*.{ext}')
         # if nothing selected, sync all
         if not select:
             filter.append('--include=*')
-        filter.append('--exclude=*')
+        else:
+            filter.append('--exclude=*')
         dest = f'{self.config.PI_USERNAME}@{self.config.PI_HOSTNAME}:' + \
-               f'{self.car_dir}'
+               f'{os.path.join(self.car_dir, "models")}'
         cmd = ['rsync', '-rv', '--progress', '--partial', *filter, src, dest]
         Logger.info('car push: ' + ' '.join(cmd))
         proc = Popen(cmd, shell=False, stdout=PIPE,

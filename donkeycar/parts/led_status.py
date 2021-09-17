@@ -1,5 +1,6 @@
 import time
 import RPi.GPIO as GPIO
+from collections import deque
 
 class LED:
     ''' 
@@ -108,6 +109,60 @@ class RGB_LED:
     def shutdown(self):
         self.toggle(False)
         GPIO.cleanup()
+
+
+class LEDStatus:
+    import PCA9685
+
+    def __init__(self, r_channel=13, g_channel=14, b_channel=15):
+        self.r_pin = PCA9685(r_channel)
+        self.g_pin = PCA9685(g_channel)
+        self.b_pin = PCA9685(b_channel)
+        self.run = False
+        # frequency, usually 60
+        self.f = self.r_pin.default_freq
+        self.speed = 4
+        self.is_pulse = True
+        self.larsen(2)
+
+    def pulse(self):
+        """ Produces pulsed or blinking continuous signal """
+        if self.is_pulse:
+            # 12-bit range, so 12-14 will give full illumination
+            r = [min(2 ** i - 1, 4095) for i in range(15)]
+            r1 = r + r[::-1]
+            while self.run:
+                for i in r1:
+                    self.g_pin.set_pulse(i)
+                    time.sleep(self.speed / self.f)
+        else:
+            while self.run:
+                self.blink(4 * self.speed, self.g_pin, 1)
+
+    def blink(self, speed, pin, num):
+        """
+        Blinks pin n x times
+        :param speed:   How fast
+        :param pin:     Which pin, r, g or b
+        :param num:     How often
+        :return:        None
+        """
+        on_time = speed / self.f
+        for _ in range(num):
+            pin.set_pulse(4095)
+            time.sleep(on_time)
+            pin.set_pulse(0)
+            time.sleep(2 * on_time)
+
+    def larsen(self, num):
+        on_time = 0.25
+        pins = deque((self.r_pin, self.g_pin, self.b_pin))
+        for _ in range(num):
+            pins[0].set_pulse(4095)
+            pins[1].set_pulse(0)
+            pins[2].set_pulse(0)
+            pins.rotate()
+            time.sleep(on_time)
 
 
 if __name__ == "__main__":

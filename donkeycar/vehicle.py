@@ -168,6 +168,7 @@ class Vehicle:
                 else:
                     self.loop_exceed += 1
                     self.excess_time -= sleep_time
+                self.loop_count += 1
                 # print a message when exceeding more than 1ms but at
                 # most all 10s:
                 if self.loop_count % (10 * rate_hz) == 0:
@@ -175,7 +176,7 @@ class Vehicle:
                     if avg_exceed_time > 1:
                         logger.warning(f'jitter violation in vehicle loop with '
                                        f'{avg_exceed_time:5.1f}ms')
-                self.loop_count += 1
+
         except KeyboardInterrupt:
             pass
         except Exception as e:

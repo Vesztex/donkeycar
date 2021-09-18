@@ -200,6 +200,7 @@ class LEDStatus:
 
     def update(self):
         # this is the queue worker
+        self.run = True
         while self.run:
             i = self.queue.get()
             # stop continuous pulsing

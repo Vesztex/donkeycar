@@ -203,7 +203,7 @@ class LEDStatus:
             # restart continuous pulsing
             self._start_continuous()
 
-    def run_threaded(self, on, speed=None, lap=None, wipe=None):
+    def run_threaded(self, on, mode=None, speed=None, lap=None, wipe=None):
         if on:
             if not self.continuous.is_alive():
                 logger.info('Starting continuous')
@@ -212,6 +212,8 @@ class LEDStatus:
             if self.continuous.is_alive():
                 logger.info('Stopping continuous')
                 self._stop_continuous()
+        if mode is not None:
+            self.is_pulse = mode < 1
 
     def shutdown(self):
         # stop the loop

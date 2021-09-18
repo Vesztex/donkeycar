@@ -275,27 +275,23 @@ def stream(cfg):
 
 
 def led(cfg):
-    from donkeycar.parts.actuator import PCA9685
-    pin = PCA9685(13)
-    pin.set_pulse(4095)
-    time.sleep(2)
-    pin.set_pulse(0)
-    return
-
     car = dk.vehicle.Vehicle()
     class OnOff:
         count = 0
         on = False
+        mode = 0
         def run(self):
-            if self.count % 30 == 0:
+            if self.count % 40 == 0:
                 self.on = not self.on
                 print(f'switched on/off to {self.on}')
+            if self.count % 20 == 0:
+                self.mode = 1 - self.mode
             self.count += 1
-            return self.on
+            return self.on, self.mode
 
-    car.add(OnOff(), outputs=['on'])
+    car.add(OnOff(), outputs=['on', 'mode'])
     led = LEDStatus()
-    car.add(led, inputs=['on'], threaded=True)
+    car.add(led, inputs=['on', 'mode'], threaded=True)
     car.start(rate_hz=10, max_loop_count=600)
 
 

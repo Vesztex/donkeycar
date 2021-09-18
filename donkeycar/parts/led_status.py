@@ -145,6 +145,8 @@ class LEDStatus:
             if self.is_pulse:
                 for i in self.pulse_pwm:
                     self.g_pin.set_pulse(i)
+                    if not self.continuous_run:
+                        return
                     time.sleep(self.speed / self.f)
             else:
                 self.blink(4 * self.speed, self.g_pin, 1)
@@ -173,6 +175,7 @@ class LEDStatus:
             pins[2].set_pulse(0)
             pins.rotate()
             time.sleep(on_time)
+        pins[0].set_pulse(0)
 
     def _start_continuous(self):
         self.continuous_run = True

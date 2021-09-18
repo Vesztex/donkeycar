@@ -14,6 +14,8 @@ Usage:
 Options:
     -h --help        Show this screen.
 """
+import time
+
 from docopt import docopt
 import logging
 import donkeycar as dk
@@ -273,8 +275,14 @@ def stream(cfg):
 
 
 def led(cfg):
-    car = dk.vehicle.Vehicle()
+    from donkeycar.parts.actuator import PCA9685
+    pin = PCA9685(13)
+    pin.set_pulse(4095)
+    time.sleep(2)
+    pin.set_pulse(0)
+    return
 
+    car = dk.vehicle.Vehicle()
     class OnOff:
         count = 0
         on = False

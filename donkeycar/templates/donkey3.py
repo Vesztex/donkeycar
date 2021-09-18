@@ -294,9 +294,9 @@ def led(cfg):
             self.count += 1
             return self.on, self.mode, self.speed
 
-    car.add(OnOff(), outputs=['on', 'mode'])
+    car.add(OnOff(), outputs=['on', 'mode', 'speed'])
     led = LEDStatus()
-    car.add(led, inputs=['on', 'mode'], threaded=True)
+    car.add(led, inputs=['on', 'mode', 'speed'], threaded=True)
     car.start(rate_hz=10, max_loop_count=600)
 
 

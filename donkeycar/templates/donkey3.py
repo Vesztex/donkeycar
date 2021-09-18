@@ -287,10 +287,10 @@ def led(cfg):
         count = 0
         on = False
         def run(self):
-            self.count += 1
             if self.count % 30 == 0:
                 self.on = not self.on
                 print(f'switched on/off to {self.on}')
+            self.count += 1
             return self.on
 
     car.add(OnOff(), outputs=['on'])

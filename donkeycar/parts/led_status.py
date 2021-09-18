@@ -146,10 +146,12 @@ class LEDStatus:
                 for i in self.pulse_pwm:
                     self.g_pin.set_pulse(i)
                     if not self.continuous_run:
+                        self.g_pin.set_pulse(0)
                         return
                     time.sleep(self.speed / self.f)
             else:
                 self.blink(4 * self.speed, self.g_pin, 1)
+        self.g_pin.set_pulse(0)
 
     def blink(self, speed, pin, num):
         """
@@ -214,7 +216,7 @@ class LEDStatus:
     def shutdown(self):
         # stop the loop
         self.run = False
-        self.continuous_run = False
+        self._stop_continuous()
         self.larsen(2)
         for pin in self.r_pin, self.g_pin, self.b_pin:
             pin.set_pulse(0)

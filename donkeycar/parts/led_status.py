@@ -180,7 +180,7 @@ class LEDStatus:
         pins[0].set_pulse(0)
 
     def full_blink(self, num):
-        on_time = 0.25
+        on_time = 0.5
         for _ in range(num):
             for pulse in (4095, 0):
                 for pin in (self.r_pin, self.g_pin, self.b_pin):
@@ -225,12 +225,14 @@ class LEDStatus:
             if new_pulse != self.is_pulse:
                 logger.info(f'Changed pulse to {new_pulse}')
             self.is_pulse = new_pulse
+        if speed is not None:
+            self.speed = speed
 
     def shutdown(self):
         # stop the loop
         self.run = False
         self._stop_continuous()
-        self.full_blink(2)
+        self.full_blink(3)
 
 
 if __name__ == "__main__":

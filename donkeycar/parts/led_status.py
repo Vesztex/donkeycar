@@ -213,11 +213,11 @@ class LEDStatus:
 
     def run_threaded(self, on, mode=None, speed=None, lap=None, wipe=None):
         if on:
-            if not self.continuous_run:
+            if not self.continuous or not self.continuous.is_alive():
                 logger.info('Starting continuous')
                 self._start_continuous()
         else:
-            if self.continuous_run:
+            if self.continuous and self.continuous.is_alive():
                 logger.info('Stopping continuous')
                 self._stop_continuous()
         if mode is not None:

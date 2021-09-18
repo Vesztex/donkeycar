@@ -120,7 +120,7 @@ class RGB_LED:
 
 
 class LEDStatus:
-    import PCA9685
+    from donkeycar.parts.actuator import PCA9685
 
     def __init__(self, r_channel=13, g_channel=14, b_channel=15):
         self.r_pin = PCA9685(r_channel)

@@ -119,6 +119,7 @@ class LapTimer:
         self.pi = pigpio.pi()
         self.last_time = time.time()
         self.lap_count = 0
+        self.last_lap_count = 0
         self.lap_times = []
         self.lap_lenghts = []
         self.distance = 0.0
@@ -170,7 +171,9 @@ class LapTimer:
         Donkey parts interface
         """
         self.distance = distance
-        return self.lap_count, distance - self.last_distance
+        lap_changed = self.lap_count != self.last_lap_count
+        self.last_lap_count = self.lap_count
+        return self.lap_count, distance - self.last_distance, lap_changed
 
     def shutdown(self):
         """

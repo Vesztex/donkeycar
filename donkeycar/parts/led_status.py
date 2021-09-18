@@ -154,15 +154,15 @@ class LEDStatus:
                 self.blink(4 * self.delay, self.g_pin, 1)
         self.g_pin.set_pulse(0)
 
-    def blink(self, speed, pin, num):
+    def blink(self, delay, pin, num):
         """
         Blinks pin n x times
-        :param speed:   How fast
+        :param delay:   How fast
         :param pin:     Which pin, r, g or b
         :param num:     How often
         :return:        None
         """
-        on_time = speed / self.f
+        on_time = delay / self.f
         for _ in range(num):
             pin.set_pulse(4095)
             time.sleep(on_time)
@@ -226,6 +226,10 @@ class LEDStatus:
             self.is_pulse = new_pulse
         if speed is not None:
             self.delay = min(self.max_speed / speed, 8)
+        if lap:
+            # 5 quick blue blinks when lap
+            t = Thread(target=self.blink, args=(3, self.b_pin, 5))
+            self.queue.put(t)
 
     def shutdown(self):
         # stop the loop

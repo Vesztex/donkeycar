@@ -290,13 +290,14 @@ def led(cfg):
                 self.mode = 1 - self.mode
             if self.count % 20 == 0:
                 self.speed = self.speed % 4 + 0.5
+            is_lap = (self.count + 1) % 100 == 0
 
             self.count += 1
-            return self.on, self.mode, self.speed
+            return self.on, self.mode, self.speed, is_lap
 
-    car.add(OnOff(), outputs=['on', 'mode', 'speed'])
+    car.add(OnOff(), outputs=['on', 'mode', 'speed', 'lap'])
     led = LEDStatus(max_speed=cfg.MAX_SPEED)
-    car.add(led, inputs=['on', 'mode', 'speed'], threaded=True)
+    car.add(led, inputs=['on', 'mode', 'speed', 'lap'], threaded=True)
     car.start(rate_hz=10, max_loop_count=600)
 
 

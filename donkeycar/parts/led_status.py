@@ -179,6 +179,14 @@ class LEDStatus:
             time.sleep(on_time)
         pins[0].set_pulse(0)
 
+    def full_blink(self, num):
+        on_time = 0.25
+        for _ in range(num):
+            for pulse in (4095, 0):
+                for pin in (self.r_pin, self.g_pin, self.b_pin):
+                    pin.set_pulse(pulse)
+                time.sleep(on_time)
+
     def _start_continuous(self):
         self.continuous_run = True
         self.continuous = Thread(target=self.pulse, daemon=True)
@@ -222,9 +230,7 @@ class LEDStatus:
         # stop the loop
         self.run = False
         self._stop_continuous()
-        self.larsen(2)
-        for pin in self.r_pin, self.g_pin, self.b_pin:
-            pin.set_pulse(0)
+        self.full_blink(2)
 
 
 if __name__ == "__main__":

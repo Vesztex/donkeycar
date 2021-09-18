@@ -281,10 +281,10 @@ def led(cfg):
         on = False
         mode = 0
         def run(self):
-            if self.count % 40 == 0:
+            if self.count % 80 == 0:
                 self.on = not self.on
                 print(f'switched on/off to {self.on}')
-            if self.count % 20 == 0:
+            if self.count % 40 == 0:
                 self.mode = 1 - self.mode
             self.count += 1
             return self.on, self.mode

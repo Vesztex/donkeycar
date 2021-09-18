@@ -227,6 +227,7 @@ class LEDStatus:
         if speed is not None:
             self.delay = min(self.max_speed / speed, 8)
         if lap:
+            logger.info('Lap got updated')
             # 5 quick blue blinks when lap
             t = Thread(target=self.blink, args=(3, self.b_pin, 5))
             self.queue.put(t)

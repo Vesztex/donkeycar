@@ -167,7 +167,7 @@ class LEDStatus:
     def larsen(self, num):
         on_time = 0.25
         pins = deque((self.r_pin, self.g_pin, self.b_pin))
-        for _ in range(num):
+        for _ in range(3 * num):
             pins[0].set_pulse(4095)
             pins[1].set_pulse(0)
             pins[2].set_pulse(0)
@@ -200,9 +200,11 @@ class LEDStatus:
     def run_threaded(self, on, speed=None, lap=None, wipe=None):
         if on:
             if not self.continuous.is_alive():
+                logger.info('Starting continuous')
                 self._start_continuous()
         else:
             if self.continuous.is_alive:
+                logger.info('Stopping continuous')
                 self._stop_continuous()
 
     def shutdown(self):

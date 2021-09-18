@@ -213,7 +213,10 @@ class LEDStatus:
                 logger.info('Stopping continuous')
                 self._stop_continuous()
         if mode is not None:
-            self.is_pulse = mode < 1
+            new_pulse = mode < 1
+            if new_pulse != self.is_pulse:
+                logger.info(f'Changed pulse to {new_pulse}')
+            self.is_pulse = new_pulse
 
     def shutdown(self):
         # stop the loop

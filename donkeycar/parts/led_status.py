@@ -2,6 +2,7 @@ import time
 from threading import Thread
 
 import RPi.GPIO as GPIO
+from donkeycar.parts.actuator import PCA9685
 import logging
 from collections import deque
 import queue
@@ -120,8 +121,6 @@ class RGB_LED:
 
 
 class LEDStatus:
-    from donkeycar.parts.actuator import PCA9685
-
     def __init__(self, r_channel=13, g_channel=14, b_channel=15):
         self.r_pin = PCA9685(r_channel)
         self.g_pin = PCA9685(g_channel)

@@ -1,6 +1,14 @@
 import time
+from threading import Thread
+
 import RPi.GPIO as GPIO
+import logging
 from collections import deque
+import queue
+
+
+logger = logging.getLogger(__name__)
+
 
 class LED:
     ''' 
@@ -123,20 +131,23 @@ class LEDStatus:
         self.f = self.r_pin.default_freq
         self.speed = 4
         self.is_pulse = True
+        self.queue = queue.Queue()
+        # 12-bit range, so 12-14 will give full illumination
+        self.pulse_pwm = [min(2 ** i - 1, 4095) for i in range(15)]
+        self.pulse_pwm += list(reversed(self.pulse_pwm))
+        self.continuous = None
+        self.continuous_run = True
         self.larsen(2)
+        logger.info("Created LEDStatus part")
 
     def pulse(self):
         """ Produces pulsed or blinking continuous signal """
-        if self.is_pulse:
-            # 12-bit range, so 12-14 will give full illumination
-            r = [min(2 ** i - 1, 4095) for i in range(15)]
-            r1 = r + r[::-1]
-            while self.run:
-                for i in r1:
+        while self.continuous_run:
+            if self.is_pulse:
+                for i in self.pulse_pwm:
                     self.g_pin.set_pulse(i)
                     time.sleep(self.speed / self.f)
-        else:
-            while self.run:
+            else:
                 self.blink(4 * self.speed, self.g_pin, 1)
 
     def blink(self, speed, pin, num):
@@ -163,6 +174,43 @@ class LEDStatus:
             pins[2].set_pulse(0)
             pins.rotate()
             time.sleep(on_time)
+
+    def _start_continuous(self):
+        self.continuous_run = True
+        self.continuous = Thread(target=self.pulse, daemon=True)
+        self.continuous.start()
+
+    def _stop_continuous(self):
+        self.continuous_run = False
+        self.continuous.join()
+
+    def update(self):
+        # start the continuous thread to drive pulsing/blinking signal
+        self._start_continuous()
+        # this is the queue worker
+        while self.run:
+            i = self.queue.get()
+            # stop continuous pulsing
+            self._stop_continuous()
+            # show incoming signals
+            i.start()
+            i.join()
+            # restart continuous pulsing
+            self._start_continuous()
+
+    def run_threaded(self, on, speed=None, lap=None, wipe=None):
+        if on:
+            if not self.continuous.is_alive():
+                self._start_continuous()
+        else:
+            if self.continuous.is_alive:
+                self._stop_continuous()
+
+    def shutdown(self):
+        # stop the loop
+        self.run = False
+        self.continuous_run = False
+        self.larsen(2)
 
 
 if __name__ == "__main__":

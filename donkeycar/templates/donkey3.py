@@ -30,6 +30,7 @@ from donkeycar.parts.transform import SimplePidController, \
 from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
 from donkeycar.parts.imu import Mpu6050Ada
+from donkeycar.parts.led_status import LEDStatus
 from donkeycar.pipeline.augmentations import ImageAugmentation
 
 logger = logging.getLogger(__name__)
@@ -272,14 +273,22 @@ def stream(cfg):
 
 
 def led(cfg):
-    import time
-    pca = PCA9685(15)
-    pca.set_pulse(8000)
-    time.sleep(2)
-    pca.set_pulse(16000)
-    time.sleep(2)
-    pca.set_pulse(4000)
-    print('done')
+    car = dk.vehicle.Vehicle()
+
+    class OnOff:
+        count = 0
+        on = False
+        def run(self):
+            self.count += 1
+            if self.count % 30 == 0:
+                self.on = not self.on
+                print(f'switched on/off to {self.on}')
+            return self.on
+
+    car.add(OnOff(), outputs=['on'])
+    led = LEDStatus()
+    car.add(led, inputs=['on'], threaded=True)
+    car.start(rate_hz=10, max_loop_count=600)
 
 
 if __name__ == '__main__':

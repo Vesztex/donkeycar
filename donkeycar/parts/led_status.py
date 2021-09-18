@@ -136,7 +136,7 @@ class LEDStatus:
         self.pulse_pwm = [min(2 ** i - 1, 4095) for i in range(15)]
         self.pulse_pwm += list(reversed(self.pulse_pwm))
         self.continuous = None
-        self.continuous_run = True
+        self.continuous_run = False
         self.larsen(2)
         logger.info("Created LEDStatus part")
 
@@ -212,11 +212,11 @@ class LEDStatus:
 
     def run_threaded(self, on, mode=None, speed=None, lap=None, wipe=None):
         if on:
-            if not self.continuous.is_alive():
+            if not self.continuous_run:
                 logger.info('Starting continuous')
                 self._start_continuous()
         else:
-            if self.continuous.is_alive():
+            if self.continuous_run:
                 logger.info('Stopping continuous')
                 self._stop_continuous()
         if mode is not None:

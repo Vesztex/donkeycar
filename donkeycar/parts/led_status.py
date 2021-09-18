@@ -121,14 +121,15 @@ class RGB_LED:
 
 
 class LEDStatus:
-    def __init__(self, r_channel=13, g_channel=14, b_channel=15):
+    def __init__(self, r_channel=13, g_channel=14, b_channel=15, max_speed=4.4):
         self.r_pin = PCA9685(r_channel)
         self.g_pin = PCA9685(g_channel)
         self.b_pin = PCA9685(b_channel)
         self.run = False
         # frequency, usually 60
         self.f = self.r_pin.default_freq
-        self.speed = 4
+        self.max_speed = max_speed
+        self.delay = 4
         self.is_pulse = True
         self.queue = queue.Queue()
         # 12-bit range, so 12-14 will give full illumination
@@ -148,9 +149,9 @@ class LEDStatus:
                     if not self.continuous_run:
                         self.g_pin.set_pulse(0)
                         return
-                    time.sleep(self.speed / self.f)
+                    time.sleep(self.delay / self.f)
             else:
-                self.blink(4 * self.speed, self.g_pin, 1)
+                self.blink(4 * self.delay, self.g_pin, 1)
         self.g_pin.set_pulse(0)
 
     def blink(self, speed, pin, num):
@@ -198,8 +199,6 @@ class LEDStatus:
         #self.continuous.join()
 
     def update(self):
-        # start the continuous thread to drive pulsing/blinking signal
-        self._start_continuous()
         # this is the queue worker
         while self.run:
             i = self.queue.get()
@@ -226,7 +225,7 @@ class LEDStatus:
                 logger.info(f'Changed pulse to {new_pulse}')
             self.is_pulse = new_pulse
         if speed is not None:
-            self.speed = speed
+            self.delay = min(self.max_speed / speed, 8)
 
     def shutdown(self):
         # stop the loop

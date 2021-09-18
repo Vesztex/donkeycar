@@ -207,7 +207,7 @@ class LEDStatus:
                 logger.info('Starting continuous')
                 self._start_continuous()
         else:
-            if self.continuous.is_alive:
+            if self.continuous.is_alive():
                 logger.info('Stopping continuous')
                 self._stop_continuous()
 

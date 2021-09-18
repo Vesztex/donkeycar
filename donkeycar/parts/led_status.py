@@ -184,7 +184,8 @@ class LEDStatus:
 
     def _stop_continuous(self):
         self.continuous_run = False
-        self.continuous.join()
+        self.g_pin.set_pulse(0)
+        #self.continuous.join()
 
     def update(self):
         # start the continuous thread to drive pulsing/blinking signal
@@ -215,6 +216,8 @@ class LEDStatus:
         self.run = False
         self.continuous_run = False
         self.larsen(2)
+        for pin in self.r_pin, self.g_pin, self.b_pin:
+            pin.set_pulse(0)
 
 
 if __name__ == "__main__":

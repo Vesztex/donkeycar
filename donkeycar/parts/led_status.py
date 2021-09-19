@@ -137,22 +137,24 @@ class LEDStatus:
         self.pulse_pwm += list(reversed(self.pulse_pwm))
         self.continuous = None
         self.continuous_run = False
+        self.block = False
         self.larsen(2)
         logger.info("Created LEDStatus part")
 
     def pulse(self):
         """ Produces pulsed or blinking continuous signal """
-        while self.continuous_run:
-            if self.is_pulse:
-                for i in self.pulse_pwm:
-                    self.g_pin.set_pulse(i)
-                    if not self.continuous_run:
-                        self.g_pin.set_pulse(0)
-                        return
-                    time.sleep(self.delay / self.f)
+        while True:
+            if self.continuous_run:
+                if self.is_pulse:
+                    for i in self.pulse_pwm:
+                        if self.continuous_run:
+                            self.g_pin.set_pulse(i)
+                            time.sleep(self.delay / self.f)
+                else:
+                    self.blink(4 * self.delay, self.g_pin, 1)
             else:
-                self.blink(4 * self.delay, self.g_pin, 1)
-        self.g_pin.set_pulse(0)
+                self.g_pin.set_pulse(0)
+                time.sleep(0.1)
 
     def blink(self, delay, pin, num):
         """
@@ -208,21 +210,20 @@ class LEDStatus:
         while self.run:
             i = self.queue.get()
             # stop continuous pulsing
-            self._stop_continuous()
+            self.continuous_run = False
+            self.block = True
             # show incoming signals
             i.start()
             i.join()
             # restart continuous pulsing
-            self._start_continuous()
+            self.continuous_run = True
+            self.block = False
             logger.info(f"Ran job, current threads {active_count()}")
 
     def run_threaded(self, on, mode=None, speed=None, lap=None, wipe=None):
-        if on:
-            if not self.continuous or not self.continuous.is_alive():
-                self._start_continuous()
-        else:
-            if self.continuous and self.continuous.is_alive():
-                self._stop_continuous()
+        if on != self.continuous_run and not self.block:
+            # only switch on/off continuous, if not blocked
+            self.continuous_run = on
         if mode is not None:
             new_pulse = mode < 1
             if new_pulse != self.is_pulse:

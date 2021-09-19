@@ -165,6 +165,7 @@ class LEDStatus:
         :param delay:   How fast
         :param pin:     Which pin, r, g or b
         :param num:     How often
+        :param short:   If short on long off or vice versa
         :return:        None
         """
         on_time = delay / self.f

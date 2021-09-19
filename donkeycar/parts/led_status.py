@@ -1,5 +1,5 @@
 import time
-from threading import Thread
+from threading import Thread, active_count
 
 import RPi.GPIO as GPIO
 from donkeycar.parts.actuator import PCA9685
@@ -189,14 +189,18 @@ class LEDStatus:
                 time.sleep(on_time)
 
     def _start_continuous(self):
+        logger.info('Starting continuous...')
         self.continuous_run = True
         self.continuous = Thread(target=self.pulse, daemon=True)
         self.continuous.start()
+        logger.info('... started')
 
     def _stop_continuous(self):
+        logger.info('Stopping continuous...')
         self.continuous_run = False
         self.g_pin.set_pulse(0)
         self.continuous.join()
+        logger.info('... stopped')
 
     def update(self):
         # this is the queue worker
@@ -210,15 +214,14 @@ class LEDStatus:
             i.join()
             # restart continuous pulsing
             self._start_continuous()
+            logger.info(f"Ran job, current threads {active_count()}")
 
     def run_threaded(self, on, mode=None, speed=None, lap=None, wipe=None):
         if on:
             if not self.continuous or not self.continuous.is_alive():
-                logger.info('Starting continuous')
                 self._start_continuous()
         else:
             if self.continuous and self.continuous.is_alive():
-                logger.info('Stopping continuous')
                 self._stop_continuous()
         if mode is not None:
             new_pulse = mode < 1

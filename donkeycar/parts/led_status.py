@@ -201,7 +201,7 @@ class LEDStatus:
 
     def _stop_continuous(self):
         logger.info('Stopping continuous...')
-        self.continuous_run = False
+        self.continuous_loop = False
         self.continuous.join()
         logger.info('... stopped')
 

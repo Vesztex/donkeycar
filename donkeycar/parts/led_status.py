@@ -159,7 +159,7 @@ class LEDStatus:
         # end of thread switch off light
         self.g_pin.set_pulse(0)
 
-    def blink(self, delay, pin, num):
+    def blink(self, delay, pin, num, short=True):
         """
         Blinks pin n x times
         :param delay:   How fast
@@ -168,11 +168,14 @@ class LEDStatus:
         :return:        None
         """
         on_time = delay / self.f
+        off_time = 2 * on_time
+        if not short:
+            on_time, off_time = off_time, on_time
         for _ in range(num):
             pin.set_pulse(4095)
             time.sleep(on_time)
             pin.set_pulse(0)
-            time.sleep(2 * on_time)
+            time.sleep(off_time)
 
     def larsen(self, num):
         on_time = 0.25
@@ -243,7 +246,7 @@ class LEDStatus:
         if wipe:
             logger.info('Wiper on')
             # 1 blue blink when wiper
-            t = Thread(target=self.blink, args=(15, self.b_pin, 1))
+            t = Thread(target=self.blink, args=(15, self.b_pin, 1, False))
             self.queue.put(t)
 
     def shutdown(self):

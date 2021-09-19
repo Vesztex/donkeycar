@@ -243,7 +243,7 @@ class LEDStatus:
         if wipe:
             logger.info('Wiper on')
             # 1 blue blink when wiper
-            t = Thread(target=self.blink, args=(15, self.r_pin, 1))
+            t = Thread(target=self.blink, args=(15, self.b_pin, 1))
             self.queue.put(t)
 
     def shutdown(self):

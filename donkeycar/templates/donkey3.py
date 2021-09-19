@@ -284,12 +284,11 @@ def led(cfg):
         def run(self):
             if self.count in (0, 100, 130, 220, 250, 340, 370, 460, 500):
                 self.on = not self.on
-                print(f'switched on/off to {self.on}')
             # if self.count % 80 == 0:
             #     self.mode = 1 - self.mode
             if self.count % 30 == 0:
                 self.speed = self.speed % 4 + 0.5
-            is_lap = (self.count + 1) % 150 == 0
+            is_lap = (self.count + 1) % 80 == 0 and self.on
             is_wipe = (self.count + 1) % 120 == 0
             self.count += 1
             return self.on, self.mode, self.speed, is_lap, is_wipe

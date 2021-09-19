@@ -285,7 +285,6 @@ def led(cfg):
             if self.count in (0, 100, 120, 220, 240, 340, 360, 460, 480):
                 self.on = not self.on
                 print(f'switched on/off to {self.on}')
-            self.on = True
             if self.count % 80 == 0:
                 self.mode = 1 - self.mode
             if self.count % 30 == 0:

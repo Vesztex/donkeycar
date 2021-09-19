@@ -196,7 +196,7 @@ class LEDStatus:
     def _stop_continuous(self):
         self.continuous_run = False
         self.g_pin.set_pulse(0)
-        #self.continuous.join()
+        self.continuous.join()
 
     def update(self):
         # this is the queue worker

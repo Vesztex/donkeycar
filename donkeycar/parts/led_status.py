@@ -192,7 +192,6 @@ class LEDStatus:
 
     def _start_continuous(self):
         logger.info('Starting continuous...')
-        self.continuous_run = True
         self.continuous = Thread(target=self.pulse, daemon=True)
         self.continuous.start()
         logger.info('... started')
@@ -200,11 +199,13 @@ class LEDStatus:
     def _stop_continuous(self):
         logger.info('Stopping continuous...')
         self.continuous_run = False
-        self.g_pin.set_pulse(0)
-        self.continuous.join()
+        #self.g_pin.set_pulse(0)
+        #self.continuous.join()
         logger.info('... stopped')
 
     def update(self):
+        # start the continuous thread
+        self._start_continuous()
         # this is the queue worker
         self.run = True
         while self.run:
@@ -224,6 +225,7 @@ class LEDStatus:
         if on != self.continuous_run and not self.block:
             # only switch on/off continuous, if not blocked
             self.continuous_run = on
+            logger.info(f'Switched continuous to {on}')
         if mode is not None:
             new_pulse = mode < 1
             if new_pulse != self.is_pulse:

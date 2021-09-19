@@ -286,8 +286,8 @@ def led(cfg):
             #     self.on = not self.on
             #     print(f'switched on/off to {self.on}')
             self.on = True
-            # if self.count % 80 == 0:
-            #     self.mode = 1 - self.mode
+            if self.count % 80 == 0:
+                self.mode = 1 - self.mode
             # if self.count % 20 == 0:
             #     self.speed = self.speed % 4 + 0.5
             is_lap = (self.count + 1) % 100 == 0

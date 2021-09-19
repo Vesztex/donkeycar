@@ -237,8 +237,13 @@ class LEDStatus:
             self.delay = min(self.max_speed / speed, 8)
         if lap:
             logger.info('Lap got updated')
-            # 5 quick blue blinks when lap
-            t = Thread(target=self.blink, args=(3, self.b_pin, 5))
+            # 3 red blinks when lap
+            t = Thread(target=self.blink, args=(6, self.r_pin, 3))
+            self.queue.put(t)
+        if wipe:
+            logger.info('Wiper on')
+            # 1 blue blink when wiper
+            t = Thread(target=self.blink, args=(15, self.r_pin, 1))
             self.queue.put(t)
 
     def shutdown(self):

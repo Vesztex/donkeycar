@@ -282,22 +282,22 @@ def led(cfg):
         mode = 0
         speed = 2.0
         def run(self):
-            if self.count in (0, 100, 120, 220, 240, 340, 360, 460, 480):
+            if self.count in (0, 100, 130, 220, 250, 340, 370, 460, 500):
                 self.on = not self.on
                 print(f'switched on/off to {self.on}')
-            if self.count % 80 == 0:
-                self.mode = 1 - self.mode
+            # if self.count % 80 == 0:
+            #     self.mode = 1 - self.mode
             if self.count % 30 == 0:
                 self.speed = self.speed % 4 + 0.5
-            is_lap = (self.count + 1) % 100 == 0
-
+            is_lap = (self.count + 1) % 150 == 0
+            is_wipe = (self.count + 1) % 120 == 0
             self.count += 1
-            return self.on, self.mode, self.speed, is_lap
+            return self.on, self.mode, self.speed, is_lap, is_wipe
 
-    car.add(OnOff(), outputs=['on', 'mode', 'speed', 'lap'])
+    car.add(OnOff(), outputs=['on', 'mode', 'speed', 'lap', 'wipe'])
     led = LEDStatus(max_speed=cfg.MAX_SPEED)
-    car.add(led, inputs=['on', 'mode', 'speed', 'lap'], threaded=True)
-    car.start(rate_hz=10, max_loop_count=600)
+    car.add(led, inputs=['on', 'mode', 'speed', 'lap', 'wipe'], threaded=True)
+    car.start(rate_hz=10, max_loop_count=620)
 
 
 if __name__ == '__main__':

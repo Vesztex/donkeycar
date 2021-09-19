@@ -137,13 +137,14 @@ class LEDStatus:
         self.pulse_pwm += list(reversed(self.pulse_pwm))
         self.continuous = None
         self.continuous_run = False
+        self.continuous_loop = True
         self.block = False
         self.larsen(2)
         logger.info("Created LEDStatus part")
 
     def pulse(self):
         """ Produces pulsed or blinking continuous signal """
-        while True:
+        while self.continuous_loop:
             if self.continuous_run:
                 if self.is_pulse:
                     for i in self.pulse_pwm:
@@ -155,6 +156,8 @@ class LEDStatus:
             else:
                 self.g_pin.set_pulse(0)
                 time.sleep(0.1)
+        # end of thread switch off light
+        self.g_pin.set_pulse(0)
 
     def blink(self, delay, pin, num):
         """
@@ -199,8 +202,7 @@ class LEDStatus:
     def _stop_continuous(self):
         logger.info('Stopping continuous...')
         self.continuous_run = False
-        #self.g_pin.set_pulse(0)
-        #self.continuous.join()
+        self.continuous.join()
         logger.info('... stopped')
 
     def update(self):

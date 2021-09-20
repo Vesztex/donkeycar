@@ -90,7 +90,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
 
     # add lap timer ------------------------------------------------------------
     lap = LapTimer(gpio=cfg.LAP_TIMER_GPIO, trigger=4)
-    car.add(lap, inputs=['car/distance'], outputs=['car/lap', 'car/m_in_lap'],
+    car.add(lap, inputs=['car/distance'],
+            outputs=['car/lap', 'car/m_in_lap', 'car/lap_updated'],
             threaded=True)
 
     # add mpu ------------------------------------------------------------------
@@ -210,7 +211,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         # if we don't use channel 3 for switching between ai & manual
         if model_path is None:
             tub_wiper = TubWiper(tub_writer.tub, num_records=car_frequency)
-            car.add(tub_wiper, inputs=['user/wiper_on'])
+            car.add(tub_wiper, inputs=['user/wiper_on'],
+                    outputs=['user/wiper_triggered'])
         elif record_on_ai:
             class Combiner:
                 def run(self, signal, mode):
@@ -226,6 +228,9 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     # pressing full break for 1s will stop the car (even when wifi disconnects)
     kill_switch = ThrottleOffSwitch(min_loops=car_frequency)
     car.add(kill_switch, inputs=["user/throttle"], outputs=['user/stop'])
+    led = LEDStatus(max_speed=cfg.MAX_SPEED)
+    car.add(led, inputs=['user/mode', 'car/speed', 'car/lap_updated',
+                         'user/wiper_triggered'])
     # run the vehicle
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
 

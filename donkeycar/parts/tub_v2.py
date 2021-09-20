@@ -1,5 +1,7 @@
 import os
 import time
+from operator import itemgetter
+
 import numpy as np
 from PIL import Image
 import logging
@@ -20,13 +22,11 @@ class Tub(object):
                  max_catalog_len=1000, read_only=False):
         self.base_path = base_path
         self.images_base_path = os.path.join(self.base_path, Tub.images())
-        self.inputs = inputs
-        self.types = types
         self.metadata = metadata
         self.manifest = Manifest(base_path, inputs=inputs, types=types,
                                  metadata=metadata, max_len=max_catalog_len,
                                  read_only=read_only)
-        self.input_types = dict(zip(self.inputs, self.types))
+        self.input_types = dict(zip(inputs, types))
         # Create images folder if necessary
         if not os.path.exists(self.images_base_path):
             os.makedirs(self.images_base_path, exist_ok=True)
@@ -98,14 +98,14 @@ class Tub(object):
         self.manifest.restore_records(record_indexes)
 
     def write_lap_times(self, overwrite=True):
-        records = list(self)
         session_id = None
         lap = 0
         dist = 0
         time_stamp_ms = None
         lap_times = []
         res = {}
-        for record in records:
+        # self is iterable
+        for record in self:
             this_session_id = record.get('_session_id')
             if this_session_id != session_id:
                 if session_id:
@@ -134,6 +134,32 @@ class Tub(object):
                     'laptimer' not in meta_session_id_dict:
                 meta_session_id_dict['laptimer'] = v
         logger.info(f'Generated lap times {res}')
+
+    def calculate_lap_performance(self, bins=[0.1, 0.25, 0.45, 0.7, 1.0]):
+        """
+        Creates a dictionary of (session_id, lap) keys and int values
+        where 0 is the fastest loop and num_bins-1 is the slowest.
+        :param num_bins:    number of lap time bins
+        :return:            dictionar of type ((session_id, lap, bin)
+        """
+        sessions \
+            = self.manifest.manifest_metadata.get['sessions']['all_full_ids']
+        session_lap_bin = {}
+        for session_id in sessions:
+            session_dict = self.manifest.metadata.get(session_id)
+            assert session_dict, f"Missing metadata for session_id {session_id}"
+            lap_timer = session_dict.get('laptimer')
+            assert lap_timer, f"Missing laptimer in session_id {session_id} " \
+                              f"metadata"
+            # lap_timer is a list of dictionaries, sort here by time
+            laps_sorted = sorted(lap_timer, key=itemgetter('time'))
+            count = 0
+            for i, lap_i in enumerate(laps_sorted):
+                rel_i = i / len(laps_sorted)
+                if rel_i > bins[count]:
+                    count += 1
+                session_lap_bin[(session_id, lap_i['lap'])] = bins[count]
+        return session_lap_bin
 
     def close(self):
         logger.info(f'Closing tub {self.base_path}')
@@ -167,9 +193,10 @@ class TubWriter(object):
         self.lap_timer = lap_timer
 
     def run(self, *args):
-        assert len(self.tub.inputs) == len(args), \
-            f'Expected {len(self.tub.inputs)} inputs but received {len(args)}'
-        record = dict(zip(self.tub.inputs, args))
+        assert len(self.tub.manifest.inputs) == len(args), \
+            f'Expected {len(self.tub.manifest.inputs)} inputs but received' \
+            f' {len(args)}'
+        record = dict(zip(self.tub.manifest.inputs, args))
         self.tub.write_record(record)
         return self.tub.manifest.current_index
 
@@ -203,26 +230,23 @@ class TubWiper:
         self._tub = tub
         self._num_records = num_records
         self._active_loop = False
-        self._is_triggered = False
 
     def run(self, is_delete):
         """
         Method in the vehicle loop. Delete records when trigger switches from
         False to True only.
-        :param is_delete: if deletion has been triggered by the caller
+        :param is_delete:   if deletion has been triggered by the caller
+        :return:            true if
         """
         # only run if input is true and debounced
-        if is_delete:
-            if not self._active_loop:
-                # action command
-                self._tub.delete_last_n_records(self._num_records)
-                # increase the loop counter
-                self._active_loop = True
-                self._is_triggered = True
-            else:
-                self._is_triggered = False
+        is_triggered = False
+        if is_delete and not self._active_loop:
+            # action command
+            self._tub.delete_last_n_records(self._num_records)
+            # increase the loop counter
+            self._active_loop = True
+            is_triggered = True
         else:
             # trigger released, reset active loop status
             self._active_loop = False
-            self._is_triggered = False
-        return self._is_triggered
+        return is_triggered

@@ -136,7 +136,7 @@ class LEDStatus:
         self.pulse_pwm = [min(2 ** i - 1, 4095) for i in range(15)]
         self.pulse_pwm += list(reversed(self.pulse_pwm))
         self.continuous = None
-        self.continuous_run = False
+        self.continuous_run = True
         self.continuous_loop = True
         self.block = False
         self.larsen(2)
@@ -198,16 +198,16 @@ class LEDStatus:
                 time.sleep(on_time)
 
     def _start_continuous(self):
-        logger.info('Starting continuous...')
+        logger.debug('Starting continuous...')
         self.continuous = Thread(target=self.pulse, daemon=True)
         self.continuous.start()
-        logger.info('... started')
+        logger.debug('... started')
 
     def _stop_continuous(self):
-        logger.info('Stopping continuous...')
+        logger.debug('Stopping continuous...')
         self.continuous_loop = False
         self.continuous.join()
-        logger.info('... stopped')
+        logger.debug('... stopped')
 
     def update(self):
         # start the continuous thread
@@ -225,27 +225,27 @@ class LEDStatus:
             # restart continuous pulsing
             self.continuous_run = True
             self.block = False
-            logger.info(f"Ran job, current threads {active_count()}")
+            logger.debug(f"Ran job, current threads {active_count()}")
 
-    def run_threaded(self, on, mode=None, speed=None, lap=None, wipe=None):
-        if on != self.continuous_run and not self.block:
-            # only switch on/off continuous, if not blocked
-            self.continuous_run = on
-            logger.info(f'Switched continuous to {on}')
+    def run_threaded(self, mode=None, speed=None, lap=False, wipe=False):
+        # if on != self.continuous_run and not self.block:
+        #     # only switch on/off continuous, if not blocked
+        #     self.continuous_run = on
+        #     logger.debug(f'Switched continuous to {on}')
         if mode is not None:
             new_pulse = mode < 1
             if new_pulse != self.is_pulse:
-                logger.info(f'Changed pulse to {new_pulse}')
+                logger.debug(f'Changed pulse to {new_pulse}')
             self.is_pulse = new_pulse
         if speed is not None:
             self.delay = min(self.max_speed / speed, 8)
         if lap:
-            logger.info('Lap got updated')
+            logger.debug('Lap got updated')
             # 3 red blinks when lap
             t = Thread(target=self.blink, args=(6, self.r_pin, 3))
             self.queue.put(t)
         if wipe:
-            logger.info('Wiper on')
+            logger.debug('Wiper on')
             # 1 blue blink when wiper
             t = Thread(target=self.blink, args=(15, self.b_pin, 1, False))
             self.queue.put(t)

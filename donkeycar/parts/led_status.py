@@ -159,7 +159,7 @@ class LEDStatus:
     def _set_brightness(self, bright):
         """ brightness scale between 0 and 1"""
         for i, pin in enumerate(self.rgb_pins):
-            self.pwm[i] = max(min(bright * self.pwm[i], 4095), 1)
+            self.pwm[i] = min(bright * self.pwm[i], 4095)
             pin.set_pulse(self.pwm[i])
 
     def pulse(self):

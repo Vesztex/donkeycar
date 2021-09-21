@@ -173,7 +173,7 @@ class LEDStatus:
         if not short:
             on_time, off_time = off_time, on_time
         if not isinstance(pins, tuple):
-            pin = (pins,)
+            pins = (pins,)
         for _ in range(num):
             for pin in pins:
                 pin.set_pulse(4095)

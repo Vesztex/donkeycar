@@ -120,21 +120,31 @@ class RGB_LED:
         GPIO.cleanup()
 
 
+# Colors
+RED = (4095, 0, 0)
+GREEN = (0, 4095, 0)
+BLUE = (0, 0, 4095)
+YELLOW = (4095, 1024, 0)
+PURPLE = (1024, 0, 4095)
+WHITE = (4095, 1048, 4095)
+OFF = (0, 0, 0)
+
+
 class LEDStatus:
     def __init__(self, r_channel=13, g_channel=14, b_channel=15, max_speed=4.4):
-        self.r_pin = PCA9685(r_channel)
-        self.g_pin = PCA9685(g_channel)
-        self.b_pin = PCA9685(b_channel)
+        self.rgb_pins \
+            = (PCA9685(r_channel), PCA9685(g_channel), PCA9685(b_channel))
+        self.pwm = [None, None, None]
         self.run = False
         # frequency, usually 60
-        self.f = self.r_pin.default_freq
+        self.f = self.rgb_pins[0].default_freq
         self.max_speed = max_speed
         self.delay = 4
         self.is_pulse = True
         self.queue = queue.Queue()
         # 12-bit range, so 12-14 will give full illumination
-        self.pulse_pwm = [min(2 ** i - 1, 4095) for i in range(15)]
-        self.pulse_pwm += list(reversed(self.pulse_pwm))
+        self.pulse_scale = [min(2 ** i - 1, 4095) / 4095 for i in range(15)]
+        self.pulse_scale += list(reversed(self.pulse_scale))
         self.continuous = None
         self.continuous_run = True
         self.continuous_loop = True
@@ -142,28 +152,40 @@ class LEDStatus:
         self.larsen(2)
         logger.info("Created LEDStatus part")
 
+    def _set_color(self, color):
+        for i, (c, pin) in enumerate(zip(color, self.rgb_pins)):
+            pin.set_pulse(c)
+            self.pwm[i] = c
+
+    def _set_brightness(self, bright):
+        """ brightness scale between 0 and 1"""
+        for i, pin in enumerate(self.rgb_pins):
+            self.pwm[i] *= bright
+            pin.set_pulse(self.pwm[i])
+
     def pulse(self):
         """ Produces pulsed or blinking continuous signal """
         while self.continuous_loop:
+            self._set_color(GREEN)
             if self.continuous_run:
                 if self.is_pulse:
-                    for i in self.pulse_pwm:
+                    for s in self.pulse_scale:
                         if self.continuous_run:
-                            self.g_pin.set_pulse(i)
+                            self._set_brightness(s)
                             time.sleep(self.delay / self.f)
                 else:
-                    self.blink(4 * self.delay, self.g_pin, 1)
+                    self.blink(4 * self.delay, GREEN, 1)
             else:
-                self.g_pin.set_pulse(0)
+                self._set_color(OFF)
                 time.sleep(0.1)
         # end of thread switch off light
-        self.g_pin.set_pulse(0)
+        self._set_color(OFF)
 
-    def blink(self, delay, pins, num, short=True):
+    def blink(self, delay, color, num, short=True):
         """
         Blinks pin n x times
         :param delay:   How fast
-        :param pins:    Which pins, r, g or b
+        :param color:   rgb tuple in [0, 4095]
         :param num:     How often
         :param short:   If short on long off or vice versa
         :return:        None
@@ -172,33 +194,26 @@ class LEDStatus:
         off_time = 2 * on_time
         if not short:
             on_time, off_time = off_time, on_time
-        if not isinstance(pins, tuple):
-            pins = (pins,)
         for _ in range(num):
-            for pin in pins:
-                pin.set_pulse(4095)
+            self._set_color(color)
             time.sleep(on_time)
-            for pin in pins:
-                pin.set_pulse(0)
+            self._set_color(OFF)
             time.sleep(off_time)
 
     def larsen(self, num):
         on_time = 0.25
-        pins = deque((self.r_pin, self.g_pin, self.b_pin))
-        for _ in range(3 * num):
-            pins[0].set_pulse(4095)
-            pins[1].set_pulse(0)
-            pins[2].set_pulse(0)
-            pins.rotate()
+        colors = (BLUE, GREEN, RED)
+        for _ in range(num):
+            for col in colors:
+                self._set_color(col)
             time.sleep(on_time)
-        pins[0].set_pulse(0)
+        self._set_color(OFF)
 
     def full_blink(self, num):
         on_time = 0.5
         for _ in range(num):
-            for pulse in (4095, 0):
-                for pin in (self.r_pin, self.g_pin, self.b_pin):
-                    pin.set_pulse(pulse)
+            for color in (WHITE, OFF):
+                self._set_color(color)
                 time.sleep(on_time)
 
     def _start_continuous(self):
@@ -246,13 +261,12 @@ class LEDStatus:
         if lap:
             logger.debug('Lap got updated')
             # 3 red blinks when lap
-            t = Thread(target=self.blink, args=(6, self.r_pin, 3))
+            t = Thread(target=self.blink, args=(6, RED, 3))
             self.queue.put(t)
         if wipe:
             logger.debug('Wiper on')
             # 1 violet blink when wiper
-            t = Thread(target=self.blink, args=(20, (self.b_pin, self.r_pin),
-                                                1, False))
+            t = Thread(target=self.blink, args=(20, PURPLE, 1, False))
             self.queue.put(t)
 
     def shutdown(self):

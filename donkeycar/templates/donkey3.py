@@ -283,7 +283,6 @@ def led(cfg):
     car = dk.vehicle.Vehicle()
     class OnOff:
         count = 0
-        on = False
         mode = 0
         speed = 2.0
         def run(self):
@@ -291,10 +290,10 @@ def led(cfg):
             #     self.on = not self.on
             # if self.count % 80 == 0:
             #     self.mode = 1 - self.mode
-            if self.count % 30 == 0:
-                self.speed = self.speed % 4 + 0.5
-            is_lap = (self.count + 1) % 80 == 0 and self.on
-            is_wipe = (self.count + 1) % 65 == 0
+            # if self.count % 30 == 0:
+            #     self.speed = self.speed % 4 + 0.5
+            is_lap = (self.count + 1) % 60 == 0
+            is_wipe = False # (self.count + 1) % 65 == 0
             self.count += 1
             return self.mode, self.speed, is_lap, is_wipe
 

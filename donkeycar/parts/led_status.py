@@ -143,8 +143,7 @@ class LEDStatus:
         self.is_pulse = True
         self.queue = queue.Queue()
         # 12-bit range, so 12-14 will give full illumination
-        self.pulse_scale = [min(2 ** i - 1, 4095) / 4095 for i in range(15)]
-        self.pulse_scale += list(reversed(self.pulse_scale))
+        self.pulse_scale = [0.5] * 12 + [2.0] * 12 + [1] * 3
         self.continuous = None
         self.continuous_run = True
         self.continuous_loop = True
@@ -160,7 +159,7 @@ class LEDStatus:
     def _set_brightness(self, bright):
         """ brightness scale between 0 and 1"""
         for i, pin in enumerate(self.rgb_pins):
-            self.pwm[i] *= bright
+            self.pwm[i] = max(min(bright * self.pwm[i], 4095), 1)
             pin.set_pulse(self.pwm[i])
 
     def pulse(self):
@@ -206,7 +205,7 @@ class LEDStatus:
         for _ in range(num):
             for col in colors:
                 self._set_color(col)
-            time.sleep(on_time)
+                time.sleep(on_time)
         self._set_color(OFF)
 
     def full_blink(self, num):

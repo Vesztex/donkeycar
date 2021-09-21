@@ -201,7 +201,7 @@ class LEDStatus:
             time.sleep(off_time)
 
     def larsen(self, num):
-        on_time = 0.25
+        on_time = 0.5
         colors = (BLUE, GREEN, RED)
         for _ in range(num):
             for col in colors:

@@ -165,15 +165,16 @@ class LEDStatus:
     def pulse(self):
         """ Produces pulsed or blinking continuous signal """
         while self.continuous_loop:
-            self._set_color(GREEN)
             if self.continuous_run:
                 if self.is_pulse:
+                    self._set_color(GREEN)
                     for s in self.pulse_scale:
                         if self.continuous_run:
                             self._set_brightness(s)
                             time.sleep(self.delay / self.f)
                 else:
                     self.blink(4 * self.delay, GREEN, 1)
+
         # end of thread switch off light
         self._set_color(OFF)
 
@@ -233,14 +234,15 @@ class LEDStatus:
             i = self.queue.get()
             # stop continuous pulsing
             self.continuous_run = False
-            self.block = True
             # show incoming signals
+            tic = time.time()
             i.start()
             i.join()
             # restart continuous pulsing
             self.continuous_run = True
-            self.block = False
-            logger.debug(f"Ran job, current threads {active_count()}")
+            toc = time.time()
+            logger.debug(f"Ran job, took {toc-tic:3.1f}s, current threads"
+                         f" {active_count()}")
 
     def run_threaded(self, mode=None, speed=None, lap=False, wipe=False):
         # if on != self.continuous_run and not self.block:

@@ -280,6 +280,7 @@ def stream(cfg):
 
 
 def led(cfg):
+    donkeycar.logger.setLevel(logging.DEBUG)
     car = dk.vehicle.Vehicle()
     class OnOff:
         count = 0

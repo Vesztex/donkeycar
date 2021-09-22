@@ -148,7 +148,7 @@ class LEDStatus:
         self.continuous_run = True
         self.continuous_loop = True
         self.block = False
-        self.larsen(4)
+        self.larsen(3)
         logger.info("Created LEDStatus part")
 
     def _set_color(self, color):
@@ -198,7 +198,7 @@ class LEDStatus:
             time.sleep(off_time)
 
     def larsen(self, num):
-        on_time = 0.1
+        on_time = 0.2
         colors = (BLUE, GREEN, RED)
         for _ in range(num):
             for col in colors:
@@ -209,9 +209,10 @@ class LEDStatus:
     def full_blink(self, num):
         on_time = 0.5
         for _ in range(num):
-            for color in (WHITE, OFF):
+            for color in (OFF, WHITE):
                 self._set_color(color)
                 time.sleep(on_time)
+        self._set_color(OFF)
 
     def _start_continuous(self):
         logger.debug('Starting continuous...')
@@ -264,7 +265,7 @@ class LEDStatus:
         if wipe:
             logger.debug('Wiper on')
             # 1 violet blink when wiper
-            t = Thread(target=self.blink, args=(20, PURPLE, 1, False))
+            t = Thread(target=self.blink, args=(30, PURPLE, 1, False))
             self.queue.put(t)
 
     def shutdown(self):

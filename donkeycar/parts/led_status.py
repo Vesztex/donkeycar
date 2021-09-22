@@ -148,7 +148,7 @@ class LEDStatus:
         self.continuous_run = True
         self.continuous_loop = True
         self.block = False
-        self.larsen(2)
+        self.larsen(4)
         logger.info("Created LEDStatus part")
 
     def _set_color(self, color):
@@ -198,7 +198,7 @@ class LEDStatus:
             time.sleep(off_time)
 
     def larsen(self, num):
-        on_time = 0.5
+        on_time = 0.1
         colors = (BLUE, GREEN, RED)
         for _ in range(num):
             for col in colors:

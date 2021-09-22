@@ -294,7 +294,7 @@ def led(cfg):
             # if self.count % 30 == 0:
             #     self.speed = self.speed % 4 + 0.5
             is_lap = (self.count + 1) % 60 == 0
-            is_wipe = False # (self.count + 1) % 65 == 0
+            is_wipe = (self.count + 1) % 65 == 0
             self.count += 1
             return self.mode, self.speed, is_lap, is_wipe
 

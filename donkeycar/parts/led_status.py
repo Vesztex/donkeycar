@@ -174,9 +174,6 @@ class LEDStatus:
                             time.sleep(self.delay / self.f)
                 else:
                     self.blink(4 * self.delay, GREEN, 1)
-            else:
-                self._set_color(OFF)
-                time.sleep(0.1)
         # end of thread switch off light
         self._set_color(OFF)
 

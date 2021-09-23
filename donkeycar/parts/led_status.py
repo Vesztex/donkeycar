@@ -250,6 +250,7 @@ class LEDStatus:
         #     # only switch on/off continuous, if not blocked
         #     self.continuous_run = on
         #     logger.debug(f'Switched continuous to {on}')
+        logger.debug(f'mode={mode} speed={speed} lap={lap} wipe={wipe}')
         if mode is not None:
             new_pulse = mode < 1
             if new_pulse != self.is_pulse:

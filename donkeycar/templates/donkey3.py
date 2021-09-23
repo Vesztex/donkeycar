@@ -229,6 +229,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     kill_switch = ThrottleOffSwitch(min_loops=car_frequency)
     car.add(kill_switch, inputs=["user/throttle"], outputs=['user/stop'])
     led = LEDStatus(max_speed=cfg.MAX_SPEED)
+    class UserMode:
+        def run(self):
+            return 0
+    car.add(UserMode(), outputs=['user/mode'])
     car.add(led, inputs=['user/mode', 'car/speed', 'car/lap_updated',
                          'user/wiper_triggered'])
     # run the vehicle

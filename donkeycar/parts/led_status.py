@@ -207,7 +207,7 @@ class LEDStatus:
         self._set_color(OFF)
 
     def full_blink(self, num):
-        on_time = 0.5
+        on_time = 0.8
         for _ in range(num):
             for color in (OFF, WHITE):
                 self._set_color(color)

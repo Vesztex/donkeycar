@@ -222,34 +222,38 @@ class TubWiper:
     activation. A new execution requires to release of the input trigger. The
     action could result in a multiple number of executions otherwise.
     """
-    def __init__(self, tub, num_records=20):
+    def __init__(self, tub, num_records=20, min_loops=2):
         """
         :param tub: tub to operate on
         :param num_records: number or records to delete
         """
         self._tub = tub
         self._num_records = num_records
-        self._active_loop = False
-        self.count = 0
+        self._active_loop_count = 0  # for debouncing
+        self._min_loops = min_loops
 
     def run(self, is_delete):
         """
         Method in the vehicle loop. Delete records when trigger switches from
         False to True only.
         :param is_delete:   if deletion has been triggered by the caller
-        :return:            true if
+        :return:            true if triggered
         """
         # only run if input is true and debounced
         is_triggered = False
-        if is_delete and not self._active_loop:
-            # action command
-            self._tub.delete_last_n_records(self._num_records)
-            # increase the loop counter
-            self._active_loop = True
-            is_triggered = True
+        if is_delete:
+            # increase the active loop count
+            self._active_loop_count += 1
+            if self._active_loop_count >= self._min_loops:
+                # action command
+                self._tub.delete_last_n_records(self._num_records)
+                # reset the loop tracker
+                self._active_loop_count = 0
+                is_triggered = True
+                logger.debug(f"Wiper triggered")
+
         else:
-            # trigger released, reset active loop status
-            self._active_loop = False
-        logger.debug(f'count {self.count} is_delete {is_delete} active '
-                     f'{self._active_loop} trigger{is_triggered}')
+            # trigger released, reset active loop count
+            self._active_loop_count = 0
+
         return is_triggered

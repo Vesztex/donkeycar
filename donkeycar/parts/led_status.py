@@ -242,22 +242,21 @@ class LEDStatus:
             # restart continuous pulsing
             self.continuous_run = True
             toc = time.time()
-            logger.debug(f"Ran job, took {toc-tic:3.1f}s, current threads"
-                         f" {active_count()}")
+            logger.debug(f"Ran led job in {toc-tic:3.1f}s")
 
     def run_threaded(self, mode=None, speed=None, lap=False, wipe=False):
-        logger.debug(f'mode={mode} speed={speed} lap={lap} wipe={wipe}')
+        logger.debug(f'mode: {mode} speed: {speed} lap: {lap} wipe: {wipe}')
         if mode is not None:
             new_pulse = mode < 1
             if new_pulse != self.is_pulse:
                 logger.debug(f'Changed pulse to {new_pulse}')
             self.is_pulse = new_pulse
         if speed is not None:
-            # avoid divison by zero
+            # avoid division by zero
             speed = max(speed, 0.1)
             self.delay = min(self.max_speed / speed, 8)
         if lap:
-            logger.debug('Lap got updated')
+            logger.debug('Lap updated')
             # 3 red blinks when lap
             t = Thread(target=self.blink, args=(6, RED, 3))
             self.queue.put(t)

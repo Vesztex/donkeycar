@@ -231,7 +231,6 @@ class TubWiper:
         self._num_records = num_records
         self._active_loop_count = 0  # for debouncing
         self._min_loops = min_loops
-        self.is_triggered = False
 
     def run(self, is_delete):
         """
@@ -244,19 +243,16 @@ class TubWiper:
         if is_delete:
             # increase the active loop count
             self._active_loop_count += 1
-            if self._active_loop_count >= self._min_loops:
+            # only trigger if we hit the counter, keeping the button pressed
+            # will not trigger again, only increase the counter.
+            if self._active_loop_count == self._min_loops:
                 # action command
                 self._tub.delete_last_n_records(self._num_records)
-                # reset the loop tracker
-                self._active_loop_count = 0
                 # only trigger if it was released before
-                if not self.is_triggered:
-                    self.is_triggered = True
                 logger.debug(f"Wiper triggered")
-
+                return True
         else:
             # trigger released, reset active loop count
             self._active_loop_count = 0
-            self.is_triggered = False
+        return False
 
-        return self.is_triggered

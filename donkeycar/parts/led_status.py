@@ -257,6 +257,8 @@ class LEDStatus:
                 logger.debug(f'Changed pulse to {new_pulse}')
             self.is_pulse = new_pulse
         if speed is not None:
+            # avoid divison by zero
+            speed = max(speed, 0.1)
             self.delay = min(self.max_speed / speed, 8)
         if lap:
             logger.debug('Lap got updated')

@@ -222,7 +222,7 @@ class TubWiper:
     activation. A new execution requires to release of the input trigger. The
     action could result in a multiple number of executions otherwise.
     """
-    def __init__(self, tub, num_records=20, min_loops=3):
+    def __init__(self, tub, num_records=20, min_loops=4):
         """
         :param tub: tub to operate on
         :param num_records: number or records to delete

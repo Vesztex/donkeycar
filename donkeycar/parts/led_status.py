@@ -246,10 +246,6 @@ class LEDStatus:
                          f" {active_count()}")
 
     def run_threaded(self, mode=None, speed=None, lap=False, wipe=False):
-        # if on != self.continuous_run and not self.block:
-        #     # only switch on/off continuous, if not blocked
-        #     self.continuous_run = on
-        #     logger.debug(f'Switched continuous to {on}')
         logger.debug(f'mode={mode} speed={speed} lap={lap} wipe={wipe}')
         if mode is not None:
             new_pulse = mode < 1

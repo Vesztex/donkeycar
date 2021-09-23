@@ -230,6 +230,7 @@ class TubWiper:
         self._tub = tub
         self._num_records = num_records
         self._active_loop = False
+        self.count = 0
 
     def run(self, is_delete):
         """
@@ -249,4 +250,6 @@ class TubWiper:
         else:
             # trigger released, reset active loop status
             self._active_loop = False
+        logger.debug(f'count {self.count} is_delete {is_delete} active '
+                     f'{self._active_loop} trigger{is_triggered}')
         return is_triggered

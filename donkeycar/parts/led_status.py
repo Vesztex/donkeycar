@@ -140,7 +140,7 @@ class LEDStatus:
         self.f = self.rgb_pins[0].default_freq
         self.max_speed = max_speed
         self.delay = 4
-        self.is_pulse = True
+        self.is_pulse = False
         self.queue = queue.Queue()
         # 12-bit range, so 12-14 will give full illumination
         self.pulse_scale = [0.5] * 12 + [2.0] * 12 + [1] * 3

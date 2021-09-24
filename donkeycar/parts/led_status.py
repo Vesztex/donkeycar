@@ -247,7 +247,7 @@ class LEDStatus:
         if mode is not None:
             new_pulse = mode < 1
             if new_pulse != self.is_pulse:
-            self.is_pulse = new_pulse
+                self.is_pulse = new_pulse
         if speed is not None:
             # avoid division by zero
             speed = max(speed, 0.1)

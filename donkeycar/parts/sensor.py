@@ -84,8 +84,8 @@ class Odometer:
             self._max_speed = max(self._max_speed, speed)
         self._last_tick_speed = self._last_tick
         distance = float(self._distance) / float(self._tick_per_meter)
-        logger.debug(f"Speed: {speed} InstSpeed: {inst_speed} Distance: "
-                     f"{distance}")
+        # logger.debug(f"Speed: {speed} InstSpeed: {inst_speed} Distance: "
+        #              f"{distance}")
         return speed, inst_speed, distance
 
     def shutdown(self):

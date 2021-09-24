@@ -129,8 +129,8 @@ class SimplePidController:
 
     def run(self, set_point, feedback):
         self.pid.setpoint = set_point
-        logger.debug(f'PID setpoint: {set_point:4.2f} feedback:'
-                     f' {feedback:4.2f}')
+        # logger.debug(f'PID setpoint: {set_point:4.2f} feedback:'
+        #              f' {feedback:4.2f}')
         out = self.pid(feedback)
         return out
 

@@ -145,7 +145,6 @@ class LEDStatus:
         # 12-bit range, so 12-14 will give full illumination
         self.pulse_scale = [0.5] * 12 + [2.0] * 12 + [1] * 3
         self.continuous = None
-        self.continuous_run = True
         self.continuous_loop = True
         self.block = False
         self.larsen(3)
@@ -165,15 +164,7 @@ class LEDStatus:
     def pulse(self):
         """ Produces pulsed or blinking continuous signal """
         while self.continuous_loop:
-            if self.continuous_run:
-                if self.is_pulse:
-                    self._set_color(GREEN)
-                    for s in self.pulse_scale:
-                        if self.continuous_run:
-                            self._set_brightness(s)
-                            time.sleep(self.delay / self.f)
-                else:
-                    self.blink(4 * self.delay, GREEN, 1)
+            self.blink(4 * self.delay, GREEN, 1)
 
         # end of thread switch off light
         self._set_color(OFF)
@@ -206,14 +197,6 @@ class LEDStatus:
                 time.sleep(on_time)
         self._set_color(OFF)
 
-    def full_blink(self, num):
-        on_time = 0.8
-        for _ in range(num):
-            for color in (OFF, WHITE):
-                self._set_color(color)
-                time.sleep(on_time)
-        self._set_color(OFF)
-
     def _start_continuous(self):
         logger.debug('Starting continuous...')
         self.continuous = Thread(target=self.pulse, daemon=True)
@@ -234,14 +217,12 @@ class LEDStatus:
         while self.run:
             i = self.queue.get()
             # stop continuous pulsing
-            self.continuous_run = False
+            self.continuous_loop = False
             # show incoming signals
-            tic = time.time()
             i.start()
             i.join()
             # restart continuous pulsing
-            self.continuous_run = True
-            toc = time.time()
+            self.continuous_loop = True
 
     def run_threaded(self, mode=None, speed=None, lap=False, wipe=False):
         if mode is not None:
@@ -265,7 +246,7 @@ class LEDStatus:
         # stop the loop
         self.run = False
         self._stop_continuous()
-        self.full_blink(3)
+        self.blink(20, WHITE, 2, False)
 
 
 if __name__ == "__main__":

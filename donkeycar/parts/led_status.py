@@ -131,22 +131,17 @@ OFF = (0, 0, 0)
 
 
 class LEDStatus:
-    def __init__(self, r_channel=13, g_channel=14, b_channel=15, max_speed=4.4):
+    def __init__(self, r_channel=13, g_channel=14, b_channel=15):
         self.rgb_pins \
             = (PCA9685(r_channel), PCA9685(g_channel), PCA9685(b_channel))
         self.pwm = [None, None, None]
-        self.run = False
+        self.run = True
         # frequency, usually 60
         self.f = self.rgb_pins[0].default_freq
-        self.max_speed = max_speed
         self.delay = 4
-        self.is_pulse = False
         self.queue = queue.Queue()
-        # 12-bit range, so 12-14 will give full illumination
-        self.pulse_scale = [0.5] * 12 + [2.0] * 12 + [1] * 3
         self.continuous = None
         self.continuous_loop = True
-        self.block = False
         self.larsen(3)
         logger.info("Created LEDStatus part")
 
@@ -208,7 +203,6 @@ class LEDStatus:
         # start the continuous thread
         self._start_continuous()
         # this is the queue worker
-        self.run = True
         while self.run:
             i = self.queue.get()
             # stop continuous pulsing
@@ -224,10 +218,6 @@ class LEDStatus:
             new_pulse = mode < 1
             if new_pulse != self.is_pulse:
                 self.is_pulse = new_pulse
-        if speed is not None:
-            # avoid division by zero
-            speed = max(speed, 0.1)
-            self.delay = min(self.max_speed / speed, 8)
         if lap:
             # 3 red blinks when lap
             t = Thread(target=self.blink, args=(6, RED, 3))

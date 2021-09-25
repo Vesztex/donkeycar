@@ -228,8 +228,8 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     # pressing full break for 1s will stop the car (even when wifi disconnects)
     kill_switch = ThrottleOffSwitch(min_loops=car_frequency)
     car.add(kill_switch, inputs=["user/throttle"], outputs=['user/stop'])
-    led = LEDStatus(max_speed=cfg.MAX_SPEED)
-    car.add(led, inputs=['user/mode', 'car/speed', 'car/lap_updated',
+    led = LEDStatus()
+    car.add(led, inputs=['user/mode', 'car/lap_updated',
                          'user/wiper_triggered'], threaded=True)
     # run the vehicle
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
@@ -298,9 +298,9 @@ def led(cfg):
             self.count += 1
             return self.mode, self.speed, is_lap, is_wipe
 
-    car.add(OnOff(), outputs=['mode', 'speed', 'lap', 'wipe'])
-    led = LEDStatus(max_speed=cfg.MAX_SPEED)
-    car.add(led, inputs=['mode', 'speed', 'lap', 'wipe'], threaded=True)
+    car.add(OnOff(), outputs=['mode', 'lap', 'wipe'])
+    led = LEDStatus()
+    car.add(led, inputs=['mode', 'lap', 'wipe'], threaded=True)
     car.start(rate_hz=10, max_loop_count=620)
 
 

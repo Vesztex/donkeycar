@@ -155,12 +155,6 @@ class LEDStatus:
             pin.set_pulse(c)
             self.pwm[i] = c
 
-    def _set_brightness(self, bright):
-        """ brightness scale between 0 and 1"""
-        for i, pin in enumerate(self.rgb_pins):
-            self.pwm[i] = min(bright * self.pwm[i], 4095)
-            pin.set_pulse(self.pwm[i])
-
     def pulse(self):
         """ Produces pulsed or blinking continuous signal """
         while self.continuous_loop:
@@ -217,12 +211,12 @@ class LEDStatus:
         while self.run:
             i = self.queue.get()
             # stop continuous pulsing
-            self.continuous_loop = False
+            self._stop_continuous()
             # show incoming signals
             i.start()
             i.join()
             # restart continuous pulsing
-            self.continuous_loop = True
+            self._start_continuous()
 
     def run_threaded(self, mode=None, speed=None, lap=False, wipe=False):
         if mode is not None:

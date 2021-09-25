@@ -281,13 +281,12 @@ def stream(cfg):
 class OnOff:
     count = 1
     mode = 0
-    speed = 2.0
 
     def run(self):
-        if self.count % 100 == 0:
+        if self.count % 400 == 0:
             self.mode = 1 - self.mode
-        is_lap = self.count % 60 == 0
-        is_wipe = self.count % 70 == 0
+        is_lap = self.count % 240 == 0
+        is_wipe = self.count % 280 == 0
         self.count += 1
         return self.mode, is_lap, is_wipe
 
@@ -297,7 +296,7 @@ def led(cfg):
     car = dk.vehicle.Vehicle()
     car.add(OnOff(), outputs=['mode', 'lap', 'wipe'])
     car.add(LEDStatus(), inputs=['mode', 'lap', 'wipe'], threaded=True)
-    car.start(rate_hz=40, max_loop_count=620)
+    car.start(rate_hz=40, max_loop_count=2000)
 
 
 if __name__ == '__main__':

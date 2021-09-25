@@ -124,9 +124,10 @@ class RGB_LED:
 RED = (4095, 0, 0)
 GREEN = (0, 4095, 0)
 BLUE = (0, 0, 4095)
-YELLOW = (4095, 1024, 0)
+YELLOW = (4095, 512, 0)
 PURPLE = (1024, 0, 4095)
 WHITE = (4095, 1048, 4095)
+ORANGE = (4095, 128, 0)
 OFF = (0, 0, 0)
 
 
@@ -196,7 +197,7 @@ class LEDStatus:
 
     def run_threaded(self, mode=None, lap=False, wipe=False):
         if mode is not None:
-            self.pulse_color = GREEN if mode == 0 else YELLOW
+            self.pulse_color = GREEN if mode == 0 else ORANGE
         t = None
         if lap:
             # 3 red blinks when lap

@@ -14,7 +14,6 @@ Usage:
 Options:
     -h --help        Show this screen.
 """
-import time
 
 from docopt import docopt
 import logging
@@ -279,25 +278,26 @@ def stream(cfg):
     car.start(rate_hz=hz, max_loop_count=cfg.MAX_LOOPS)
 
 
+class OnOff:
+    count = 1
+    mode = 0
+    speed = 2.0
+
+    def run(self):
+        if self.count % 100 == 0:
+            self.mode = 1 - self.mode
+        is_lap = self.count % 60 == 0
+        is_wipe = self.count % 70 == 0
+        self.count += 1
+        return self.mode, is_lap, is_wipe
+
+
 def led(cfg):
     donkeycar.logger.setLevel(logging.DEBUG)
     car = dk.vehicle.Vehicle()
-    class OnOff:
-        count = 1
-        mode = 0
-        speed = 2.0
-        def run(self):
-            if self.count % 100 == 0:
-                self.mode = 1 - self.mode
-            is_lap = self.count % 60 == 0
-            is_wipe = self.count % 70 == 0
-            self.count += 1
-            return self.mode, is_lap, is_wipe
-
     car.add(OnOff(), outputs=['mode', 'lap', 'wipe'])
-    led = LEDStatus()
-    car.add(led, inputs=['mode', 'lap', 'wipe'], threaded=True)
-    car.start(rate_hz=10, max_loop_count=620)
+    car.add(LEDStatus(), inputs=['mode', 'lap', 'wipe'], threaded=True)
+    car.start(rate_hz=40, max_loop_count=620)
 
 
 if __name__ == '__main__':

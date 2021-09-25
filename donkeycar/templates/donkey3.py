@@ -283,14 +283,14 @@ def led(cfg):
     donkeycar.logger.setLevel(logging.DEBUG)
     car = dk.vehicle.Vehicle()
     class OnOff:
-        count = 0
+        count = 1
         mode = 0
         speed = 2.0
         def run(self):
             if self.count % 100 == 0:
                 self.mode = 1 - self.mode
-            is_lap = (self.count + 1) % 60 == 0
-            is_wipe = (self.count + 1) % 70 == 0
+            is_lap = self.count % 60 == 0
+            is_wipe = self.count % 70 == 0
             self.count += 1
             return self.mode, is_lap, is_wipe
 

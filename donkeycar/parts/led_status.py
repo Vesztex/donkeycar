@@ -151,11 +151,13 @@ class LEDStatus:
             self.pwm[i] = c
 
     def pulse(self):
-        """ Produces pulsed or blinking continuous signal """
+        """ Produces blinking continuous signal """
         while self.continuous_loop:
             self.blink(4 * self.delay, self.pulse_color, 1)
         # end of thread switch off light
         self._set_color(OFF)
+        # set back indicator to allow thread to start again
+        self.continuous_loop = True
 
     def blink(self, delay, color, num, short=True):
         """
@@ -186,8 +188,6 @@ class LEDStatus:
         self._set_color(OFF)
 
     def schedule_continuous(self):
-        self.continuous_loop = True
-        time.sleep(0.1)
         self.queue.put(Thread(target=self.pulse, daemon=True))
 
     def update(self):

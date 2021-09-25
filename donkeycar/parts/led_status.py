@@ -140,6 +140,7 @@ class LEDStatus:
         self.f = self.rgb_pins[0].default_freq
         self.delay = 4
         self.queue = queue.Queue()
+        self.pulse_color = GREEN
         self.continuous = None
         self.continuous_loop = True
         self.larsen(3)
@@ -153,7 +154,7 @@ class LEDStatus:
     def pulse(self):
         """ Produces pulsed or blinking continuous signal """
         while self.continuous_loop:
-            self.blink(4 * self.delay, GREEN, 1)
+            self.blink(4 * self.delay, self.pulse_color, 1)
 
         # end of thread switch off light
         self._set_color(OFF)
@@ -213,10 +214,9 @@ class LEDStatus:
             # restart continuous pulsing
             self._start_continuous()
 
-    def run_threaded(self, mode=None, speed=None, lap=False, wipe=False):
+    def run_threaded(self, mode=None, lap=False, wipe=False):
         if mode is not None:
-            new_pulse = mode < 1
-
+            self.pulse_color = GREEN if mode == 0 else YELLOW
         if lap:
             # 3 red blinks when lap
             t = Thread(target=self.blink, args=(6, RED, 3))

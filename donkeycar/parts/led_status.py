@@ -141,7 +141,6 @@ class LEDStatus:
         self.delay = 4
         self.queue = queue.Queue()
         self.pulse_color = GREEN
-        self.continuous = None
         self.continuous_loop = True
         self.larsen(3)
         logger.info("Created LEDStatus part")
@@ -155,7 +154,6 @@ class LEDStatus:
         """ Produces pulsed or blinking continuous signal """
         while self.continuous_loop:
             self.blink(4 * self.delay, self.pulse_color, 1)
-
         # end of thread switch off light
         self._set_color(OFF)
 
@@ -187,49 +185,41 @@ class LEDStatus:
                 time.sleep(on_time)
         self._set_color(OFF)
 
-    def _start_continuous(self):
-        logger.debug('Starting continuous...')
+    def schedule_continuous(self):
         self.continuous_loop = True
-        self.continuous = Thread(target=self.pulse, daemon=True)
-        self.continuous.start()
-        logger.debug('... started')
-
-    def _stop_continuous(self):
-        logger.debug('Stopping continuous...')
-        self.continuous_loop = False
-        self.continuous.join()
-        logger.debug('... stopped')
+        time.sleep(0.1)
+        self.queue.put(Thread(target=self.pulse, daemon=True))
 
     def update(self):
         # start the continuous thread
-        self._start_continuous()
+        self.schedule_continuous()
         # this is the queue worker
         while self.run:
             i = self.queue.get()
-            # stop continuous pulsing
-            self._stop_continuous()
-            # show incoming signals
             i.start()
             i.join()
-            # restart continuous pulsing
-            self._start_continuous()
+            self.queue.task_done()
 
     def run_threaded(self, mode=None, lap=False, wipe=False):
         if mode is not None:
             self.pulse_color = GREEN if mode == 0 else YELLOW
         if lap:
             # 3 red blinks when lap
+            self.continuous_loop = False
             t = Thread(target=self.blink, args=(6, RED, 3))
             self.queue.put(t)
+            self.schedule_continuous()
         if wipe:
             # 1 violet blink when wiper
+            self.continuous_loop = False
             t = Thread(target=self.blink, args=(30, PURPLE, 1, False))
             self.queue.put(t)
+            self.schedule_continuous()
 
     def shutdown(self):
         # stop the loop
         self.run = False
-        self._stop_continuous()
+        self.continuous_loop = False
         self.blink(20, WHITE, 2, False)
 
 

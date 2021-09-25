@@ -134,41 +134,35 @@ class LEDStatus:
     def __init__(self, r_channel=13, g_channel=14, b_channel=15):
         self.rgb_pins \
             = (PCA9685(r_channel), PCA9685(g_channel), PCA9685(b_channel))
-        self.pwm = [None, None, None]
         self.run = True
-        # frequency, usually 60
-        self.f = self.rgb_pins[0].default_freq
-        self.delay = 4
+        self.pulse_on_time = 0.25
         self.queue = queue.Queue()
         self.pulse_color = GREEN
         self.continuous_loop = True
-        self.larsen(3)
+        self.larsen(4)
         logger.info("Created LEDStatus part")
 
     def _set_color(self, color):
-        for i, (c, pin) in enumerate(zip(color, self.rgb_pins)):
+        for c, pin in zip(color, self.rgb_pins):
             pin.set_pulse(c)
-            self.pwm[i] = c
 
     def pulse(self):
         """ Produces blinking continuous signal """
         while self.continuous_loop:
-            self.blink(4 * self.delay, self.pulse_color, 1)
-        # end of thread switch off light
-        self._set_color(OFF)
+            self.blink(self.pulse_on_time, self.pulse_color, 1)
         # set back indicator to allow thread to start again
         self.continuous_loop = True
 
     def blink(self, delay, color, num, short=True):
         """
-        Blinks pin n x times
-        :param delay:   How fast
+        Blinks num times with on-time = delay and off-time = 2 * delay
+        :param delay:   How long in s
         :param color:   rgb tuple in [0, 4095]
         :param num:     How often
         :param short:   If short on long off or vice versa
         :return:        None
         """
-        on_time = delay / self.f
+        on_time = delay
         off_time = 2 * on_time
         if not short:
             on_time, off_time = off_time, on_time
@@ -179,7 +173,7 @@ class LEDStatus:
             time.sleep(off_time)
 
     def larsen(self, num):
-        on_time = 0.2
+        on_time = 0.15
         colors = (BLUE, GREEN, RED)
         for _ in range(num):
             for col in colors:
@@ -203,16 +197,16 @@ class LEDStatus:
     def run_threaded(self, mode=None, lap=False, wipe=False):
         if mode is not None:
             self.pulse_color = GREEN if mode == 0 else YELLOW
+        t = None
         if lap:
             # 3 red blinks when lap
-            self.continuous_loop = False
-            t = Thread(target=self.blink, args=(6, RED, 3))
-            self.queue.put(t)
-            self.schedule_continuous()
+            t = Thread(target=self.blink, args=(0.1, RED, 3))
         if wipe:
             # 1 violet blink when wiper
+            t = Thread(target=self.blink, args=(0.5, PURPLE, 1, False))
+        # if new thread created, schedule it and restart continuous thread:
+        if t:
             self.continuous_loop = False
-            t = Thread(target=self.blink, args=(30, PURPLE, 1, False))
             self.queue.put(t)
             self.schedule_continuous()
 
@@ -220,7 +214,7 @@ class LEDStatus:
         # stop the loop
         self.run = False
         self.continuous_loop = False
-        self.blink(20, WHITE, 2, False)
+        self.blink(0.3, WHITE, 2, False)
 
 
 if __name__ == "__main__":

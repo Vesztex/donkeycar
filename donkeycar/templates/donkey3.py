@@ -290,7 +290,7 @@ def led(cfg):
             # if self.count % 80 == 0:
             #     self.mode = 1 - self.mode
             is_lap = (self.count + 1) % 60 == 0
-            is_wipe = (self.count + 1) % 65 == 0
+            is_wipe = (self.count + 1) % 70 == 0
             self.count += 1
             return self.mode, is_lap, is_wipe
 

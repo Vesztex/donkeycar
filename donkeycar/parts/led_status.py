@@ -216,8 +216,7 @@ class LEDStatus:
     def run_threaded(self, mode=None, speed=None, lap=False, wipe=False):
         if mode is not None:
             new_pulse = mode < 1
-            if new_pulse != self.is_pulse:
-                self.is_pulse = new_pulse
+
         if lap:
             # 3 red blinks when lap
             t = Thread(target=self.blink, args=(6, RED, 3))

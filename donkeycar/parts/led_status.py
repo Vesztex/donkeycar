@@ -193,6 +193,7 @@ class LEDStatus:
 
     def _start_continuous(self):
         logger.debug('Starting continuous...')
+        self.continuous_loop = True
         self.continuous = Thread(target=self.pulse, daemon=True)
         self.continuous.start()
         logger.debug('... started')

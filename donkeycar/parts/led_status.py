@@ -197,7 +197,7 @@ class LEDStatus:
 
     def run_threaded(self, mode=None, lap=False, wipe=False):
         if mode is not None:
-            self.pulse_color = GREEN if mode == 0 else ORANGE
+            self.pulse_color = GREEN if mode == 0 else YELLOW
         t = None
         if lap:
             # 3 red blinks when lap

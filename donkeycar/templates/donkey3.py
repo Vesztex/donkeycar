@@ -287,8 +287,8 @@ def led(cfg):
         mode = 0
         speed = 2.0
         def run(self):
-            # if self.count % 80 == 0:
-            #     self.mode = 1 - self.mode
+            if self.count % 100 == 0:
+                self.mode = 1 - self.mode
             is_lap = (self.count + 1) % 60 == 0
             is_wipe = (self.count + 1) % 70 == 0
             self.count += 1

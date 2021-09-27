@@ -139,11 +139,11 @@ class Tub(object):
         """
         Creates a dictionary of (session_id, lap) keys and int values
         where 0 is the fastest loop and num_bins-1 is the slowest.
-        :param num_bins:    number of lap time bins
-        :return:            dictionar of type ((session_id, lap, bin)
+        :param bins:    lap time percentiles
+        :return:        dictionary of type ((session_id, lap, bin)
         """
         sessions \
-            = self.manifest.manifest_metadata.get['sessions']['all_full_ids']
+            = self.manifest.manifest_metadata['sessions']['all_full_ids']
         session_lap_bin = {}
         for session_id in sessions:
             session_dict = self.manifest.metadata.get(session_id)

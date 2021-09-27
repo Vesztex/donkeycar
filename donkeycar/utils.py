@@ -22,6 +22,7 @@ from typing import List, Any, Tuple
 from PIL import Image
 import numpy as np
 
+
 logger = logging.getLogger(__name__)
 ONE_BYTE_SCALE = 1.0 / 255.0
 
@@ -454,7 +455,7 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
         KerasInferred, KerasIMU, KerasMemory, KerasBehavioral, KerasLocalizer, \
         KerasLSTM, Keras3D_CNN
     from donkeycar.parts.keras_2 import KerasSquarePlus, KerasSquarePlusImu, \
-        KerasSquarePlusMemory
+        KerasSquarePlusMemory, KerasSquarePlusMemoryLap
     from donkeycar.parts.interpreter import KerasInterpreter, TfLite, TensorRT
 
     if model_type is None:
@@ -471,6 +472,8 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
         interpreter = KerasInterpreter()
         used_model_type = model_type
     used_model_type = EqMemorizedString(used_model_type)
+    mem_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
+    mem_depth = getattr(cfg, 'MEM_DEPTH', 0)
     if used_model_type == "linear":
         kl = KerasLinear(interpreter=interpreter, input_shape=input_shape)
     elif used_model_type == "categorical":
@@ -483,8 +486,6 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
     elif used_model_type == "imu":
         kl = KerasIMU(interpreter=interpreter, input_shape=input_shape)
     elif used_model_type == "memory":
-        mem_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
-        mem_depth = getattr(cfg, 'MEM_DEPTH', 0)
         kl = KerasMemory(interpreter=interpreter, input_shape=input_shape,
                          mem_length=mem_length, mem_depth=mem_depth)
     elif used_model_type == "behavior":
@@ -514,9 +515,13 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
             max_speed=cfg.MAX_SPEED, accel_norm=cfg.IMU_ACCEL_NORM,
             gyro_norm=cfg.IMU_GYRO_NORM)
     elif used_model_type == 'sq_mem':
-        mem_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
-        mem_depth = getattr(cfg, 'MEM_DEPTH', 0)
         kl = KerasSquarePlusMemory(
+            interpreter=interpreter, input_shape=input_shape, size=cfg.NN_SIZE,
+            use_speed=cfg.USE_SPEED_FOR_MODEL,
+            max_speed=cfg.MAX_SPEED,
+            mem_length=mem_length, mem_depth=mem_depth)
+    elif used_model_type == 'sq_mem_lap':
+        kl = KerasSquarePlusMemoryLap(
             interpreter=interpreter, input_shape=input_shape, size=cfg.NN_SIZE,
             use_speed=cfg.USE_SPEED_FOR_MODEL,
             max_speed=cfg.MAX_SPEED,

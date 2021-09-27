@@ -120,6 +120,60 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
         return shapes
 
 
+class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
+    def __init__(self,
+                 interpreter: Interpreter = KerasInterpreter(),
+                 input_shape: Tuple[int, ...] = (120, 160, 3),
+                 *args, **kwargs):
+        super().__init__(interpreter, input_shape, *args, **kwargs)
+
+    def use_lap_pct(self) -> bool:
+        return True
+
+    def create_model(self):
+        return linear_square_plus_mem(self.input_shape, self.size,
+                                      self.mem_length, self.mem_depth, True)
+
+    def x_transform_and_process(
+            self,
+            record: Union[TubRecord, List[TubRecord]],
+            img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
+        img_arr, mem_arr \
+            = super().x_transform_and_process(record, img_processor)
+        lap_pct = np.array([record[-1].underlying['lap_pct']])
+        return img_arr, mem_arr, lap_pct
+
+    def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
+        """ Translates x into dictionary where all model input layer's names
+            must be matched by dictionary keys. """
+        assert(isinstance(x, tuple)), 'Tuple expected'
+        img_arr, mem, lap_pct = x
+        return {'img_in': img_arr, 'mem_in': mem, 'lap_pct_in': lap_pct}
+
+    def output_shapes(self):
+        # need to cut off None from [None, 120, 160, 3] tensor shape
+        img_shape = self.get_input_shapes()[0][1:]
+        shapes = ({'img_in': tf.TensorShape(img_shape),
+                   'mem_in': tf.TensorShape(2 * self.mem_length),
+                   'lap_pct_in': tf.TensorShape((1, ))},
+                  {'angle': tf.TensorShape([]),
+                   'throttle': tf.TensorShape([])})
+        return shapes
+
+    def run(self, img_arr: np.ndarray, lap_pct: List[float]) -> \
+            Tuple[Union[float, np.ndarray], ...]:
+        # Only called at start to fill the previous values
+        np_mem_arr = np.array(self.mem_seq).reshape((2 * self.mem_length,))
+        img_arr_norm = normalize_image(img_arr)
+        np_lap_arr = np.array(lap_pct)
+        angle, throttle = super().inference(img_arr_norm, np_mem_arr,
+                                            np_lap_arr)
+        # fill new values into back of history list for next call
+        self.mem_seq.popleft()
+        self.mem_seq.append([angle, throttle])
+        return angle, throttle
+
+
 class KerasSquarePlusLstm(KerasSquarePlus):
     """
     LSTM version of square plus model
@@ -731,7 +785,8 @@ def linear_square_plus_imu(input_shape=(120, 160, 3),
 
 
 def linear_square_plus_mem(input_shape=(120, 160, 3),
-                           size='S', mem_length=3, mem_depth=0):
+                           size='S', mem_length=3, mem_depth=0,
+                           has_lap_pct=False):
     l2 = 0.001
     drop2 = 0.1 #0.02 #0.1
     img_in = Input(shape=input_shape, name='img_in')
@@ -746,15 +801,22 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
         y = Dense(2 * (mem_length - i), activation='relu', name=f'mem_c_{i}')(y)
         y = Dropout(drop2)(y)
 
-    z = concatenate([x, y])
+    concat = [x, y]
     inputs = [img_in, mem_in]
+    if has_lap_pct:
+        lap_in = Input(shape=(1,), name='lap_pct_in')
+        concat.append(lap_in)
+        inputs.append(lap_in)
+    z = concatenate(concat)
+
     model = square_plus_output_layers(z, size, l2, inputs, None, None,
-                                      mem_length)
+                                      mem_length, has_lap_pct)
     return model
 
 
 def square_plus_output_layers(in_tensor, size, l2, model_inputs,
-                              imu_dim=None, seq_len=None, mem_len=None):
+                              imu_dim=None, seq_len=None, mem_len=None,
+                              has_lap_pct=False):
     layers = square_plus_dense(size)
     z = in_tensor
     for i, l in zip(range(len(layers)), layers):
@@ -774,6 +836,8 @@ def square_plus_output_layers(in_tensor, size, l2, model_inputs,
     if len(model_inputs) > 1:
         if imu_dim:
             name = 'SquarePlusImu_' + size + '_' + str(imu_dim)
+        elif has_lap_pct:
+            name = 'SquarePlusMemLap_' + size + '_' + str(mem_len)
         elif mem_len:
             name = 'SquarePlusMem_' + size + '_' + str(mem_len)
             assert seq_len is None, "SquarePlusMem doesn't work with LSTM"
@@ -783,8 +847,7 @@ def square_plus_output_layers(in_tensor, size, l2, model_inputs,
         name = 'SquarePlus_' + size
     if seq_len:
         name += '_lstm_' + str(seq_len)
-    model = Model(inputs=model_inputs,
-                  outputs=[angle_out, throttle_out],
+    model = Model(inputs=model_inputs, outputs=[angle_out, throttle_out],
                   name=name)
     return model
 

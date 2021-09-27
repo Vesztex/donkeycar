@@ -34,7 +34,7 @@ from kivy.uix.spinner import SpinnerOption, Spinner
 
 from donkeycar import load_config
 from donkeycar.parts.datastore_v2 import Manifest
-from donkeycar.parts.keras_2 import KerasSquarePlusImu
+from donkeycar.parts.keras_2 import KerasSquarePlusImu, KerasSquarePlusMemoryLap
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.augmentations import ImageAugmentation
 from donkeycar.pipeline.database import PilotDatabase
@@ -742,6 +742,9 @@ class OverlayImage(FullImage):
         if isinstance(self.pilot, KerasSquarePlusImu):
             imu = record.underlying['car/accel'] + record.underlying['car/gyro']
             args = (aug_img_arr, imu)
+        elif isinstance(self.pilot, KerasSquarePlusMemoryLap):
+            lap_pct = 0.25
+            args = (aug_img_arr, [lap_pct])
         else:
             args = (aug_img_arr,)
         output = (0, 0)
@@ -1209,7 +1212,6 @@ class DonkeyApp(App):
 def main():
     tub_app = DonkeyApp()
     tub_app.run()
-
 
 
 if __name__ == '__main__':

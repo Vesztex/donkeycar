@@ -4,6 +4,7 @@ import mmap
 import os
 import time
 import logging
+from copy import copy, deepcopy
 from pathlib import Path
 
 
@@ -281,6 +282,7 @@ class Manifest(object):
                                            start_index=self.current_index)
         # Create a new session_id, which will be added to each record in the
         # tub, when Tub.write_record() is called.
+        self._new_sessions = None
         self.session_id = self.create_new_session()
 
         def exit_hook():
@@ -387,18 +389,18 @@ class Manifest(object):
     def create_new_session(self):
         """ Creates a new session id and appends it to the metadata."""
         sessions = self.manifest_metadata.get('sessions', {})
+        self._new_sessions = deepcopy(sessions)
         last_id = -1
-        if sessions:
-            last_id = sessions['last_id']
+        if self._new_sessions:
+            last_id = self._new_sessions['last_id']
         else:
-            sessions['all_full_ids'] = []
+            self._new_sessions['all_full_ids'] = []
         this_id = last_id + 1
         date = time.strftime('%y-%m-%d')
         this_full_id = date + '_' + str(this_id)
-        sessions['last_id'] = this_id
-        sessions['last_full_id'] = this_full_id
-        sessions['all_full_ids'].append(this_full_id)
-        self.manifest_metadata['sessions'] = sessions
+        self._new_sessions['last_id'] = this_id
+        self._new_sessions['last_full_id'] = this_full_id
+        self._new_sessions['all_full_ids'].append(this_full_id)
         return this_full_id
 
     def add_deleted_indexes(self, indexes):
@@ -436,6 +438,7 @@ class Manifest(object):
         # If records were received, write updated session_id dictionary into
         # the metadata, otherwise keep the session_id information unchanged
         if self._updated_session:
+            self.manifest_metadata['sessions'] = self._new_sessions
             self.seekeable.update_line(3, json.dumps(self.metadata))
             self.seekeable.update_line(4, json.dumps(self.manifest_metadata))
         self.current_catalog.close()

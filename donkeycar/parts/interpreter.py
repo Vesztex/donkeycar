@@ -100,7 +100,7 @@ class Interpreter(ABC):
         pass
 
     @abstractmethod
-    def predict(self, img_arr: np.ndarray, other_arr: np.ndarray) \
+    def predict(self, img_arr: np.ndarray, *other_arr: np.ndarray) \
             -> Sequence[Union[float, np.ndarray]]:
         pass
 
@@ -144,13 +144,13 @@ class KerasInterpreter(Interpreter):
         else:
             return outputs.numpy().squeeze(axis=0)
 
-    def predict(self, img_arr: np.ndarray, other_arr: np.ndarray) \
+    def predict(self, img_arr: np.ndarray, *other_arr: np.ndarray) \
             -> Sequence[Union[float, np.ndarray]]:
         img_arr = np.expand_dims(img_arr, axis=0)
-        inputs = img_arr
-        if other_arr is not None:
-            other_arr = np.expand_dims(other_arr, axis=0)
-            inputs = [img_arr, other_arr]
+        inputs = [img_arr]
+        for arr in other_arr:
+            arr_expand = np.expand_dims(arr, axis=0)
+            inputs.append(arr_expand)
         return self.invoke(inputs)
 
     def predict_from_dict(self, input_dict):
@@ -211,11 +211,11 @@ class TfLite(Interpreter):
         # don't return list if output is 1d
         return outputs if len(outputs) > 1 else outputs[0]
 
-    def predict(self, img_arr, other_arr) \
+    def predict(self, img_arr, *other_arr) \
             -> Sequence[Union[float, np.ndarray]]:
         assert self.input_shapes and self.input_details, \
             "Tflite model not loaded"
-        input_arrays = (img_arr, other_arr)
+        input_arrays = img_arr, *other_arr
         for arr, shape, detail \
                 in zip(input_arrays, self.input_shapes, self.input_details):
             in_data = arr.reshape(shape).astype(np.float32)
@@ -257,15 +257,17 @@ class TensorRT(Interpreter):
         self.frozen_func = convert_var_to_const(graph_func)
         self.input_shapes = [inp.shape for inp in graph_func.inputs]
 
-    def predict(self, img_arr: np.ndarray, other_arr: np.ndarray) \
+    def predict(self, img_arr: np.ndarray, *other_arr: np.ndarray) \
             -> Sequence[Union[float, np.ndarray]]:
         # first reshape as usual
         img_arr = np.expand_dims(img_arr, axis=0).astype(np.float32)
         img_tensor = self.convert(img_arr)
-        if other_arr is not None:
-            other_arr = np.expand_dims(other_arr, axis=0).astype(np.float32)
-            other_tensor = self.convert(other_arr)
-            output_tensors = self.frozen_func(img_tensor, other_tensor)
+        if other_arr:
+            tensors = []
+            for arr in other_arr:
+                arr_exp = np.expand_dims(arr, axis=0).astype(np.float32)
+                tensors.append(self.convert(arr_exp))
+            output_tensors = self.frozen_func(img_tensor, *tensors)
         else:
             output_tensors = self.frozen_func(img_tensor)
 

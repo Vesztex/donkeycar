@@ -94,7 +94,10 @@ class KerasPilot(ABC):
     def seq_size(self) -> int:
         return 0
 
-    def run(self, img_arr: np.ndarray, other_arr: List[float] = None) \
+    def use_lap_pct(self) -> bool:
+        return False
+
+    def run(self, img_arr: np.ndarray, *other_arr: List[float]) \
             -> Tuple[Union[float, np.ndarray], ...]:
         """
         Donkeycar parts interface to run the part in the loop.
@@ -106,10 +109,10 @@ class KerasPilot(ABC):
         :return:            tuple of (angle, throttle)
         """
         norm_arr = normalize_image(img_arr)
-        np_other_array = np.array(other_arr) if other_arr else None
-        return self.inference(norm_arr, np_other_array)
+        np_other_array = tuple(np.array(arr) for arr in other_arr)
+        return self.inference(norm_arr, *np_other_array)
 
-    def inference(self, img_arr: np.ndarray, other_arr: Optional[np.ndarray]) \
+    def inference(self, img_arr: np.ndarray, *other_arr: np.ndarray) \
             -> Tuple[Union[float, np.ndarray], ...]:
         """ Inferencing using the interpreter
             :param img_arr:     float32 [0,1] numpy array with normalized image
@@ -120,7 +123,7 @@ class KerasPilot(ABC):
             :return:            tuple of (angle, throttle)
         """
         assert type(img_arr) is np.ndarray, "image array must be numpy array"
-        out = self.interpreter.predict(img_arr, other_arr)
+        out = self.interpreter.predict(img_arr, *other_arr)
         return self.interpreter_to_output(out)
 
     def inference_from_dict(self, input_dict: Dict[str, np.ndarray]) \
@@ -425,10 +428,9 @@ class KerasMemory(KerasLinear):
         logger.info(f'Loaded {type(self).__name__} model with mem length'
                     f' {self.mem_length}')
 
-    def run(self, img_arr: np.ndarray, other_arr: List[float] = None) -> \
+    def run(self, img_arr: np.ndarray, *other_arr: List[float]) -> \
             Tuple[Union[float, np.ndarray], ...]:
         # Only called at start to fill the previous values
-
         np_mem_arr = np.array(self.mem_seq).reshape((2 * self.mem_length,))
         img_arr_norm = normalize_image(img_arr)
         angle, throttle = super().inference(img_arr_norm, np_mem_arr)
@@ -728,7 +730,7 @@ class KerasLSTM(KerasPilot):
         assert isinstance(y, tuple), 'Expected tuple'
         return {'model_outputs': list(y)}
 
-    def run(self, img_arr, other_arr=None):
+    def run(self, img_arr, *other_arr):
         if img_arr.shape[2] == 3 and self.input_shape[2] == 1:
             img_arr = dk.utils.rgb2gray(img_arr)
 
@@ -740,7 +742,7 @@ class KerasLSTM(KerasPilot):
         new_shape = (self.seq_length, *self.input_shape)
         img_arr = np.array(self.img_seq).reshape(new_shape)
         img_arr_norm = normalize_image(img_arr)
-        return self.inference(img_arr_norm, other_arr)
+        return self.inference(img_arr_norm, *other_arr)
 
     def interpreter_to_output(self, interpreter_out) \
             -> Tuple[Union[float, np.ndarray], ...]:
@@ -814,7 +816,7 @@ class Keras3D_CNN(KerasPilot):
         assert isinstance(y, tuple), 'Expected tuple'
         return {'outputs': list(y)}
 
-    def run(self, img_arr, other_arr=None):
+    def run(self, img_arr, *other_arr):
         if img_arr.shape[2] == 3 and self.input_shape[2] == 1:
             img_arr = dk.utils.rgb2gray(img_arr)
 
@@ -826,7 +828,7 @@ class Keras3D_CNN(KerasPilot):
         new_shape = (self.seq_length, *self.input_shape)
         img_arr = np.array(self.img_seq).reshape(new_shape)
         img_arr_norm = normalize_image(img_arr)
-        return self.inference(img_arr_norm, other_arr)
+        return self.inference(img_arr_norm, *other_arr)
 
     def interpreter_to_output(self, interpreter_out) \
             -> Tuple[Union[float, np.ndarray], ...]:

@@ -18,6 +18,7 @@ TubRecordDict = TypedDict(
     'TubRecordDict',
     {
         '_index': int,
+        '_session_id': str,
         'cam/image_array': str,
         'user/angle': float,
         'user/throttle': float,
@@ -33,6 +34,8 @@ TubRecordDict = TypedDict(
         'car/accel': Optional[List[float]],
         'car/gyro': Optional[List[float]],
         'car/speed': Optional[float],
+        'car/lap': Optional[int],
+        'lap_pct': Optional[float]
     }
 )
 
@@ -80,6 +83,17 @@ class TubRecord(object):
             _image = self._image
         return _image
 
+    def extend(self, session_lap_bin):
+        if not session_lap_bin:
+            return True
+        session_id = self.underlying['_session_id']
+        lap_i = self.underlying['car/lap']
+        # we won't get a result for the last lap as this is incomplete and
+        # doesn't have a time.
+        pct = session_lap_bin.get((session_id, lap_i))
+        self.underlying['lap_pct'] = pct
+        return pct is not None
+
     def __repr__(self) -> str:
         return repr(self.underlying)
 
@@ -90,13 +104,15 @@ class TubDataset(object):
     """
 
     def __init__(self, config: Config, tub_paths: List[str],
-                 seq_size: int = 0) -> None:
+                 seq_size: int = 0,
+                 add_lap_pct: bool = False) -> None:
         self.config = config
         self.tub_paths = tub_paths
         self.tubs: List[Tub] = [Tub(tub_path, read_only=True)
                                 for tub_path in self.tub_paths]
         self.records: List[TubRecord] = list()
         self.train_filter = getattr(config, 'TRAIN_FILTER', None)
+        self.add_lap_pct = add_lap_pct
         self.seq_size = seq_size
 
     def get_records(self) -> Union[List[TubRecord], List[List[TubRecord]]]:
@@ -104,17 +120,24 @@ class TubDataset(object):
             filtered_records = 0
             logger.info(f'Loading tubs from paths {self.tub_paths}')
             for tub in self.tubs:
+                session_lap_bin = None
+                if self.add_lap_pct:
+                    session_lap_bin = tub.calculate_lap_performance()
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)
                     if self.train_filter and not self.train_filter(record):
                         filtered_records += 1
-                    else:
+                    elif record.extend(session_lap_bin):
                         self.records.append(record)
             logger.info(f'Filtered our {filtered_records} records')
             if self.seq_size > 0:
                 seq = Collator(self.seq_size, self.records)
                 self.records = list(seq)
         return self.records
+
+    def close(self):
+        for tub in self.tubs:
+            tub.close()
 
 
 class Collator(Iterable[List[TubRecord]]):

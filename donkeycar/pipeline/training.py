@@ -2,7 +2,7 @@ import math
 import os
 from time import time
 from typing import List, Dict, Union, Tuple
-
+from logging import getLogger
 from tensorflow.python.keras.models import load_model
 
 from donkeycar.config import Config
@@ -16,6 +16,9 @@ from donkeycar.pipeline.augmentations import ImageAugmentation
 from donkeycar.utils import get_model_by_type, normalize_image, train_test_split
 import tensorflow as tf
 import numpy as np
+
+
+logger = getLogger(__name__)
 
 
 class BatchSequence(object):
@@ -113,12 +116,14 @@ def train(cfg: Config, tub_paths: str, model: str = None,
     tubs = tub_paths.split(',')
     all_tub_paths = [os.path.expanduser(tub) for tub in tubs]
     dataset = TubDataset(config=cfg, tub_paths=all_tub_paths,
-                         seq_size=kl.seq_size())
+                         seq_size=kl.seq_size(),
+                         add_lap_pct=kl.use_lap_pct())
     training_records, validation_records \
         = train_test_split(dataset.get_records(), shuffle=True,
                            test_size=(1. - cfg.TRAIN_TEST_SPLIT))
-    print(f'Records # Training {len(training_records)}')
-    print(f'Records # Validation {len(validation_records)}')
+    logger.info(f'Records # Training {len(training_records)}')
+    logger.info(f'Records # Validation {len(validation_records)}')
+    dataset.close()
 
     # We need augmentation in validation when using crop / trapeze
     training_pipe = BatchSequence(kl, cfg, training_records, is_train=True)

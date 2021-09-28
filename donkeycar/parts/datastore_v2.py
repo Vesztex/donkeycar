@@ -4,7 +4,6 @@ import mmap
 import os
 import time
 import logging
-from copy import copy, deepcopy
 from pathlib import Path
 
 

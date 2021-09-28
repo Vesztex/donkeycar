@@ -282,8 +282,7 @@ class Manifest(object):
                                            start_index=self.current_index)
         # Create a new session_id, which will be added to each record in the
         # tub, when Tub.write_record() is called.
-        self._new_sessions = None
-        self.session_id = self.create_new_session()
+        self.session_id = self.create_new_session_id()
 
         def exit_hook():
             if not self._is_closed:
@@ -386,22 +385,23 @@ class Manifest(object):
         self.catalog_metadata = catalog_metadata
         self.seekeable.writeline(json.dumps(catalog_metadata))
 
-    def create_new_session(self):
+    def _update_session_info(self):
         """ Creates a new session id and appends it to the metadata."""
         sessions = self.manifest_metadata.get('sessions', {})
-        self._new_sessions = deepcopy(sessions)
-        last_id = -1
-        if self._new_sessions:
-            last_id = self._new_sessions['last_id']
-        else:
-            self._new_sessions['all_full_ids'] = []
-        this_id = last_id + 1
-        date = time.strftime('%y-%m-%d')
-        this_full_id = date + '_' + str(this_id)
-        self._new_sessions['last_id'] = this_id
-        self._new_sessions['last_full_id'] = this_full_id
-        self._new_sessions['all_full_ids'].append(this_full_id)
-        return this_full_id
+        if not sessions:
+            sessions['all_full_ids'] = []
+        this_id, this_full_id = self.session_id
+        sessions['last_id'] = this_id
+        sessions['last_full_id'] = this_full_id
+        sessions['all_full_ids'].append(this_full_id)
+        self.manifest_metadata['sessions'] = sessions
+
+    def create_new_session_id(self):
+        """ Creates a new session id and appends it to the metadata."""
+        sessions = self.manifest_metadata.get('sessions', {})
+        new_id = sessions['last_id'] + 1 if sessions else 0
+        new_full_id = f"{time.strftime('%y-%m-%d')}_{new_id}"
+        return new_id, new_full_id
 
     def add_deleted_indexes(self, indexes):
         if isinstance(indexes, int):
@@ -438,7 +438,7 @@ class Manifest(object):
         # If records were received, write updated session_id dictionary into
         # the metadata, otherwise keep the session_id information unchanged
         if self._updated_session:
-            self.manifest_metadata['sessions'] = self._new_sessions
+            self._update_session_info()
             self.seekeable.update_line(3, json.dumps(self.metadata))
             self.seekeable.update_line(4, json.dumps(self.manifest_metadata))
         self.current_catalog.close()

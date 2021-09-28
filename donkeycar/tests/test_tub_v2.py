@@ -9,6 +9,7 @@ from donkeycar.config import Config
 
 class TestTub(unittest.TestCase):
     _path = None
+    tub = None
     delete_indexes = [3, 8]
 
     @classmethod
@@ -69,6 +70,7 @@ class TestTub(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
+        cls.tub.close()
         shutil.rmtree(cls._path)
 
 

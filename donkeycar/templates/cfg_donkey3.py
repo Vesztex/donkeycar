@@ -67,12 +67,15 @@ MODEL_CATEGORICAL_MAX_THROTTLE_RANGE = 0.5
 # RNN or 3D
 SEQUENCE_LENGTH = 3
 
+# For MemoryLap model
+LAP_PCT = 0.25
+
 # Augmentations and Transformations
 AUGMENTATIONS = []
 TRANSFORMATIONS = []
 # Settings for brightness and blur, use 'MULTIPLY' and/or 'BLUR' in
 # AUGMENTATIONS
-AUG_MULTIPLY_RANGE = (0.5, 1.5)
+AUG_MULTIPLY_RANGE = (0.5, 3.0)
 AUG_BLUR_RANGE = (0.0, 3.0)
 # Number of pixels to crop, requires 'CROP' in TRANSFORMATIONS to be set
 ROI_CROP_TOP = 45

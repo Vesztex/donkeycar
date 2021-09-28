@@ -726,13 +726,13 @@ class OverlayImage(FullImage):
 
     def get_image(self, record):
         from donkeycar.management.makemovie import MakeMovie
+        config = tub_screen().ids.config_manager.config
         orig_img_arr = super().get_image(record)
         aug_img_arr = self.augment(orig_img_arr)
         img_arr = copy(aug_img_arr)
         angle = record.underlying['user/angle']
         throttle = get_norm_value(
-            record.underlying[self.throttle_field],
-            tub_screen().ids.config_manager.config,
+            record.underlying[self.throttle_field], config,
             rc_handler.field_properties[self.throttle_field])
         rgb = (0, 255, 0)
         MakeMovie.draw_line_into_image(angle, throttle, False, img_arr, rgb)
@@ -743,7 +743,7 @@ class OverlayImage(FullImage):
             imu = record.underlying['car/accel'] + record.underlying['car/gyro']
             args = (aug_img_arr, imu)
         elif isinstance(self.pilot, KerasSquarePlusMemoryLap):
-            lap_pct = 0.25
+            lap_pct = getattr(config, 'LAP_PCT', 0.25)
             args = (aug_img_arr, [lap_pct])
         else:
             args = (aug_img_arr,)

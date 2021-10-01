@@ -60,12 +60,12 @@ MAX_EPOCHS = 200
 # MIN_DELTA = 0.000001
 USE_SPEED_FOR_MODEL = True
 # IMU_DIM = 2
-NN_SIZE = 'S'
+NN_SIZE = 'R'
 BATCH_SIZE = 1024
 
 # To suppress records when standing or just starting.
 def filter_record(record):
-    return record['car/speed'] > 0.5
+    return record.underlying['car/speed'] > 0.5
 TRAIN_FILTER = filter_record
 
 CACHE_IMAGES = False

@@ -156,9 +156,11 @@ class Tub(object):
             count = 0
             for i, lap_i in enumerate(laps_sorted):
                 rel_i = i / len(laps_sorted)
+                one_hot = [0] * len(bins)
                 if rel_i > bins[count]:
                     count += 1
-                session_lap_bin[(session_id, lap_i['lap'])] = bins[count]
+                one_hot[count] = 1
+                session_lap_bin[(session_id, lap_i['lap'])] = one_hot
         return session_lap_bin
 
     def close(self):

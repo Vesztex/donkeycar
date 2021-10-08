@@ -140,7 +140,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
             img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
         img_arr, mem_arr \
             = super().x_transform_and_process(record, img_processor)
-        lap_pct = np.array([record[-1].underlying['lap_pct']])
+        lap_pct = np.array(record[-1].underlying['lap_pct'])
         return img_arr, mem_arr, lap_pct
 
     def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
@@ -155,7 +155,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         img_shape = self.get_input_shapes()[0][1:]
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'mem_in': tf.TensorShape(2 * self.mem_length),
-                   'lap_pct_in': tf.TensorShape((1, ))},
+                   'lap_pct_in': tf.TensorShape([5])},
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])})
         return shapes
@@ -804,8 +804,13 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
     concat = [x, y]
     inputs = [img_in, mem_in]
     if has_lap_pct:
-        lap_in = Input(shape=(1,), name='lap_pct_in')
-        concat.append(lap_in)
+        # tensorflow is ordering the model inputs alphabetically in tensorrt,
+        # so behavior must come after image, hence we put an x here in front.
+        lap_in = Input(shape=(5,), name='lap_pct_in')
+        lap = Dense(10, activation='relu')(lap_in)
+        lap = Dense(10, activation='relu')(lap)
+        lap = Dense(10, activation='relu')(lap)
+        concat.append(lap)
         inputs.append(lap_in)
     z = concatenate(concat)
 

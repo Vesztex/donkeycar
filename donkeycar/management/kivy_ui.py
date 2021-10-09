@@ -743,7 +743,7 @@ class OverlayImage(FullImage):
             imu = record.underlying['car/accel'] + record.underlying['car/gyro']
             args = (aug_img_arr, imu)
         elif isinstance(self.pilot, KerasSquarePlusMemoryLap):
-            lap_pct = getattr(config, 'LAP_PCT', 0.25)
+            lap_pct = getattr(config, 'LAP_PCT', [0, 0, 1, 0, 0])
             args = (aug_img_arr, [lap_pct])
         else:
             args = (aug_img_arr,)

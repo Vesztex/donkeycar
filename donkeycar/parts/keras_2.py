@@ -125,14 +125,17 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
                  interpreter: Interpreter = KerasInterpreter(),
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
+        self.lap_bins: int = kwargs['num_lap_bins']
+        assert self.lap_bins > 0, "Need at least one bin for lap model"
         super().__init__(interpreter, input_shape, *args, **kwargs)
 
-    def use_lap_pct(self) -> bool:
-        return True
+    def num_lap_bins(self) -> int:
+        return self.lap_bins
 
     def create_model(self):
         return linear_square_plus_mem(self.input_shape, self.size,
-                                      self.mem_length, self.mem_depth, True)
+                                      self.mem_length, self.mem_depth,
+                                      self.num_lap_bins())
 
     def x_transform_and_process(
             self,
@@ -140,32 +143,35 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
             img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
         img_arr, mem_arr \
             = super().x_transform_and_process(record, img_processor)
-        lap_pct = np.array(record[-1].underlying['lap_pct'])
-        return img_arr, mem_arr, lap_pct
+        lap_state = np.array(record[-1].underlying['lap_state'])
+        return img_arr, mem_arr, lap_state
 
     def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
         """ Translates x into dictionary where all model input layer's names
             must be matched by dictionary keys. """
         assert(isinstance(x, tuple)), 'Tuple expected'
         img_arr, mem, lap_pct = x
-        return {'img_in': img_arr, 'mem_in': mem, 'lap_pct_in': lap_pct}
+        return {'img_in': img_arr, 'mem_in': mem, 'xlap_state_in': lap_pct}
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
         img_shape = self.get_input_shapes()[0][1:]
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'mem_in': tf.TensorShape(2 * self.mem_length),
-                   'lap_pct_in': tf.TensorShape([5])},
+                   'xlap_state_in': tf.TensorShape([self.lap_bins])},
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])})
         return shapes
 
-    def run(self, img_arr: np.ndarray, lap_pct: List[float]) -> \
+    def run(self, img_arr: np.ndarray, lap_state: List[float]) -> \
             Tuple[Union[float, np.ndarray], ...]:
         # Only called at start to fill the previous values
+        assert len(lap_state) == self.lap_bins, \
+            f"Expected lap state array of size {self.lap_bins} but " \
+            f"received {lap_state}"
         np_mem_arr = np.array(self.mem_seq).reshape((2 * self.mem_length,))
         img_arr_norm = normalize_image(img_arr)
-        np_lap_arr = np.array(lap_pct)
+        np_lap_arr = np.array(lap_state)
         angle, throttle = super().inference(img_arr_norm, np_mem_arr,
                                             np_lap_arr)
         # fill new values into back of history list for next call
@@ -786,7 +792,7 @@ def linear_square_plus_imu(input_shape=(120, 160, 3),
 
 def linear_square_plus_mem(input_shape=(120, 160, 3),
                            size='S', mem_length=3, mem_depth=0,
-                           has_lap_pct=False):
+                           num_lap_bins=0):
     l2 = 0.001
     drop2 = 0.1 #0.02 #0.1
     img_in = Input(shape=input_shape, name='img_in')
@@ -803,25 +809,25 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
 
     concat = [x, y]
     inputs = [img_in, mem_in]
-    if has_lap_pct:
+    if num_lap_bins > 0:
         # tensorflow is ordering the model inputs alphabetically in tensorrt,
         # so behavior must come after image, hence we put an x here in front.
-        lap_in = Input(shape=(5,), name='lap_pct_in')
-        lap = Dense(10, activation='relu')(lap_in)
-        lap = Dense(10, activation='relu')(lap)
-        lap = Dense(10, activation='relu')(lap)
+        lap_in = Input(shape=(num_lap_bins,), name='xlap_state_in')
+        lap = lap_in
+        for i in range(3):
+            lap = Dense(10, activation='relu', name=f'lap_{i}')(lap)
         concat.append(lap)
         inputs.append(lap_in)
     z = concatenate(concat)
 
     model = square_plus_output_layers(z, size, l2, inputs, None, None,
-                                      mem_length, has_lap_pct)
+                                      mem_length, num_lap_bins)
     return model
 
 
 def square_plus_output_layers(in_tensor, size, l2, model_inputs,
                               imu_dim=None, seq_len=None, mem_len=None,
-                              has_lap_pct=False):
+                              num_lap_bins=0):
     layers = square_plus_dense(size)
     z = in_tensor
     for i, l in zip(range(len(layers)), layers):
@@ -840,14 +846,14 @@ def square_plus_output_layers(in_tensor, size, l2, model_inputs,
     throttle_out = Dense(units=1, activation='sigmoid', name='throttle')(z)
     if len(model_inputs) > 1:
         if imu_dim:
-            name = 'SquarePlusImu_' + size + '_' + str(imu_dim)
-        elif has_lap_pct:
-            name = 'SquarePlusMemLap_' + size + '_' + str(mem_len)
+            name = f'SquarePlusImu_{size}_{imu_dim}'
+        elif num_lap_bins > 0:
+            name = f'SquarePlusMemLap_{size}_{mem_len}_{num_lap_bins}'
         elif mem_len:
-            name = 'SquarePlusMem_' + size + '_' + str(mem_len)
+            name = f'SquarePlusMem_{size}_{mem_len}'
             assert seq_len is None, "SquarePlusMem doesn't work with LSTM"
         else:
-            raise RuntimeError("Needs imu or mem length")
+            raise RuntimeError("Needs imu dim or mem length")
     else:
         name = 'SquarePlus_' + size
     if seq_len:

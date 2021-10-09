@@ -68,7 +68,9 @@ MODEL_CATEGORICAL_MAX_THROTTLE_RANGE = 0.5
 SEQUENCE_LENGTH = 3
 
 # For MemoryLap model
-LAP_PCT = 0.25
+LAP_BINS = [0.1, 0.25, 0.45, 0.7, 1.0]
+# Default to second fastest set of laps
+LAP_STATE = [0, 1, 0, 0, 0]
 
 # Augmentations and Transformations
 AUGMENTATIONS = []

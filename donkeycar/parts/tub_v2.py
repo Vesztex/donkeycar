@@ -135,12 +135,12 @@ class Tub(object):
                 meta_session_id_dict['laptimer'] = v
         logger.info(f'Generated lap times {res}')
 
-    def calculate_lap_performance(self, bins=[0.1, 0.25, 0.45, 0.7, 1.0]):
+    def calculate_lap_performance(self, config):
         """
         Creates a dictionary of (session_id, lap) keys and int values
         where 0 is the fastest loop and num_bins-1 is the slowest.
-        :param bins:    lap time percentiles
-        :return:        dictionary of type ((session_id, lap, bin)
+        :param config:  donkey config to look up lap time pct bins
+        :return:        dictionary of type ((session_id, lap, state_vector)
         """
         sessions \
             = self.manifest.manifest_metadata['sessions']['all_full_ids']
@@ -156,8 +156,8 @@ class Tub(object):
             count = 0
             for i, lap_i in enumerate(laps_sorted):
                 rel_i = i / len(laps_sorted)
-                one_hot = [0] * len(bins)
-                if rel_i > bins[count]:
+                one_hot = [0] * len(config.LAP_BINS)
+                if rel_i > config.LAP_BINS[count]:
                     count += 1
                 one_hot[count] = 1
                 session_lap_bin[(session_id, lap_i['lap'])] = one_hot

@@ -117,7 +117,7 @@ def train(cfg: Config, tub_paths: str, model: str = None,
     all_tub_paths = [os.path.expanduser(tub) for tub in tubs]
     dataset = TubDataset(config=cfg, tub_paths=all_tub_paths,
                          seq_size=kl.seq_size(),
-                         add_lap_pct=kl.use_lap_pct())
+                         add_lap_state=kl.num_lap_bins() > 0)
     training_records, validation_records \
         = train_test_split(dataset.get_records(), shuffle=True,
                            test_size=(1. - cfg.TRAIN_TEST_SPLIT))

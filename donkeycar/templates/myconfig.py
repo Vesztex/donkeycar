@@ -79,6 +79,8 @@ SEQUENCE_LENGTH = 3
 SEQUENCE_TRAIN_STEP_SIZE = 1
 ENCODER_PATH = 'models/encoder.h5'
 OVERWRITE_LATENT = False
+LAP_STATE_L = [0, 0, 0, 0, 1]
+LAP_STATE_R = [1, 0, 0, 0, 0]
 
 # PI DATA
 PI_HOSTNAME = 'donkeypi.local'

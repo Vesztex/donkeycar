@@ -716,6 +716,7 @@ class OverlayImage(FullImage):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.is_left = True
 
     def augment(self, img_arr):
         if pilot_screen().trans_list:
@@ -743,8 +744,9 @@ class OverlayImage(FullImage):
             imu = record.underlying['car/accel'] + record.underlying['car/gyro']
             args = (aug_img_arr, imu)
         elif isinstance(self.pilot, KerasSquarePlusMemoryLap):
-            lap_pct = getattr(config, 'LAP_PCT', [0, 0, 1, 0, 0])
-            args = (aug_img_arr, [lap_pct])
+            lap_state = getattr(config, 'LAP_STATE_L', 'LAP_STATE') if \
+                self.is_left else getattr(config, 'LAP_STATE_R', 'LAP_STATE')
+            args = (aug_img_arr, lap_state)
         else:
             args = (aug_img_arr,)
         output = (0, 0)
@@ -906,12 +908,13 @@ class TrainScreen(Screen):
                             comment=self.ids.comment.text)
             self.ids.status.text = f'Training completed.'
             self.ids.comment.text = 'Comment'
-            self.ids.train_button.state = 'normal'
             self.ids.transfer_spinner.text = 'Choose transfer model'
             self.reload_database()
         except Exception as e:
             Logger.error(e)
             self.ids.status.text = f'Train failed see console'
+        finally:
+            self.ids.train_button.state = 'normal'
 
     def train(self, model_type):
         self.config.SHOW_PLOT = False

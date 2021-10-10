@@ -155,12 +155,14 @@ class Tub(object):
             laps_sorted = sorted(lap_timer, key=itemgetter('time'))
             count = 0
             for i, lap_i in enumerate(laps_sorted):
+                # jump over lap 0 as it is incomplete
+                if lap_i == 0:
+                    continue
                 rel_i = i / len(laps_sorted)
-                one_hot = [0] * len(config.LAP_BINS)
                 if rel_i > config.LAP_BINS[count]:
                     count += 1
-                one_hot[count] = 1
-                session_lap_bin[(session_id, lap_i['lap'])] = one_hot
+                session_lap_bin[(session_id, lap_i['lap'])] \
+                    = config.LAP_BINS[count]
         return session_lap_bin
 
     def close(self):

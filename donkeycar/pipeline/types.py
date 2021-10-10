@@ -35,7 +35,7 @@ TubRecordDict = TypedDict(
         'car/gyro': Optional[List[float]],
         'car/speed': Optional[float],
         'car/lap': Optional[int],
-        'lap_state': Optional[List[int]]
+        'lap_pct': Optional[float]
     }
 )
 
@@ -90,9 +90,9 @@ class TubRecord(object):
         lap_i = self.underlying['car/lap']
         # we won't get a result for the last lap as this is incomplete and
         # doesn't have a time.
-        state = session_lap_bin.get((session_id, lap_i))
-        self.underlying['lap_state'] = state
-        return state is not None
+        pct = session_lap_bin.get((session_id, lap_i))
+        self.underlying['lap_pct'] = pct
+        return pct is not None
 
     def __repr__(self) -> str:
         return repr(self.underlying)
@@ -105,14 +105,14 @@ class TubDataset(object):
 
     def __init__(self, config: Config, tub_paths: List[str],
                  seq_size: int = 0,
-                 add_lap_state: bool = False) -> None:
+                 add_lap_pct: bool = False) -> None:
         self.config = config
         self.tub_paths = tub_paths
         self.tubs: List[Tub] = [Tub(tub_path, read_only=True)
                                 for tub_path in self.tub_paths]
         self.records: List[TubRecord] = list()
         self.train_filter = getattr(config, 'TRAIN_FILTER', None)
-        self.add_lap_state = add_lap_state
+        self.add_lap_pct = add_lap_pct
         self.seq_size = seq_size
 
     def get_records(self) -> Union[List[TubRecord], List[List[TubRecord]]]:
@@ -121,7 +121,7 @@ class TubDataset(object):
             logger.info(f'Loading tubs from paths {self.tub_paths}')
             for tub in self.tubs:
                 session_lap_bin = None
-                if self.add_lap_state:
+                if self.add_lap_pct:
                     session_lap_bin = tub.calculate_lap_performance(self.config)
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)

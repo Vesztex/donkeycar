@@ -525,8 +525,7 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
             interpreter=interpreter, input_shape=input_shape, size=cfg.NN_SIZE,
             use_speed=cfg.USE_SPEED_FOR_MODEL,
             max_speed=cfg.MAX_SPEED,
-            mem_length=mem_length, mem_depth=mem_depth,
-            num_lap_bins=len(cfg.LAP_BINS))
+            mem_length=mem_length, mem_depth=mem_depth)
     else:
         known = [k + u for k in ('', 'tflite_', 'tensorrt_')
                  for u in used_model_type.mem]

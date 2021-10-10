@@ -94,8 +94,8 @@ class KerasPilot(ABC):
     def seq_size(self) -> int:
         return 0
 
-    def num_lap_bins(self) -> int:
-        return 0
+    def use_lap_pct(self) -> bool:
+        return False
 
     def run(self, img_arr: np.ndarray, *other_arr: List[float]) \
             -> Tuple[Union[float, np.ndarray], ...]:

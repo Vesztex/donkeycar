@@ -572,6 +572,20 @@
             height: layout_height
             padding: layout_pad_xy
             spacing: layout_pad_x
+            MySpinner:
+                id: delete_spinner
+                text: 'pilot'
+            Button:
+                id: delete_btn
+                on_press:
+                    root.database.delete_entry(delete_spinner.text)
+                    root.reload_database()
+                text: 'Delete pilot'
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
             Label:
                 text: 'Group multiple tubs'
             ToggleButton:

@@ -744,8 +744,8 @@ class OverlayImage(FullImage):
             imu = record.underlying['car/accel'] + record.underlying['car/gyro']
             args = (aug_img_arr, imu)
         elif isinstance(self.pilot, KerasSquarePlusMemoryLap):
-            lap_pct = getattr(config, 'LAP_PCT_L', 'LAP_PCT') if \
-                self.is_left else getattr(config, 'LAP_PCT_R', 'LAP_PCT')
+            lap_pct = getattr(config, 'LAP_PCT_L', config.LAP_PCT) if \
+                self.is_left else getattr(config, 'LAP_PCT_R', config.LAP_PCT)
             # lap_pct needs to be passed as array, as this is the run interface
             args = (aug_img_arr, [lap_pct])
         else:
@@ -956,6 +956,7 @@ class TrainScreen(Screen):
         self.ids.scroll_pilots.text = pilot_txt
         values = ['Choose transfer model'] + pilot_names
         self.ids.transfer_spinner.values = values
+        self.ids.delete_spinner.values = values
 
 
 class CarScreen(Screen):

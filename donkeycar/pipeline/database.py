@@ -2,6 +2,8 @@ from datetime import datetime
 import json
 import os
 import time
+import shutil
+import glob
 from typing import Dict, List, Tuple
 import pandas as pd
 import logging
@@ -64,6 +66,23 @@ class PilotDatabase:
     def add_entry(self, entry: Dict):
         self.entries.append(entry)
 
+    def delete_entry(self, pilot_name):
+        to_delete_entry = None
+        for entry in self.entries:
+            if entry['Name'] == pilot_name:
+                to_delete_entry = entry
+        if to_delete_entry:
+            full_path = os.path.join(self.cfg.MODELS_PATH, pilot_name)
+            model_versions = glob.glob(f'{full_path}.*')
+            logger.info(f'Deleting {",".join(model_versions)}')
+            for model_version in model_versions:
+                if os.path.isdir(model_version):
+                    shutil.rmtree(model_version, ignore_errors=True)
+                else:
+                    os.remove(model_version)
+            self.entries.remove(to_delete_entry)
+            self.write()
+
     def to_df_tubgrouped(self):
         def sorted_string(comma_separated_string):
             """ Return sorted list of comma separated string list"""
@@ -96,7 +115,7 @@ class PilotDatabase:
     def formatter():
         def time_fmt(t):
             fmt = '%Y-%m-%d %H:%M:%S'
-            return datetime.fromtimestamp(t).strftime(format=fmt)
+            return datetime.fromtimestamp(t).strftime(fmt)
 
         def transfer_fmt(model_name):
             return model_name.replace('.h5', '')

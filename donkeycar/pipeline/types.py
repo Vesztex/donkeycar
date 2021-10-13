@@ -6,7 +6,8 @@ import logging
 import numpy as np
 from donkeycar.config import Config
 from donkeycar.parts.tub_v2 import Tub
-from donkeycar.utils import load_image, load_pil_image
+from donkeycar.utils import load_image, load_pil_image, img_to_binary, \
+    binary_to_img, arr_to_img, img_to_arr
 from typing_extensions import TypedDict
 from PIL.Image import Image
 
@@ -63,6 +64,9 @@ class TubRecord(object):
         Returns: Image, either np array or Pil image
         """
 
+        if cached is None:
+            cached = self.config.CACHE_IMAGES
+
         if self._image is None:
             image_path = self.underlying['cam/image_array']
             full_path = os.path.join(self.base_path, 'images', image_path)
@@ -75,12 +79,14 @@ class TubRecord(object):
                 # If you just want the raw Image
                 _image = load_pil_image(full_path, cfg=self.config)
 
-            if cached is None:
-                cached = self.config.CACHE_IMAGES
-            if cached:
+            if cached is True:
                 self._image = _image
+            elif cached == 'BINARY' and as_nparray:
+                self._image = img_to_binary(arr_to_img(_image))
         else:
             _image = self._image
+            if cached == 'BINARY' and as_nparray:
+                _image = img_to_arr(binary_to_img(_image))
         return _image
 
     def extend(self, session_lap_bin):

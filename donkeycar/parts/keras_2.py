@@ -807,7 +807,9 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
         lap_in = Input(shape=(1,), name='xlap_pct_in')
         xl = lap_in
         for i in range(3):
-            xl = Dense(16, activation='relu', name=f'lap_{i}')(xl)
+            # using elu here so we get some extrapolation if we put smaller
+            # values than the minimum percentile we used in training
+            xl = Dense(16, 'elu', name=f'lap_{i}')(xl)
         concat.append(xl)
         inputs.append(lap_in)
     z = concatenate(concat)

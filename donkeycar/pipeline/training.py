@@ -136,7 +136,7 @@ def train(cfg: Config, tub_paths: str, model: str = None,
 
     assert val_size > 0, "Not enough validation data, decrease the batch " \
                          "size or add more data."
-
+    logger.info(f'Train with image caching: {cfg.CACHE_IMAGES}')
     history = kl.train(model_path=model_path,
                        train_data=dataset_train,
                        train_steps=train_size,

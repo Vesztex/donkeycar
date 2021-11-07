@@ -107,7 +107,7 @@ class ImageAugmentation:
                         max_y=config.ROI_TRAPEZE_MAX_Y)
 
         elif aug_type == 'MULTIPLY':
-            interval = getattr(config, 'AUG_MULTIPLY_RANGE', (0.5, 1.5))
+            interval = getattr(config, 'AUG_MULTIPLY_RANGE', (0.5, 3.0))
             logger.info(f'Creating augmentation {aug_type} {interval}')
             return iaa.Multiply(interval)
 

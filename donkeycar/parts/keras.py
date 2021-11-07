@@ -7,7 +7,7 @@ logic used to determine the angle and throttle of a vehicle. Pilots can
 include one or more models to help direct the vehicles motion.
 
 """
-
+import datetime
 from abc import ABC, abstractmethod
 from collections import deque
 
@@ -174,6 +174,8 @@ class KerasPilot(ABC):
                             save_best_only=True,
                             verbose=verbose)]
 
+        tic = datetime.datetime.now()
+        logger.info('////////// Starting training //////////')
         history: tf.keras.callbacks.History = model.fit(
             x=train_data,
             steps_per_epoch=train_steps,
@@ -185,6 +187,8 @@ class KerasPilot(ABC):
             verbose=verbose,
             workers=1,
             use_multiprocessing=False)
+        toc = datetime.datetime.now()
+        logger.info(f'////////// Finished training in: {toc - tic} //////////')
 
         if show_plot:
             try:

@@ -158,11 +158,17 @@ class Tub(object):
                 # jump over lap 0 as it is incomplete
                 if lap_i == 0:
                     continue
-                rel_i = i / len(laps_sorted)
-                if rel_i > config.LAP_BINS[count]:
-                    count += 1
-                session_lap_bin[(session_id, lap_i['lap'])] \
-                    = config.LAP_BINS[count]
+                # binning into given bins
+                if isinstance(config.LAP_BINS, list):
+                    rel_i = i / len(laps_sorted)
+                    if rel_i > config.LAP_BINS[count]:
+                        count += 1
+                    session_lap_bin[(session_id, lap_i['lap'])] \
+                        = config.LAP_BINS[count]
+                # binning all into equidistant bins
+                elif config.LAP_BINS:
+                    rel_i = (i + 1) / len(laps_sorted)
+                    session_lap_bin[(session_id, lap_i['lap'])] = rel_i
         return session_lap_bin
 
     def close(self):

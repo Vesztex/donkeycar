@@ -787,9 +787,8 @@ class PilotScreen(Screen):
         """ Kivy method that is called if self.index changes. Here we update
             self.current_record and the slider value. """
         if tub_screen().ids.tub_loader.records:
-            if tub_screen().ids.tub_loader.records:
-                self.current_record = tub_screen().ids.tub_loader.records[index]
-                self.ids.slider.value = index
+            self.current_record = tub_screen().ids.tub_loader.records[index]
+            self.ids.slider.value = index
 
     def on_current_record(self, obj, record):
         """ Kivy method that is called when self.current_index changes. Here

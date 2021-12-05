@@ -1,5 +1,6 @@
 import copy
 import time
+import logging
 import numpy as np
 from typing import Dict, Tuple, Optional, Union, List, Sequence, Callable
 import tensorflow as tf
@@ -8,12 +9,15 @@ from tensorflow.keras import regularizers
 from tensorflow.python.keras import Model, Input
 from tensorflow.python.keras.layers import Dense, concatenate, Conv2D, \
     BatchNormalization, Dropout, Flatten, Reshape, UpSampling2D, \
-    Conv2DTranspose, LSTM, MaxPooling2D, TimeDistributed as TD
+    Conv2DTranspose, LSTM, MaxPooling2D, TimeDistributed as TD, LeakyReLU
 
 from donkeycar.parts.interpreter import Interpreter, KerasInterpreter
 from donkeycar.parts.keras import KerasLinear, XY, KerasMemory
 from donkeycar.pipeline.types import TubRecord
 from donkeycar.utils import normalize_image
+
+
+logger = logging.getLogger(__name__)
 
 
 class KerasSquarePlus(KerasLinear):
@@ -804,12 +808,14 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
     concat = [x, y]
     inputs = [img_in, mem_in]
     if has_lap_pct:
+        # using leaky relu here with negative branch so we get some
+        # extrapolation if we put smaller values than the minimum percentile
+        # we used in training
         lap_in = Input(shape=(1,), name='xlap_pct_in')
         xl = lap_in
         for i in range(3):
-            # using elu here so we get some extrapolation if we put smaller
-            # values than the minimum percentile we used in training
-            xl = Dense(16, 'elu', name=f'lap_{i}')(xl)
+            xl = Dense(16, name=f'lap_{i}')(xl)
+            xl = LeakyReLU(alpha=0.5)(xl)
         concat.append(xl)
         inputs.append(lap_in)
     z = concatenate(concat)

@@ -1,7 +1,7 @@
 import json
 import re
 import time
-from copy import copy
+from copy import copy, deepcopy
 from datetime import datetime
 from functools import partial
 from subprocess import Popen, PIPE, STDOUT
@@ -759,7 +759,7 @@ class OverlayImage(FullImage):
 
         rgb = (0, 0, 255)
         MakeMovie.draw_line_into_image(output[0], output[1], True, img_arr, rgb)
-        out_record = copy(record)
+        out_record = deepcopy(record)
         out_record.underlying['pilot/angle'] = output[0]
         # rename and denormalise the throttle output
         pilot_throttle_field \
@@ -812,7 +812,7 @@ class PilotScreen(Screen):
 
     def map_pilot_field(self, text):
         """ Method to return user -> pilot mapped fields except for the
-            intial vale called Add/remove. """
+            initial value called Add/remove. """
         if text == LABEL_SPINNER_TEXT:
             return text
         return rc_handler.data['user_pilot_map'][text]

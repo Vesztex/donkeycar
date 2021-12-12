@@ -1,4 +1,4 @@
-name: donkey_test
+name: donkey
 
 channels:
   - defaults

@@ -1,4 +1,4 @@
-name: donkey
+name: donkey_test
 
 channels:
   - defaults
@@ -6,7 +6,7 @@ channels:
   - pytorch
 
 dependencies:
-  - python=3.7
+  - python=3.9
   - h5py
   - pillow
   - opencv
@@ -34,8 +34,8 @@ dependencies:
   - psutil
   - kivy=2.0.0
   - plotly
-  - tensorflow==2.2.0
   - pip:
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid
     - opencv-python-headless
+    - tensorflow-gpu==2.6.2

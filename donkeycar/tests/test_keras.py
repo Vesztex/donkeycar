@@ -10,7 +10,7 @@ from donkeycar.parts.interpreter import keras_to_tflite, \
 from donkeycar.parts.keras import *
 from donkeycar.utils import get_test_img
 
-TOLERANCE = 1e-4
+TOLERANCE = 1e-3
 
 
 @pytest.fixture

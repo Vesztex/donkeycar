@@ -118,6 +118,8 @@ class TubDataset(object):
     def get_records(self) -> Union[List[TubRecord], List[List[TubRecord]]]:
         if not self.records:
             filtered_records = 0
+            non_ext_records = 0
+            used_records = 0
             logger.info(f'Loading tubs from paths {self.tub_paths}')
             for tub in self.tubs:
                 session_lap_bin = None
@@ -129,7 +131,13 @@ class TubDataset(object):
                         filtered_records += 1
                     elif record.extend(session_lap_bin):
                         self.records.append(record)
-            logger.info(f'Filtered out {filtered_records} records')
+                        used_records += 1
+                    else:
+                        non_ext_records += 1
+            total_records = used_records + filtered_records + non_ext_records
+            logger.info(f'Records: # Total {total_records}  # Used '
+                        f'{used_records}  # Filtered {filtered_records}  # '
+                        f'NonExt {non_ext_records}')
             if self.seq_size > 0:
                 seq = Collator(self.seq_size, self.records)
                 self.records = list(seq)

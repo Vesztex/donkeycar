@@ -7,7 +7,7 @@ from functools import partial
 from subprocess import Popen, PIPE, STDOUT
 from threading import Thread
 from collections import namedtuple
-from kivy.logger import Logger
+from kivy.logger import Logger, LOG_LEVELS
 
 import io
 import os
@@ -33,7 +33,6 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import SpinnerOption, Spinner
 
 from donkeycar import load_config
-from donkeycar.parts.datastore_v2 import Manifest
 from donkeycar.parts.keras_2 import KerasSquarePlusImu, KerasSquarePlusMemoryLap
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.augmentations import ImageAugmentation
@@ -42,7 +41,7 @@ from donkeycar.pipeline.types import TubRecord
 from donkeycar.utils import get_model_by_type
 from donkeycar.pipeline.training import train
 
-Logger.propagate = False
+Logger.setLevel(LOG_LEVELS["info"])
 
 Builder.load_file(os.path.join(os.path.dirname(__file__), 'ui.kv'))
 Window.clearcolor = (0.2, 0.2, 0.2, 1)
@@ -259,16 +258,17 @@ class TubLoader(BoxLayout, FileChooserBase):
             tub_screen().status(f'Failed loading tub: {str(e)}')
             return False
         # Check if filter is set in tub screen
-        expression = tub_screen().ids.tub_filter.filter_expression
+        # expression = tub_screen().ids.tub_filter.filter_expression
+        train_filter = getattr(cfg, 'TRAIN_FILTER', None)
 
         # Use filter, this defines the function
         def select(underlying):
-            if not expression:
+            if not train_filter:
                 return True
             else:
                 try:
                     record = TubRecord(cfg, self.tub.base_path, underlying)
-                    res = eval(expression)
+                    res = train_filter(record)
                     return res
                 except KeyError as err:
                     Logger.error(f'Filter: {err}')
@@ -283,8 +283,6 @@ class TubLoader(BoxLayout, FileChooserBase):
             msg = f'Loaded tub {self.file_path} with {self.len} records'
         else:
             msg = f'No records in tub {self.file_path}'
-        if expression:
-            msg += f' using filter {tub_screen().ids.tub_filter.record_filter}'
         tub_screen().status(msg)
         return True
 
@@ -535,22 +533,33 @@ class TubFilter(PaddedBoxLayout):
 
     def update_filter(self):
         filter_text = self.ids.record_filter.text
+        config = tub_screen().ids.config_manager.config
         # empty string resets the filter
         if filter_text == '':
             self.record_filter = ''
             self.filter_expression = ''
             rc_handler.data['record_filter'] = self.record_filter
+            if hasattr(config, 'TRAIN_FILTER'):
+                delattr(config, 'TRAIN_FILTER')
             tub_screen().status(f'Filter cleared')
             return
         filter_expression = self.create_filter_string(filter_text)
         try:
             record = tub_screen().current_record
-            res = eval(filter_expression)
+            filter_func_text = f"""def filter_func(record): 
+                                       return {filter_expression}       
+                                """
+            # creates the function 'filter_func'
+            ldict = {}
+            exec(filter_func_text, globals(), ldict)
+            filter_func = ldict['filter_func']
+            res = filter_func(record)
             status = f'Filter result on current record: {res}'
             if isinstance(res, bool):
                 self.record_filter = filter_text
                 self.filter_expression = filter_expression
                 rc_handler.data['record_filter'] = self.record_filter
+                setattr(config, 'TRAIN_FILTER', filter_func)
             else:
                 status += ' - non bool expression can\'t be applied'
             status += ' - press <Reload tub> to see effect'

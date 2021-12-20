@@ -8,6 +8,10 @@
 # The update operation will not touch this file.
 # """
 
+# IMAGE
+IMAGE_W = 196
+IMAGE_H = 144
+
 # VEHICLE
 DRIVE_LOOP_HZ = 40
 FREQ_REDUCTION_WITH_AI = 1.0
@@ -28,7 +32,7 @@ BATCH_SIZE = 1024
 # To suppress records when standing or just starting.
 def filter_record(record):
     return record.underlying['car/speed'] > 0.5
-TRAIN_FILTER = filter_record
+#TRAIN_FILTER = filter_record
 
 CACHE_IMAGES = True
 FREEZE_LAYERS = False
@@ -47,3 +51,9 @@ LAP_PCT_R = 1.0
 # AUTOPILOT
 AI_THROTTLE_MULT = 1.0
 
+# GYM
+DONKEY_GYM_ENV_NAME = "donkey-circuit-launch-track-v0"
+GYM_CONF = {"body_style": "car01", "body_rgb": (96, 96, 96),
+            "car_name": "DocGarbanzo", "font_size": 40,
+            "cam_resolution": (IMAGE_H, IMAGE_W, 3),
+            "cam_config": {'img_h': IMAGE_H, 'img_w': IMAGE_W}}

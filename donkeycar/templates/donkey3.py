@@ -10,6 +10,7 @@ Usage:
     manage.py (calibrate)
     manage.py (stream)
     manage.py (led)
+    manage.py (gym) [--model=<path_to_pilot>] [--type=<model_type>] [--verbose]
 
 Options:
     -h --help        Show this screen.
@@ -19,9 +20,6 @@ from docopt import docopt
 import logging
 import donkeycar as dk
 import donkeycar.parts
-from donkeycar.parts.camera import PiCamera, FrameStreamer
-from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
-    RCReceiver, ModeSwitch, ThrottleOffSwitch
 from donkeycar.parts.tub_v2 import TubWiper, TubWriter
 from donkeycar.parts.file_watcher import FileWatcher
 from donkeycar.parts.keras_2 import ModelLoader
@@ -30,8 +28,7 @@ from donkeycar.parts.transform import SimplePidController, \
     SpeedRescaler, RecordingCondition
 from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
-from donkeycar.parts.imu import Mpu6050Ada
-from donkeycar.parts.led_status import LEDStatus
+from donkeycar.parts.web_controller.web import LocalWebController
 from donkeycar.pipeline.augmentations import ImageAugmentation
 
 logger = logging.getLogger(__name__)
@@ -57,6 +54,12 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     framework handles passing named outputs to parts requesting the same named
     input.
     """
+    from donkeycar.parts.imu import Mpu6050Ada
+    from donkeycar.parts.camera import PiCamera, FrameStreamer
+    from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
+        RCReceiver, ModeSwitch, ThrottleOffSwitch
+    from donkeycar.parts.led_status import LEDStatus
+
     if verbose:
         donkeycar.logger.setLevel(logging.DEBUG)
     if no_cam:
@@ -243,6 +246,8 @@ def calibrate(cfg):
     third channel on the remote we can use it for wiping bad data while
     recording, so we print its values here, too.
     """
+    from donkeycar.parts.actuator import RCReceiver
+
     donkey_car = dk.vehicle.Vehicle()
     # create the RC receiver
     rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
@@ -268,6 +273,7 @@ def calibrate(cfg):
 
 
 def stream(cfg):
+    from donkeycar.parts.camera import PiCamera, FrameStreamer
     car = dk.vehicle.Vehicle()
     hz = 20
     cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
@@ -299,6 +305,120 @@ def led(cfg):
     car.start(rate_hz=40, max_loop_count=2000)
 
 
+def gym(cfg, model_path=None, model_type=None, verbose=False):
+    """
+    Running donkey gym
+    """
+    from donkeycar.parts.dgym import DonkeyGymEnv
+
+    if verbose:
+        donkeycar.logger.setLevel(logging.DEBUG)
+
+    car = dk.vehicle.Vehicle()
+    car_frequency = cfg.DRIVE_LOOP_HZ
+    cam = DonkeyGymEnv(cfg.DONKEY_SIM_PATH, host=cfg.SIM_HOST,
+                       env_name=cfg.DONKEY_GYM_ENV_NAME, conf=cfg.GYM_CONF,
+                       record_location=cfg.SIM_RECORD_LOCATION,
+                       record_gyroaccel=cfg.SIM_RECORD_GYROACCEL,
+                       record_velocity=cfg.SIM_RECORD_VELOCITY,
+                       record_lidar=cfg.SIM_RECORD_LIDAR,
+                       delay=cfg.SIM_ARTIFICIAL_LATENCY)
+    threaded = True
+    inputs = ['angle', 'throttle']
+    outputs = [CAM_IMG]
+    if cfg.SIM_RECORD_LOCATION:
+        outputs += ['pos/pos_x', 'pos/pos_y', 'pos/pos_z', 'pos/speed',
+                    'pos/cte']
+    if cfg.SIM_RECORD_GYROACCEL:
+        outputs += ['gyro/gyro_x', 'gyro/gyro_y', 'gyro/gyro_z',
+                    'accel/accel_x', 'accel/accel_y', 'accel/accel_z']
+    if cfg.SIM_RECORD_VELOCITY:
+        outputs += ['vel/vel_x', 'vel/vel_y', 'vel/vel_z']
+    if cfg.SIM_RECORD_LIDAR:
+        outputs += ['lidar/dist_array']
+
+    car.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
+
+# load model if present ----------------------------------------------------
+    if model_path is not None:
+        logger.info("Using auto-pilot")
+        if not model_type:
+            model_type = 'tflite_linear'
+
+        kl = dk.utils.get_model_by_type(model_type, cfg)
+        kl.load(model_path)
+        kl_inputs = [CAM_IMG]
+        # Add image transformations like crop or trapezoidal mask
+        if hasattr(cfg, 'TRANSFORMATIONS') and cfg.TRANSFORMATIONS:
+            outputs = ['cam/image_array_aug']
+            car.add(ImageAugmentation(cfg, 'TRANSFORMATIONS'),
+                    inputs=kl_inputs, outputs=outputs)
+            kl_inputs = outputs
+        # imu transformation and addition AI input -----------------------------
+        use_imu = 'imu' in model_path
+        if use_imu:
+            logger.info('Using IMU in pilot')
+            imu_prep = ImuCombinerNormaliser(cfg)
+            car.add(imu_prep, inputs=['car/accel', 'car/gyro'],
+                    outputs=['car/imu'])
+            kl_inputs.append('car/imu')
+        # add auto pilot and model reloader ------------------------------------
+        kl_outputs = ['pilot/angle', 'pilot/throttle']
+        car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
+    else:
+        # rename the usr throttle
+        car.add(Renamer(), inputs=['user/throttle'], outputs=['throttle'])
+
+    ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT, mode=cfg.WEB_INIT_MODE)
+    car.add(ctr,
+            inputs=['cam/image_array', 'tub/num_records'],
+            outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
+            threaded=True)
+
+    # Choose what inputs should change the car.
+    class DriveMode:
+        def run(self, mode, user_angle, user_throttle, pilot_angle,
+                pilot_throttle):
+            if mode == 'user':
+                return user_angle, user_throttle
+            elif mode == 'local_angle':
+                return pilot_angle if pilot_angle else 0.0, user_throttle
+            else:
+                return pilot_angle if pilot_angle else 0.0, \
+                       pilot_throttle * cfg.AI_THROTTLE_MULT \
+                       if pilot_throttle else 0.0
+
+    car.add(DriveMode(),
+            inputs=['user/mode', 'user/angle', 'user/throttle',
+                    'pilot/angle', 'pilot/throttle'],
+            outputs=['angle', 'throttle'])
+
+    # if we want to record a tub -----------------------------------------------
+    if model_path is None:
+        inputs = [CAM_IMG, 'user/angle', 'user/throttle', 'user/mode']
+        types = ['image_array', 'float', 'float', 'str']
+        if cfg.SIM_RECORD_LOCATION:
+            inputs += ['pos/pos_x', 'pos/pos_y', 'pos/pos_z', 'pos/speed',
+                       'pos/cte']
+            types += ['float', 'float', 'float', 'float', 'float']
+        if cfg.SIM_RECORD_GYROACCEL:
+            inputs += ['gyro/gyro_x', 'gyro/gyro_y', 'gyro/gyro_z',
+                       'accel/accel_x', 'accel/accel_y', 'accel/accel_z']
+            types += ['float', 'float', 'float', 'float', 'float', 'float']
+        if cfg.SIM_RECORD_VELOCITY:
+            inputs += ['vel/vel_x', 'vel/vel_y', 'vel/vel_z']
+            types += ['float', 'float', 'float']
+        if cfg.SIM_RECORD_LIDAR:
+            inputs += ['lidar/dist_array']
+            types += ['nparray']
+        tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs,
+                               types=types)
+        car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],
+                run_condition='recording')
+    # run the vehicle
+    car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
+
+
 if __name__ == '__main__':
     args = docopt(__doc__)
     config = dk.load_config()
@@ -318,3 +438,6 @@ if __name__ == '__main__':
         stream(config)
     elif args['led']:
         led(config)
+    elif args['gym']:
+        gym(cfg=config, model_path=args['--model'], model_type=args['--type'],
+            verbose=args['--verbose'])

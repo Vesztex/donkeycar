@@ -135,3 +135,32 @@ PI_HOSTNAME = "donkeypi.local"
 # FPV MONITOR
 PC_HOSTNAME = "DirksMacBook.home"
 FPV_PORT = 13000
+
+# DonkeyGym
+# You will want to download the simulator binary from:
+# https://github.com/tawnkramer/donkey_gym/releases/download/vX.X/DonkeySimLinux.zip
+# then extract that and modify DONKEY_SIM_PATH.
+DONKEY_GYM = False
+DONKEY_SIM_PATH = "/home/dirk/DonkeySimLinux/donkey_sim.x86_64"
+# when racing on virtual-race-league use "remote", or user "remote" when you
+# want to start the sim manually first.
+DONKEY_GYM_ENV_NAME = "donkey-generated-track-v0"
+# ("donkey-generated-track-v0"|"donkey-generated-roads-v0"|
+# "donkey-warehouse-v0"|"donkey-avc-sparkfun-v0")
+GYM_CONF = {"body_style": "car01", "body_rgb": (96, 96, 96),
+            "car_name": "DocGarbanzo", "font_size": 40,
+            "cam_resolution": (IMAGE_H, IMAGE_W, 3),
+            "cam_config": {'img_h': IMAGE_H, 'img_w': IMAGE_W}}
+
+GYM_CONF["racer_name"] = "Your Name"
+GYM_CONF["country"] = "Place"
+GYM_CONF["bio"] = "I race robots."
+
+SIM_HOST = "127.0.0.1"              # when racing on virtual-race-league use host "trainmydonkey.com"
+SIM_ARTIFICIAL_LATENCY = 0          # this is the millisecond latency in controls. Can use useful in emulating the delay when useing a remote server. values of 100 to 400 probably reasonable.
+
+# Save info from Simulator (pln)
+SIM_RECORD_LOCATION = False
+SIM_RECORD_GYROACCEL = False
+SIM_RECORD_VELOCITY = False
+SIM_RECORD_LIDAR = False

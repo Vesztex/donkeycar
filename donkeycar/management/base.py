@@ -564,7 +564,8 @@ class Monitor(BaseCommand):
                 img_np = np.array(image) * ONE_BYTE_SCALE
                 img_scaled = cv2.resize(img_np, None, fx=scale, fy=scale) \
                     if scale is not 1.0 else img_np
-                cv2.imshow('Donkey FPV', img_scaled)
+                img_scaled_bgr = img_scaled[..., ::-1]
+                cv2.imshow('Donkey FPV', img_scaled_bgr)
                 cv2.waitKey(1)
                 now = time.time()
                 proc_time += now - last_time

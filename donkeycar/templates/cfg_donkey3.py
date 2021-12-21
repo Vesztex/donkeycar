@@ -133,7 +133,7 @@ PI_USERNAME = "pi"
 PI_HOSTNAME = "donkeypi.local"
 
 # FPV MONITOR
-PC_HOSTNAME = "DirksMacBook.home"
+PC_HOSTNAME = "DirksMacbook.local"
 FPV_PORT = 13000
 
 # DonkeyGym

@@ -1,4 +1,5 @@
 import argparse
+import io
 import os
 import shutil
 import socket
@@ -6,6 +7,7 @@ import stat
 import sys
 from socket import *
 import logging
+from threading import Thread
 
 from progress.bar import IncrementalBar
 import donkeycar as dk
@@ -512,6 +514,71 @@ class Gui(BaseCommand):
         main()
 
 
+class Monitor(BaseCommand):
+    def __init__(self):
+        self.t = Thread(target=self.update, args=())
+        self.t.daemon = True
+        self.my_socket = None
+        self.buf = 16000
+        self.count = 0
+        self.socket_data = (None, None)
+
+    def update(self):
+        while True:
+            self.socket_data = self.my_socket.recvfrom(self.buf)
+
+    def parse_args(self, args):
+        parser = argparse.ArgumentParser(prog='monitor',
+                                         usage='%(prog)s [options]')
+        parser.add_argument('--scale', help='scale frame size', default=1.0)
+        parser.add_argument('--config', default='./config.py',
+                            help='location of config file to use. default: '
+                                 './config.py')
+        parsed_args = parser.parse_args(args)
+        return parsed_args
+
+    def run(self, args):
+        from PIL import Image
+        import cv2
+        args = self.parse_args(args)
+        cfg = load_config(args.config)
+        address = (cfg.PC_HOSTNAME, cfg.FPV_PORT)
+        self.my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.my_socket.bind(address)
+        cv2.namedWindow('Donkey FPV', cv2.WINDOW_NORMAL)
+        scale = float(args.scale)
+        self.t.start()
+        print('Donkey FPV monitor starting up on host {} port {}. Receiving '
+              'data from {}. Frame scaling by {}'
+              .format(*address, self.socket_data[1], scale))
+        count = 0
+        proc_time = 0.0
+        last_time = time.time()
+
+        try:
+            while True:
+                if self.socket_data[0] is None:
+                    continue
+                b = io.BytesIO(self.socket_data[0])
+                image = Image.open(b)
+                img_np = np.array(image) * ONE_BYTE_SCALE
+                img_scaled = cv2.resize(img_np, None, fx=scale, fy=scale) \
+                    if scale is not 1.0 else img_np
+                cv2.imshow('Donkey FPV', img_scaled)
+                cv2.waitKey(1)
+                now = time.time()
+                proc_time += now - last_time
+                last_time = now
+                count += 1
+        except KeyboardInterrupt:
+            pass
+
+        cv2.destroyAllWindows()
+        self.my_socket.close()
+        print('Processed {0:} frames with average rate {1:3.1f}fps'
+              .format(count, count / proc_time))
+
+
 def execute_from_command_line():
     """
     This is the function linked to the "donkey" terminal command.
@@ -529,6 +596,7 @@ def execute_from_command_line():
         'train': Train,
         'models': ModelDatabase,
         'ui': Gui,
+        'monitor': Monitor
     }
     
     args = sys.argv[:]

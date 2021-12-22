@@ -6,11 +6,12 @@ steering triggers.
 
 Usage:
     manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web]\
- [--fpv] [--no_tub] [--verbose] [--type=<model_type>]
+        [--fpv] [--no_tub] [--verbose] [--type=<model_type>]
     manage.py (calibrate)
     manage.py (stream)
     manage.py (led)
-    manage.py (gym) [--model=<path_to_pilot>] [--type=<model_type>] [--verbose]
+    manage.py (gym) [--model=<path_to_pilot>] [--type=<model_type>] [--no_tub]\
+        [--verbose]
 
 Options:
     -h --help        Show this screen.
@@ -305,7 +306,7 @@ def led(cfg):
     car.start(rate_hz=40, max_loop_count=2000)
 
 
-def gym(cfg, model_path=None, model_type=None, verbose=False):
+def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
     """
     Running donkey gym
     """
@@ -394,7 +395,7 @@ def gym(cfg, model_path=None, model_type=None, verbose=False):
             outputs=['angle', 'throttle'])
 
     # if we want to record a tub -----------------------------------------------
-    if model_path is None:
+    if model_path is None and not no_tub:
         inputs = [CAM_IMG, 'user/angle', 'user/throttle', 'user/mode']
         types = ['image_array', 'float', 'float', 'str']
         if cfg.SIM_RECORD_LOCATION:
@@ -440,4 +441,4 @@ if __name__ == '__main__':
         led(config)
     elif args['gym']:
         gym(cfg=config, model_path=args['--model'], model_type=args['--type'],
-            verbose=args['--verbose'])
+            no_tub=args['--no_tub'], verbose=args['--verbose'])

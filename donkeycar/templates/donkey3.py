@@ -299,6 +299,7 @@ class OnOff:
 
 
 def led(cfg):
+    from donkeycar.parts.led_status import LEDStatus
     donkeycar.logger.setLevel(logging.DEBUG)
     car = dk.vehicle.Vehicle()
     car.add(OnOff(), outputs=['mode', 'lap', 'wipe'])

@@ -11,10 +11,11 @@ Usage:
     manage.py (stream)
     manage.py (led)
     manage.py (gym) [--model=<path_to_pilot>] [--type=<model_type>] [--no_tub]\
-        [--verbose]
+        [--my_cfg=<path_to_myconfig.py>] [--verbose]
 
 Options:
-    -h --help        Show this screen.
+    -h --help               Show this screen.
+    --my_cfg=myconfig.py    overwrite config file name [default: myconfig.py]
 """
 
 from docopt import docopt
@@ -423,7 +424,8 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    config = dk.load_config()
+    my_cfg = args.get('--my_cfg')
+    config = dk.load_config(myconfig=my_cfg)
     if args['drive']:
         drive(cfg=config,
               use_pid=args['--pid'],

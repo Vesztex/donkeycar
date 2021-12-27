@@ -12,7 +12,9 @@ class DonkeyGymEnv(object):
 
     def __init__(self, sim_path, host="127.0.0.1", port=9091,
                  headless=0, env_name="donkey-generated-track-v0",
-                 sync="asynchronous", conf={}, record_location=False, record_gyroaccel=False, record_velocity=False, record_lidar=False, delay=0):
+                 sync="asynchronous", conf={}, record_location=False,
+                 record_gyroaccel=False, record_velocity=False,
+                 record_lidar=False, delay=0, new_sim=True):
 
         if sim_path != "remote":
             if not os.path.exists(sim_path):
@@ -22,10 +24,11 @@ class DonkeyGymEnv(object):
             if not is_exe(sim_path):
                 raise Exception("The path you provided is not an executable.")
 
-        conf["exe_path"] = sim_path
-        conf["host"] = host
-        conf["port"] = port
-        conf['guid'] = 0
+        if new_sim:
+            conf["exe_path"] = sim_path
+            conf["host"] = host
+            conf["port"] = port
+            conf['guid'] = 0
         self.env = gym.make(env_name, conf=conf)
         self.frame = self.env.reset()
         self.action = [0.0, 0.0, 0.0]

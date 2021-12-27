@@ -20,6 +20,7 @@ Options:
 
 from docopt import docopt
 import logging
+import socket
 import donkeycar as dk
 import donkeycar.parts
 from donkeycar.parts.tub_v2 import TubWiper, TubWriter
@@ -318,14 +319,18 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
         donkeycar.logger.setLevel(logging.DEBUG)
 
     car = dk.vehicle.Vehicle()
-    car_frequency = cfg.DRIVE_LOOP_HZ
+    # check if sim is running
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    is_sim = sock.connect_ex((cfg.SIM_HOST, 9091)) == 0
+    sock.close()
     cam = DonkeyGymEnv(cfg.DONKEY_SIM_PATH, host=cfg.SIM_HOST,
                        env_name=cfg.DONKEY_GYM_ENV_NAME, conf=cfg.GYM_CONF,
                        record_location=cfg.SIM_RECORD_LOCATION,
                        record_gyroaccel=cfg.SIM_RECORD_GYROACCEL,
                        record_velocity=cfg.SIM_RECORD_VELOCITY,
                        record_lidar=cfg.SIM_RECORD_LIDAR,
-                       delay=cfg.SIM_ARTIFICIAL_LATENCY)
+                       delay=cfg.SIM_ARTIFICIAL_LATENCY,
+                       new_sim=not is_sim)
     threaded = True
     inputs = ['angle', 'throttle']
     outputs = [CAM_IMG]
@@ -419,6 +424,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
         # no run-condition here as we need to record backwards and zero throttle
         car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"])
     # run the vehicle
+    car_frequency = cfg.DRIVE_LOOP_HZ
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
 
 

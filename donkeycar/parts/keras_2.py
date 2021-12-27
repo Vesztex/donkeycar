@@ -39,10 +39,11 @@ class KerasSquarePlus(KerasLinear):
         super().__init__(interpreter, input_shape)
 
     def __str__(self) -> str:
-        return super().__str__() + f'-{self.size}'
+        return super().__str__() + f'-{self.size}-{int(self.use_speed)}'
 
     def create_model(self):
-        return linear_square_plus(self.input_shape, size=self.size)
+        return linear_square_plus(self.input_shape, size=self.size,
+                                  pos_throttle=self.use_speed)
 
     def y_transform(self, record: Union[TubRecord, List[TubRecord]]) -> XY:
         assert isinstance(record, TubRecord), 'TubRecord expected'
@@ -76,7 +77,9 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
 
     def create_model(self):
         return linear_square_plus_mem(self.input_shape, self.size,
-                                      self.mem_length, self.mem_depth)
+                                      self.mem_length, self.mem_depth,
+                                      has_lap_pct=False,
+                                      pos_throttle=self.use_speed)
 
     def get_throttle(self, record):
         if self.use_speed:
@@ -136,7 +139,9 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
 
     def create_model(self):
         return linear_square_plus_mem(self.input_shape, self.size,
-                                      self.mem_length, self.mem_depth, True)
+                                      self.mem_length, self.mem_depth,
+                                      has_lap_pct=True,
+                                      pos_throttle=self.use_speed)
 
     def x_transform_and_process(
             self,
@@ -194,7 +199,8 @@ class KerasSquarePlusLstm(KerasSquarePlus):
     def create_model(self):
         return linear_square_plus(self.input_shape,
                                   size=self.size,
-                                  seq_len=self.seq_length)
+                                  seq_len=self.seq_length,
+                                  pos_throttle=self.use_speed)
 
     def __str__(self) -> str:
         return super().__str__() + f'-{self.size}-seq:{self.seq_length}'
@@ -215,7 +221,8 @@ class KerasSquarePlusImu(KerasSquarePlus):
 
     def create_model(self):
         model = linear_square_plus_imu(self.input_shape, imu_dim=self.imu_dim,
-                                       size=self.size)
+                                       size=self.size,
+                                       pos_throttle=self.use_speed)
         return model
 
     def normalize_imu(self, accel, gyro):
@@ -288,7 +295,8 @@ class KerasSquarePlusImuLstm(KerasSquarePlusLstm):
         return linear_square_plus_imu(self.input_shape,
                                       imu_dim=self.imu_dim,
                                       size=self.size,
-                                      seq_len=self.seq_length)
+                                      seq_len=self.seq_length,
+                                      pos_throttle=self.use_speed)
 
 
 class KerasWorld(KerasSquarePlus):
@@ -683,7 +691,7 @@ class ModelLoader:
                 time.sleep(1.0)
 
 
-def linear_square_plus_cnn(x, size='S', is_seq=False):
+def linear_square_plus_cnn(x, size='R', is_seq=False):
     drop = 0.02
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
@@ -739,7 +747,7 @@ def linear_square_plus_cnn(x, size='S', is_seq=False):
     return x
 
 
-def square_plus_dense(size='S'):
+def square_plus_dense(size='R'):
     d = dict(XS=[72] * 3 + [48],
              S=[96] * 4 + [48],
              M=[128] * 5 + [64],
@@ -750,7 +758,8 @@ def square_plus_dense(size='S'):
     return d[size]
 
 
-def linear_square_plus(input_shape=(120, 160, 3), size='S', seq_len=None):
+def linear_square_plus(input_shape=(120, 160, 3), size='S', seq_len=None,
+                       pos_throttle=True):
     # L2 regularisation
     l2 = 0.001
     if seq_len:
@@ -760,12 +769,14 @@ def linear_square_plus(input_shape=(120, 160, 3), size='S', seq_len=None):
     x = linear_square_plus_cnn(x, size, seq_len is not None)
     inputs = [img_in]
     model = square_plus_output_layers(x, size, l2, inputs, imu_dim=None,
-                                      seq_len=seq_len)
+                                      seq_len=seq_len,
+                                      pos_throttle=pos_throttle)
     return model
 
 
 def linear_square_plus_imu(input_shape=(120, 160, 3),
-                           imu_dim=6, size='S', seq_len=None):
+                           imu_dim=6, size='S', seq_len=None,
+                           pos_throttle=True):
     assert 0 < imu_dim <= 6, 'imu_dim must be number in [1,..,6]'
     l2 = 0.001
     imu_shape = (imu_dim,)
@@ -784,13 +795,14 @@ def linear_square_plus_imu(input_shape=(120, 160, 3),
     y = TD(imu_dense, name='td_imu_dense')(y) if seq_len else imu_dense(y)
     z = concatenate([x, y])
     inputs = [img_in, imu_in]
-    model = square_plus_output_layers(z, size, l2, inputs, imu_dim, seq_len)
+    model = square_plus_output_layers(z, size, l2, inputs, imu_dim, seq_len,
+                                      pos_throttle=pos_throttle)
     return model
 
 
 def linear_square_plus_mem(input_shape=(120, 160, 3),
                            size='R', mem_length=3, mem_depth=0,
-                           has_lap_pct=False):
+                           has_lap_pct=False, pos_throttle=True):
     l2 = 0.001
     drop2 = 0.1 #0.02 #0.1
     img_in = Input(shape=input_shape, name='img_in')
@@ -821,13 +833,14 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
     z = concatenate(concat)
 
     model = square_plus_output_layers(z, size, l2, inputs, None, None,
-                                      mem_length, has_lap_pct)
+                                      mem_length, has_lap_pct=has_lap_pct,
+                                      pos_throttle=pos_throttle)
     return model
 
 
 def square_plus_output_layers(in_tensor, size, l2, model_inputs,
                               imu_dim=None, seq_len=None, mem_len=None,
-                              has_lap_pct=False):
+                              has_lap_pct=False, pos_throttle=True):
     layers = square_plus_dense(size)
     z = in_tensor
     for i, l in zip(range(len(layers)), layers):
@@ -843,7 +856,8 @@ def square_plus_output_layers(in_tensor, size, l2, model_inputs,
                       name='dense' + str(i))(z)
 
     angle_out = Dense(units=1, activation='tanh', name='angle')(z)
-    throttle_out = Dense(units=1, activation='sigmoid', name='throttle')(z)
+    activation = 'sigmoid' if pos_throttle else 'tanh'
+    throttle_out = Dense(units=1, activation=activation, name='throttle')(z)
     if len(model_inputs) > 1:
         if imu_dim:
             name = f'SquarePlusImu_{size}_{imu_dim}'

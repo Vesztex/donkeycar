@@ -416,8 +416,8 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
             types += ['nparray']
         tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs,
                                types=types)
-        car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],
-                run_condition='recording')
+        # no run-condition here as we need to record backwards and zero throttle
+        car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"])
     # run the vehicle
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
 

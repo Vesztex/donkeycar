@@ -1,7 +1,11 @@
 import os
 import time
 import gym
+import logging
 import gym_donkeycar
+from prettytable import PrettyTable
+
+logger = logging.getLogger(__name__)
 
 
 def is_exe(fpath):
@@ -14,7 +18,7 @@ class DonkeyGymEnv(object):
                  headless=0, env_name="donkey-generated-track-v0",
                  sync="asynchronous", conf={}, record_location=False,
                  record_gyroaccel=False, record_velocity=False,
-                 record_lidar=False, delay=0, new_sim=True):
+                 record_lidar=False, record_laps=True, delay=0, new_sim=True):
 
         if sim_path != "remote":
             if not os.path.exists(sim_path):
@@ -44,6 +48,7 @@ class DonkeyGymEnv(object):
         self.record_gyroaccel = record_gyroaccel
         self.record_velocity = record_velocity
         self.record_lidar = record_lidar
+        self.record_laps = record_laps
 
     def update(self):
         while self.running:
@@ -59,16 +64,20 @@ class DonkeyGymEnv(object):
             time.sleep(self.delay / 1000.0)
         self.action = [steering, throttle, brake]
 
-        # Output Sim-car position information if configured
+        # Output Sim-car position and other information if configured
         outputs = [self.frame]
         if self.record_location:
-            outputs += self.info['pos'][0],  self.info['pos'][1],  self.info['pos'][2],  self.info['speed'], self.info['cte']
+            outputs += (self.info['pos'][i] for i in range(3))
+            outputs += self.info['speed'], self.info['cte']
         if self.record_gyroaccel:
-            outputs += self.info['gyro'][0], self.info['gyro'][1], self.info['gyro'][2], self.info['accel'][0], self.info['accel'][1], self.info['accel'][2]
+            outputs += (self.info['gyro'][i] for i in range(3))
+            outputs += (self.info['accel'][i] for i in range(3))
         if self.record_velocity:
-            outputs += self.info['vel'][0],  self.info['vel'][1],  self.info['vel'][2]
+            outputs += (self.info['vel'][i] for i in range(3))
         if self.record_lidar:
             outputs += self.info['lidar']
+        if self.record_laps:
+            outputs.append(self.info['last_lap_time'])
         if len(outputs) == 1:
             return self.frame
         else:
@@ -78,3 +87,30 @@ class DonkeyGymEnv(object):
         self.running = False
         time.sleep(0.2)
         self.env.close()
+
+
+class GymLapTimer:
+    def __init__(self):
+        self.current_lap = 0
+        self.last_lap_time = 0.0
+        self.all_lap_times = []
+
+    def run(self, last_lap_time):
+        if last_lap_time != self.last_lap_time:
+            logger.info(f'Recorded lap {self.current_lap} in '
+                        f'{last_lap_time: 4.2f}s')
+            # update current lap
+            self.current_lap += 1
+            self.all_lap_times.append(last_lap_time)
+            # store record
+            self.last_lap_time = last_lap_time
+        return self.current_lap
+
+    def shutdown(self):
+        logger.info('All lap times:')
+        pt = PrettyTable()
+        pt.field_names = ["lap", "time (s)"]
+        for i, lap in enumerate(self.all_lap_times):
+            row = [str(i), f'{lap: 4.2f}']
+            pt.add_row(row)
+        logger.info('\n' + str(pt))

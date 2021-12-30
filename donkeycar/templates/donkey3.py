@@ -313,7 +313,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
     """
     Running donkey gym
     """
-    from donkeycar.parts.dgym import DonkeyGymEnv
+    from donkeycar.parts.dgym import DonkeyGymEnv, GymLapTimer
 
     if verbose:
         donkeycar.logger.setLevel(logging.DEBUG)
@@ -344,8 +344,10 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
         outputs += ['vel/vel_x', 'vel/vel_y', 'vel/vel_z']
     if cfg.SIM_RECORD_LIDAR:
         outputs += ['lidar/dist_array']
+    outputs += ['last_lap_time']
 
     car.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
+    car.add(GymLapTimer(), inputs=['last_lap_time'], outputs=['car/lap'])
 
 # load model if present ----------------------------------------------------
     if model_path is not None:
@@ -405,6 +407,9 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
     if model_path is None and not no_tub:
         inputs = [CAM_IMG, 'user/angle', 'user/throttle', 'user/mode']
         types = ['image_array', 'float', 'float', 'str']
+        if cfg.SIM_RECORD_LAPS:
+            inputs += ['car/lap']
+            types += ['int']
         if cfg.SIM_RECORD_LOCATION:
             inputs += ['pos/pos_x', 'pos/pos_y', 'pos/pos_z', 'pos/speed',
                        'pos/cte']

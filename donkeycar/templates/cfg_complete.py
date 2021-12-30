@@ -337,6 +337,7 @@ SIM_RECORD_LOCATION = False
 SIM_RECORD_GYROACCEL= False
 SIM_RECORD_VELOCITY = False
 SIM_RECORD_LIDAR = False
+SIM_RECORD_LAPS = True
 
 #publish camera over network
 #This is used to create a tcp service to publish the camera feed

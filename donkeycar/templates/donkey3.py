@@ -23,6 +23,7 @@ import logging
 import socket
 import donkeycar as dk
 import donkeycar.parts
+from donkeycar.parts.dgym import GymOdometer
 from donkeycar.parts.tub_v2 import TubWiper, TubWriter
 from donkeycar.parts.file_watcher import FileWatcher
 from donkeycar.parts.keras_2 import ModelLoader
@@ -325,7 +326,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
     sock.close()
     cam = DonkeyGymEnv(cfg.DONKEY_SIM_PATH, host=cfg.SIM_HOST,
                        env_name=cfg.DONKEY_GYM_ENV_NAME, conf=cfg.GYM_CONF,
-                       record_location=cfg.SIM_RECORD_LOCATION,
+                       record_location=True,
                        record_gyroaccel=cfg.SIM_RECORD_GYROACCEL,
                        record_velocity=cfg.SIM_RECORD_VELOCITY,
                        record_lidar=cfg.SIM_RECORD_LIDAR,
@@ -333,21 +334,20 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
                        new_sim=not is_sim)
     threaded = True
     inputs = ['angle', 'throttle']
-    outputs = [CAM_IMG]
-    if cfg.SIM_RECORD_LOCATION:
-        outputs += ['pos/pos_x', 'pos/pos_y', 'pos/pos_z', 'pos/speed',
-                    'pos/cte']
+    outputs = [CAM_IMG, 'pos/pos', 'car/speed', 'pos/cte']
     if cfg.SIM_RECORD_GYROACCEL:
-        outputs += ['gyro/gyro_x', 'gyro/gyro_y', 'gyro/gyro_z',
-                    'accel/accel_x', 'accel/accel_y', 'accel/accel_z']
+        outputs += ['car/gyro', 'car/accel']
     if cfg.SIM_RECORD_VELOCITY:
-        outputs += ['vel/vel_x', 'vel/vel_y', 'vel/vel_z']
+        outputs += ['car/vel']
     if cfg.SIM_RECORD_LIDAR:
         outputs += ['lidar/dist_array']
     outputs += ['last_lap_time']
 
     car.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
-    car.add(GymLapTimer(), inputs=['last_lap_time'], outputs=['car/lap'])
+    car.add(GymOdometer(), inputs=['pos/pos'], outputs=['car/distance'])
+    lap_timer = GymLapTimer()
+    car.add(lap_timer, inputs=['last_lap_time', 'car/distance'],
+            outputs=['car/lap'])
 
 # load model if present ----------------------------------------------------
     if model_path is not None:
@@ -405,31 +405,26 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
 
     # if we want to record a tub -----------------------------------------------
     if model_path is None and not no_tub:
-        inputs = [CAM_IMG, 'user/angle', 'user/throttle', 'user/mode']
-        types = ['image_array', 'float', 'float', 'str']
-        if cfg.SIM_RECORD_LAPS:
-            inputs += ['car/lap']
-            types += ['int']
-        if cfg.SIM_RECORD_LOCATION:
-            inputs += ['pos/pos_x', 'pos/pos_y', 'pos/pos_z', 'pos/speed',
-                       'pos/cte']
-            types += ['float', 'float', 'float', 'float', 'float']
+        inputs = [CAM_IMG, 'user/angle', 'user/throttle', 'user/mode',
+                  'car/lap', 'car/distance', 'pos/pos', 'car/speed', 'pos/cte']
+        types = ['image_array', 'float', 'float', 'str', 'int', 'float',
+                 'vector', 'float', 'float']
         if cfg.SIM_RECORD_GYROACCEL:
-            inputs += ['gyro/gyro_x', 'gyro/gyro_y', 'gyro/gyro_z',
-                       'accel/accel_x', 'accel/accel_y', 'accel/accel_z']
-            types += ['float', 'float', 'float', 'float', 'float', 'float']
+            inputs += ['car/gyro', 'car/accel']
+            types += ['vector', 'vector']
         if cfg.SIM_RECORD_VELOCITY:
-            inputs += ['vel/vel_x', 'vel/vel_y', 'vel/vel_z']
-            types += ['float', 'float', 'float']
+            inputs += ['car/vel']
+            types += ['vector']
         if cfg.SIM_RECORD_LIDAR:
             inputs += ['lidar/dist_array']
             types += ['nparray']
         tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs,
-                               types=types)
+                               types=types, lap_timer=lap_timer)
         # no run-condition here as we need to record backwards and zero throttle
         car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"])
     # run the vehicle
     car_frequency = cfg.DRIVE_LOOP_HZ
+    assert car_frequency == 20, f"Sim needs 20Hz, not {car_frequency}"
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
 
 

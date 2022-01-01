@@ -1,5 +1,6 @@
 import os
 import time
+from copy import copy
 from operator import itemgetter
 
 import numpy as np
@@ -97,7 +98,7 @@ class Tub(object):
     def restore_records(self, record_indexes):
         self.manifest.restore_records(record_indexes)
 
-    def write_lap_times(self, overwrite=True):
+    def generate_laptimes_from_records(self, overwrite=False):
         session_id = None
         lap = 0
         dist = 0
@@ -107,15 +108,22 @@ class Tub(object):
         # self is iterable
         for record in self:
             this_session_id = record.get('_session_id')
+            this_lap = record['car/lap']
             if this_session_id != session_id:
+                # stepping into new session
                 if session_id:
-                    res[session_id] = lap_times
+                    # copy results of current session
+                    res[session_id] = copy(lap_times)
+                    # reset lap_times and lap
                     lap_times.clear()
+                lap = this_lap
                 session_id = this_session_id
                 time_stamp_ms = record['_timestamp_ms']
                 dist = record['car/distance']
-            this_lap = record['car/lap']
+
             if this_lap != lap:
+                assert this_lap > lap, f'Found smaller lap {this_lap} than ' \
+                    f'previous lap {lap} in session {session_id}'
                 this_time_stamp_ms = record['_timestamp_ms']
                 lap_time = (this_time_stamp_ms - time_stamp_ms) / 1000
                 this_dist = record['car/distance']
@@ -126,13 +134,14 @@ class Tub(object):
                 dist = this_dist
         # add last session id
         res[session_id] = lap_times
-        for sess_id, v in res:
+        for sess_id, lap_times in res.items():
             meta_session_id_dict = self.manifest.metadata.get(sess_id)
             if not meta_session_id_dict:
-                self.manifest.metadata[sess_id] = dict(laptimer=v)
+                self.manifest.metadata[sess_id] = dict(laptimer=lap_times)
             elif 'laptimer' in meta_session_id_dict and overwrite or \
                     'laptimer' not in meta_session_id_dict:
-                meta_session_id_dict['laptimer'] = v
+                meta_session_id_dict['laptimer'] = lap_times
+        self.manifest.write_metadata()
         logger.info(f'Generated lap times {res}')
 
     def calculate_lap_performance(self, config):
@@ -142,6 +151,7 @@ class Tub(object):
         :param config:  donkey config to look up lap time pct bins
         :return:        dictionary of type ((session_id, lap, state_vector)
         """
+        logger.info(f'Calculating lap performance for tub {self.base_path}')
         sessions \
             = self.manifest.manifest_metadata['sessions']['all_full_ids']
         session_lap_bin = {}
@@ -158,17 +168,8 @@ class Tub(object):
                 # jump over lap 0 as it is incomplete
                 if lap_i == 0:
                     continue
-                # binning into given bins
-                if isinstance(config.LAP_BINS, list):
-                    rel_i = i / len(laps_sorted)
-                    if rel_i > config.LAP_BINS[count]:
-                        count += 1
-                    session_lap_bin[(session_id, lap_i['lap'])] \
-                        = config.LAP_BINS[count]
-                # binning all into equidistant bins
-                elif config.LAP_BINS:
-                    rel_i = (i + 1) / len(laps_sorted)
-                    session_lap_bin[(session_id, lap_i['lap'])] = rel_i
+                rel_i = (i + 1) / len(laps_sorted)
+                session_lap_bin[(session_id, lap_i['lap'])] = rel_i
         return session_lap_bin
 
     def close(self):
@@ -216,7 +217,7 @@ class TubWriter(object):
     def close(self):
         # insert lap times into metadata of tub before closing
         if self.lap_timer:
-            self.tub.manifest.metadata[self.tub.manifest.session_id] \
+            self.tub.manifest.metadata[self.tub.manifest.session_id[1]] \
                 = dict(laptimer=self.lap_timer.to_list())
         self.tub.close()
 

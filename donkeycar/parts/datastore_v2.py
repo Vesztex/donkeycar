@@ -438,12 +438,15 @@ class Manifest(object):
         # the metadata, otherwise keep the session_id information unchanged
         if self._updated_session:
             self._update_session_info()
-            self.seekeable.update_line(3, json.dumps(self.metadata))
-            self.seekeable.update_line(4, json.dumps(self.manifest_metadata))
+            self.write_metadata()
         self.current_catalog.close()
         self.seekeable.close()
         self._is_closed = True
         logger.info(f'Closing manifest {self.base_path}')
+
+    def write_metadata(self):
+        self.seekeable.update_line(3, json.dumps(self.metadata))
+        self.seekeable.update_line(4, json.dumps(self.manifest_metadata))
 
     def __iter__(self):
         return ManifestIterator(self)

@@ -39,7 +39,7 @@ class KerasSquarePlus(KerasLinear):
         super().__init__(interpreter, input_shape)
 
     def __str__(self) -> str:
-        return super().__str__() + f'-{self.size}-{int(self.use_speed)}'
+        return super().__str__() + f'-{self.size}-speed:{int(self.use_speed)}'
 
     def create_model(self):
         return linear_square_plus(self.input_shape, size=self.size,
@@ -813,7 +813,7 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
     for i in range(mem_depth):
         y = Dense(4 * mem_length, activation='relu', name=f'mem_{i}')(y)
         y = Dropout(drop2)(y)
-    for i in range(1, mem_length):  # memlength # memlength-1
+    for i in range(0, mem_length - 1):  # memlength # memlength-1
         y = Dense(2 * (mem_length - i), activation='relu', name=f'mem_c_{i}')(y)
         y = Dropout(drop2)(y)
 

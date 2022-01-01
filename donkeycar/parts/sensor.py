@@ -121,7 +121,7 @@ class LapTimer:
         self.lap_count = 0
         self.last_lap_count = 0
         self.lap_times = []
-        self.lap_lenghts = []
+        self.lap_lengths = []
         self.distance = 0.0
         self.last_distance = 0.0
         self.running = True
@@ -153,7 +153,7 @@ class LapTimer:
                         self.lap_times.append(dt)
                         this_lap_dist = self.distance - self.last_distance
                         self.last_distance = self.distance
-                        self.lap_lenghts.append(this_lap_dist)
+                        self.lap_lengths.append(this_lap_dist)
                         logger.info(f'Lap {self.lap_count} of length '
                                     f'{this_lap_dist:6.3f}m detected after '
                                     f'{dt:6.3f}s')
@@ -183,11 +183,11 @@ class LapTimer:
         logger.info("Lap Summary: (times in s)")
         pt = PrettyTable()
         pt.field_names = ['Lap', 'Time', 'Distance']
-        for i, (t, l) in enumerate(zip(self.lap_times, self.lap_lenghts)):
+        for i, (t, l) in enumerate(zip(self.lap_times, self.lap_lengths)):
             pt.add_row([i, f'{t:6.3f}', f'{l:6.3f}'])
         logger.info('\n' + str(pt))
 
     def to_list(self):
         info = [dict(lap=i, time=t, distance=l) for i, (t, l) in
-                enumerate(zip(self.lap_times, self.lap_lenghts))]
+                enumerate(zip(self.lap_times, self.lap_lengths))]
         return info

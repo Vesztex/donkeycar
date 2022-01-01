@@ -86,14 +86,12 @@ FREEZE_LAYERS = False
 NUM_LAST_LAYERS_TO_TRAIN = 7
 
 # For the categorical model, this limits the upper bound of the learned throttle
-MODEL_CATEGORICAL_MAX_THROTTLE_RANGE = 0.5
+MODEL_CATEGORICAL_MAX_THROTTLE_RANGE = 0.8
 
 # RNN or 3D
 SEQUENCE_LENGTH = 5
 
-# For MemoryLap model
-LAP_BINS = [0.1, 0.25, 0.45, 0.7, 1.0]
-# Default to second fastest set of laps
+# Default to fastest quarter or laps
 LAP_PCT = 0.25
 
 # Augmentations and Transformations
@@ -147,21 +145,21 @@ DONKEY_SIM_PATH = "/home/dirk/DonkeySimLinux/donkey_sim.x86_64"
 DONKEY_GYM_ENV_NAME = "donkey-generated-track-v0"
 # ("donkey-generated-track-v0"|"donkey-generated-roads-v0"|
 # "donkey-warehouse-v0"|"donkey-avc-sparkfun-v0")
-GYM_CONF = {"body_style": "car01", "body_rgb": (96, 96, 96),
-            "car_name": "DocGarbanzo", "font_size": 40,
-            "cam_resolution": (IMAGE_H, IMAGE_W, 3),
-            "cam_config": {'img_h': IMAGE_H, 'img_w': IMAGE_W}}
+GYM_CONF = dict(body_style="car01", body_rgb=(96, 96, 96),
+                car_name="DocGarbanzo", font_size=40,
+                cam_resolution=(IMAGE_H, IMAGE_W, 3),
+                cam_config={'img_h': IMAGE_H, 'img_w': IMAGE_W})
 
 GYM_CONF["racer_name"] = "Your Name"
 GYM_CONF["country"] = "Place"
 GYM_CONF["bio"] = "I race robots."
 
 SIM_HOST = "127.0.0.1"              # when racing on virtual-race-league use host "trainmydonkey.com"
-SIM_ARTIFICIAL_LATENCY = 0          # this is the millisecond latency in controls. Can use useful in emulating the delay when useing a remote server. values of 100 to 400 probably reasonable.
+SIM_ARTIFICIAL_LATENCY = 0
 
 # Save info from Simulator (pln)
-SIM_RECORD_LOCATION = False
+SIM_RECORD_LOCATION = True
 SIM_RECORD_GYROACCEL = False
-SIM_RECORD_VELOCITY = False
+SIM_RECORD_VELOCITY = True
 SIM_RECORD_LIDAR = False
 SIM_RECORD_LAPS = True

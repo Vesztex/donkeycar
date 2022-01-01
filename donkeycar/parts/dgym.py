@@ -4,6 +4,8 @@ import gym
 import logging
 import gym_donkeycar
 from prettytable import PrettyTable
+import numpy as np
+from numpy.linalg import norm
 
 logger = logging.getLogger(__name__)
 
@@ -67,15 +69,15 @@ class DonkeyGymEnv(object):
         # Output Sim-car position and other information if configured
         outputs = [self.frame]
         if self.record_location:
-            outputs += (self.info['pos'][i] for i in range(3))
+            outputs.append(self.info['pos'])
             outputs += self.info['speed'], self.info['cte']
         if self.record_gyroaccel:
-            outputs += (self.info['gyro'][i] for i in range(3))
-            outputs += (self.info['accel'][i] for i in range(3))
+            outputs.append(self.info['gyro'])
+            outputs.append(self.info['accel'])
         if self.record_velocity:
-            outputs += (self.info['vel'][i] for i in range(3))
+            outputs.append(self.info['vel'])
         if self.record_lidar:
-            outputs += self.info['lidar']
+            outputs.append(self.info['lidar'])
         if self.record_laps:
             outputs.append(self.info['last_lap_time'])
         if len(outputs) == 1:
@@ -93,24 +95,52 @@ class GymLapTimer:
     def __init__(self):
         self.current_lap = 0
         self.last_lap_time = 0.0
-        self.all_lap_times = []
+        self.lap_times = []
+        self.last_lap_distance = 0.0
+        self.lap_lengths = []
+        logger.info("Create GymLapTimer")
 
-    def run(self, last_lap_time):
+    def run(self, last_lap_time, distance):
         if last_lap_time != self.last_lap_time:
             logger.info(f'Recorded lap {self.current_lap} in '
-                        f'{last_lap_time: 4.2f}s')
+                        f'{last_lap_time: 6.2f}s')
             # update current lap
             self.current_lap += 1
-            self.all_lap_times.append(last_lap_time)
-            # store record
+            self.lap_times.append(last_lap_time)
+            lap_length = distance - self.last_lap_distance
+            self.lap_lengths.append(lap_length)
+            # store current values
             self.last_lap_time = last_lap_time
+            self.last_lap_distance = distance
         return self.current_lap
 
     def shutdown(self):
         logger.info('All lap times:')
         pt = PrettyTable()
         pt.field_names = ["lap", "time (s)"]
-        for i, lap in enumerate(self.all_lap_times):
+        for i, lap in enumerate(self.lap_times):
             row = [str(i), f'{lap: 4.2f}']
             pt.add_row(row)
         logger.info('\n' + str(pt))
+
+    def to_list(self):
+        info = [dict(lap=i, time=t, distance=l) for i, (t, l) in
+                enumerate(zip(self.lap_times, self.lap_lengths))]
+        return info
+
+
+class GymOdometer:
+    def __init__(self):
+        self.last_coordinate = None
+        self.total_distance = 0.0
+        logger.info("Create GymLapOdometer")
+
+    def run(self, coordinate):
+        if self.last_coordinate is None:
+            self.last_coordinate = np.array(coordinate)
+        else:
+            this_coordinate = np.array(coordinate)
+            dist = norm(this_coordinate - self.last_coordinate)
+            self.last_coordinate = this_coordinate
+            self.total_distance += dist
+        return self.total_distance

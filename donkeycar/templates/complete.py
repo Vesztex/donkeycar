@@ -197,10 +197,6 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
                 outputs += ['car/last_lap_time']
 
         V.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
-        if cfg.SIM_RECORD_LAPS:
-            from donkeycar.parts.dgym import GymLapTimer
-            V.add(GymLapTimer(), inputs=['car/last_lap_time'],
-                  outputs=['car/lap'])
 
     # add lidar
     if cfg.USE_LIDAR:

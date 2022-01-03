@@ -51,6 +51,7 @@ class DonkeyGymEnv(object):
         self.record_velocity = record_velocity
         self.record_lidar = record_lidar
         self.record_laps = record_laps
+        self.last_hit = 'none'
 
     def update(self):
         while self.running:
@@ -65,6 +66,11 @@ class DonkeyGymEnv(object):
         if self.delay > 0.0:
             time.sleep(self.delay / 1000.0)
         self.action = [steering, throttle, brake]
+        # log if I hit something
+        hit = self.info['hit']
+        if hit != self.last_hit:
+            logger.info(f'Hit: {hit}')
+            self.last_hit = hit
 
         # Output Sim-car position and other information if configured
         outputs = [self.frame]

@@ -372,6 +372,12 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
             car.add(imu_prep, inputs=['car/accel', 'car/gyro'],
                     outputs=['car/imu'])
             kl_inputs.append('car/imu')
+        if kl.use_lap_pct():
+            class LapPct:
+                def run(self):
+                    return [cfg.LAP_PCT]
+            car.add(LapPct(), outputs=['lap_pct'])
+            kl_inputs.append('lap_pct')
         # add auto pilot and model reloader ------------------------------------
         kl_outputs = ['pilot/angle', 'pilot/throttle']
         car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
@@ -404,7 +410,8 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
             outputs=['angle', 'throttle'])
 
     # if we want to record a tub -----------------------------------------------
-    if model_path is None and not no_tub:
+    record_on_ai = getattr(cfg, 'RECORD_DURING_AI', False)
+    if (model_path is None or record_on_ai) and not no_tub:
         inputs = [CAM_IMG, 'user/angle', 'user/throttle', 'user/mode',
                   'car/lap', 'car/distance', 'pos/pos', 'car/speed', 'pos/cte']
         types = ['image_array', 'float', 'float', 'str', 'int', 'float',
@@ -418,6 +425,11 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
         if cfg.SIM_RECORD_LIDAR:
             inputs += ['lidar/dist_array']
             types += ['nparray']
+        if record_on_ai:
+            # rename ai output as user so we can use in training
+            car.add(Renamer(), inputs=['pilot/angle'], outputs=['user/angle'])
+            car.add(Renamer(), inputs=['pilot/throttle'],
+                    outputs=['user/throttle'])
         tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs,
                                types=types, lap_timer=lap_timer)
         # no run-condition here as we need to record backwards and zero throttle

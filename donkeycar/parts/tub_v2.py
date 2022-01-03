@@ -144,14 +144,14 @@ class Tub(object):
         self.manifest.write_metadata()
         logger.info(f'Generated lap times {res}')
 
-    def calculate_lap_performance(self, config):
+    def calculate_lap_performance(self):
         """
         Creates a dictionary of (session_id, lap) keys and int values
         where 0 is the fastest loop and num_bins-1 is the slowest.
         :param config:  donkey config to look up lap time pct bins
         :return:        dictionary of type ((session_id, lap, state_vector)
         """
-        logger.info(f'Calculating lap performance for tub {self.base_path}')
+
         sessions \
             = self.manifest.manifest_metadata['sessions']['all_full_ids']
         session_lap_bin = {}
@@ -170,6 +170,10 @@ class Tub(object):
                     continue
                 rel_i = (i + 1) / len(laps_sorted)
                 session_lap_bin[(session_id, lap_i['lap'])] = rel_i
+        logger.info(f'Calculating lap performance in tub {self.base_path} '
+                    f'for {len(laps_sorted)} laps, min time: '
+                    f'{laps_sorted[0]["time"]}, max time: '
+                    f'{laps_sorted[-1]["time"]}')
         return session_lap_bin
 
     def close(self):

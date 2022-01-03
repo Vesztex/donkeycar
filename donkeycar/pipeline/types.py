@@ -124,7 +124,7 @@ class TubDataset(object):
             for tub in self.tubs:
                 session_lap_bin = None
                 if self.add_lap_pct:
-                    session_lap_bin = tub.calculate_lap_performance(self.config)
+                    session_lap_bin = tub.calculate_lap_performance()
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)
                     if self.train_filter and not self.train_filter(record):

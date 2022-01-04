@@ -172,9 +172,15 @@ class Tub(object):
                 session_lap_bin[(session_id, lap_i['lap'])] = rel_i
         logger.info(f'Calculating lap performance in tub {self.base_path} '
                     f'for {len(laps_sorted)} laps, min time: '
-                    f'{laps_sorted[0]["time"]}, max time: '
-                    f'{laps_sorted[-1]["time"]}')
+                    f'{laps_sorted[0]["time"]:5.2f}, max time: '
+                    f'{laps_sorted[-1]["time"]:5.2f}')
         return session_lap_bin
+
+    def all_lap_times(self):
+        """ returns {(session_id, lap_i): time_i, ...} """
+        d = {(s_id, lap_timer_i['lap']): lap_timer_i['time'] for s_id, v in
+             self.manifest.metadata.items() for lap_timer_i in v['laptimer']}
+        return d
 
     def close(self):
         logger.info(f'Closing tub {self.base_path}')

@@ -1,4 +1,4 @@
-name: Python package and test
+name: Python conda package and test
 
 on:
   push:

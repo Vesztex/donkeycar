@@ -79,7 +79,8 @@ setup(name='donkeycar',
               'mypy'
           ],
           'ci': ['codecov'],
-          'tf': ['tensorflow==2.2.0'],
+          'tf': ['tensorflow==2.2.0',
+                 'nvidia-pyindex'],
           'torch': [
               'torch>=1.7.1',
               'torchvision',

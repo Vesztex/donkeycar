@@ -10,12 +10,13 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.7', '3.8', '3.9']
+        python-version: ['3.7', '3.8'] # can't use 3.9 as this req tf 2.5
 #        exclude:
 #          - os: macos-latest
 #            python-version: '3.8'
 #          - os: windows-latest
 #            python-version: '3.6'
+      fail-fast: false
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python

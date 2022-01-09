@@ -25,7 +25,7 @@ jobs:
       - name: Display Python version
         run: python --version
       - name: Checkout donkeycar
-        run: pip install -e .[pc,dev]
+        run: pip install -e .[pc,tf,torch,dev,ci]
       - name: Run tests
         run: pytest
 

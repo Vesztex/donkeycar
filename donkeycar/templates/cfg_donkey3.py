@@ -80,6 +80,7 @@ MIN_DELTA = .000001
 PRINT_MODEL_SUMMARY = True
 USE_SPEED_FOR_MODEL = True
 CACHE_IMAGES = True
+USE_LAP_0 = False
 
 # model transfer options
 FREEZE_LAYERS = False

@@ -83,14 +83,14 @@ class TubRecord(object):
             _image = self._image
         return _image
 
-    def extend(self, session_lap_bin):
-        if not session_lap_bin:
+    def extend(self, session_lap_rank):
+        if not session_lap_rank:
             return True
         session_id = self.underlying['_session_id']
         lap_i = self.underlying['car/lap']
         # we won't get a result for the last lap as this is incomplete and
         # doesn't have a time.
-        pct = session_lap_bin.get((session_id, lap_i))
+        pct = session_lap_rank.get((session_id, lap_i))
         self.underlying['lap_pct'] = pct
         return pct is not None
 
@@ -122,14 +122,15 @@ class TubDataset(object):
             used_records = 0
             logger.info(f'Loading tubs from paths {self.tub_paths}')
             for tub in self.tubs:
-                session_lap_bin = None
+                session_lap_rank = None
                 if self.add_lap_pct:
-                    session_lap_bin = tub.calculate_lap_performance()
+                    session_lap_rank = tub.calculate_lap_performance(
+                        self.config.USE_LAP_0)
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)
                     if self.train_filter and not self.train_filter(record):
                         filtered_records += 1
-                    elif record.extend(session_lap_bin):
+                    elif record.extend(session_lap_rank):
                         self.records.append(record)
                         used_records += 1
                     else:
@@ -137,7 +138,7 @@ class TubDataset(object):
             total_records = used_records + filtered_records + non_ext_records
             logger.info(f'Records: # Total {total_records}  # Used '
                         f'{used_records}  # Filtered {filtered_records}  # '
-                        f'NonExt {non_ext_records}')
+                        f'NonExtended {non_ext_records}')
             if self.seq_size > 0:
                 seq = Collator(self.seq_size, self.records)
                 self.records = list(seq)

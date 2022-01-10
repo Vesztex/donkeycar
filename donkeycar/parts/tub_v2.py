@@ -144,17 +144,24 @@ class Tub(object):
         self.manifest.write_metadata()
         logger.info(f'Generated lap times {res}')
 
-    def calculate_lap_performance(self):
+    def calculate_lap_performance(self, use_lap_0=False):
         """
         Creates a dictionary of (session_id, lap) keys and int values
         where 0 is the fastest loop and num_bins-1 is the slowest.
-        :param config:  donkey config to look up lap time pct bins
-        :return:        dictionary of type ((session_id, lap, state_vector)
+        :param config:          donkey config to look up lap time pct bins
+        :param use_lap_0:    If the 0'th lap should be ignored. On the 
+                                real car lap zero shows up when the line is 
+                                crossed the first time hence the lap is 
+                                incomplete, but in the sim 0 indicates the 
+                                first complete lap, hence  
+        :return:                dictionary of type 
+                                ((session_id, lap, state_vector)
         """
 
         sessions \
             = self.manifest.manifest_metadata['sessions']['all_full_ids']
-        session_lap_bin = {}
+        session_lap_rank = {}
+        logger.info(f'Calculating lap performance in tub {self.base_path}')
         for session_id in sessions:
             session_dict = self.manifest.metadata.get(session_id)
             assert session_dict, f"Missing metadata for session_id {session_id}"
@@ -163,18 +170,17 @@ class Tub(object):
                               f"metadata"
             # lap_timer is a list of dictionaries, sort here by time
             laps_sorted = sorted(lap_timer, key=itemgetter('time'))
-            count = 0
+            num_laps = len(laps_sorted) - int(not use_lap_0)
             for i, lap_i in enumerate(laps_sorted):
-                # jump over lap 0 as it is incomplete
-                if lap_i == 0:
+                # jump over lap 0 as it might be incomplete
+                if lap_i == 0 and not use_lap_0:
                     continue
-                rel_i = (i + 1) / len(laps_sorted)
-                session_lap_bin[(session_id, lap_i['lap'])] = rel_i
-        logger.info(f'Calculating lap performance in tub {self.base_path} '
-                    f'for {len(laps_sorted)} laps, min time: '
-                    f'{laps_sorted[0]["time"]:5.2f}, max time: '
-                    f'{laps_sorted[-1]["time"]:5.2f}')
-        return session_lap_bin
+                rel_i = (i + 1) / num_laps
+                session_lap_rank[(session_id, lap_i['lap'])] = rel_i
+            logger.info(f'Session: {session_id} with {num_laps} laps, '
+                        f'min time: {laps_sorted[0]["time"]:5.2f}, '
+                        f'max time: {laps_sorted[-1]["time"]:5.2f}')
+        return session_lap_rank
 
     def all_lap_times(self):
         """ returns {(session_id, lap_i): time_i, ...} """

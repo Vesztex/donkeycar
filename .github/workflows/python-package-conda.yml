@@ -30,7 +30,6 @@ jobs:
           environment-file: ${{matrix.ENV_FILE}}
           auto-activate-base: false
           channels: conda-forge, pytorch
-          channel-priority: strict
       - run: |
           conda info
           conda list

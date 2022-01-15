@@ -28,10 +28,13 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: 3.7
+          mamba-version: "*"
+          use-mamba: true
           activate-environment: donkey
           environment-file: ${{matrix.ENV_FILE}}
           auto-activate-base: false
           channels: default, conda-forge, pytorch
+          channel-priority: true
       - name: Conda info and list
         run: |
           echo Environment file ${{matrix.ENV_FILE}}

@@ -35,6 +35,7 @@ dependencies:
   - plotly
   - psutil
   - pip:
+    - tensorflow==2.2.0
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid
     - opencv-python-headless

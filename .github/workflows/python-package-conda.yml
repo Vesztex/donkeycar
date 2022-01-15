@@ -2,8 +2,6 @@ name: Python package and test
 
 on:
   push:
-    paths-ignore:
-      - 'docs/**'
   pull_request:
 
 jobs:
@@ -17,6 +15,8 @@ jobs:
             ENV_FILE: install/envs/mac.yml
           - os: ubuntu-latest
             ENV_FILE: install/envs/ubuntu.yml
+          - os: windows-latest
+            ENV_FILE: install/envs/windows.yml
       fail-fast: false
     defaults:
       run:

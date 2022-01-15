@@ -6,36 +6,36 @@ channels:
   - pytorch
 
 dependencies:
-  - python=3.7.11
-  - h5py=2.10.0
-  - pillow=8.4.0
-  - opencv=4.5.0
-  - matplotlib=3.5.0
-  - tornado=6.1
-  - docopt=0.6.2
-  - pandas=1.3.5
-  - pylint=2.12.2
-  - pytest=6.2.3
-  - pytest-cov=2.11.1
-  - codecov=2.1.11
-  - pip=21.2.2
-  - imgaug=0.4.0
-  - progress=1.5
-  - moviepy=1.0.1
-  - paho-mqtt=1.6.0
-  - PrettyTable=2.1.0
-  - pyfiglet=0.8.post1
-  - mypy=0.910
+  - python=3.7
+  - h5py
+  - pillow
+  - opencv
+  - matplotlib
+  - tornado
+  - docopt
+  - pandas
+  - pylint
+  - pytest
+  - pytest-cov
+  - codecov
+  - pip
+  - imgaug
+  - progress
+  - moviepy
+  - paho-mqtt
+  - PrettyTable
+  - pyfiglet
+  - mypy
   - pytorch=1.7.1
-  - torchvision=0.8.2
-  - torchaudio=0.7.2
-  - pytorch-lightning=1.2.10
-  - numpy=1.19.2
-  - psutil=5.8.0
+  - torchvision
+  - torchaudio
+  - pytorch-lightning
+  - numpy
+  - psutil
   - kivy=2.0.0
-  - plotly=5.1.0
-  - tensorflow==2.2.0
+  - plotly
+  - tensorflow=2.2.0
   - pip:
     - git+https://github.com/autorope/keras-vis.git
-    - simple-pid==1.0.1
-    - opencv-python-headless==4.5.2.52
+    - simple-pid
+    - opencv-python-headless

@@ -30,7 +30,7 @@ class DonkeyGymEnv(object):
             if not is_exe(sim_path):
                 raise Exception("The path you provided is not an executable.")
 
-        if new_sim:
+        if new_sim or sim_path == 'remote':
             conf["exe_path"] = sim_path
             conf["host"] = host
             conf["port"] = port
@@ -67,7 +67,7 @@ class DonkeyGymEnv(object):
             time.sleep(self.delay / 1000.0)
         self.action = [steering, throttle, brake]
         # log if I hit something
-        hit = self.info['hit']
+        hit = self.info.get('hit', 'none')
         if hit != self.last_hit:
             logger.info(f'Hit: {hit}')
             self.last_hit = hit
@@ -85,7 +85,7 @@ class DonkeyGymEnv(object):
         if self.record_lidar:
             outputs.append(self.info['lidar'])
         if self.record_laps:
-            outputs.append(self.info['last_lap_time'])
+            outputs.append(self.info.get('last_lap_time', 0.0))
         if len(outputs) == 1:
             return self.frame
         else:

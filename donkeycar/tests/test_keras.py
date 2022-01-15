@@ -52,7 +52,7 @@ def create_models(keras_pilot, dir):
 
 
 def test_env():
-    for k, v in os.environ:
+    for k, v in os.environ.items():
         print(k, ":", v)
 
 

@@ -43,4 +43,6 @@ jobs:
       - name: Install donkey
         run: pip install -e .[pc]
       - name: Run tests
-        run: pytest
+        run: |
+          env
+          pytest

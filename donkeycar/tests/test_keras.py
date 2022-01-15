@@ -51,6 +51,11 @@ def create_models(keras_pilot, dir):
     return km, kl, krt
 
 
+def test_env():
+    for k, v in os.environ:
+        print(k, ":", v)
+
+
 @pytest.mark.skipif(os.environ.get('RUNNER_OS') == 'Windows',
                     reason='Fails in windows as tensorrt is not supported')
 @pytest.mark.parametrize('keras_pilot', test_data)

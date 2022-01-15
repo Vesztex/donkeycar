@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: 3.7
           mamba-version: "*"
-          use-mamba: true
+          # use-mamba: true
           activate-environment: donkey
           environment-file: ${{matrix.ENV_FILE}}
           auto-activate-base: false

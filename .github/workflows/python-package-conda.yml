@@ -41,7 +41,10 @@ jobs:
           conda info
           conda list
       - name: Install donkey
-        run: pip install -e .[pc]
+        run: |
+          if: matrix.os == 'windows-latest'
+          pip install --user tensorflow==2.2.0
+          pip install -e .[pc]
       - name: Run tests
         run: |
           env

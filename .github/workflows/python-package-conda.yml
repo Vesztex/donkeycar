@@ -40,12 +40,10 @@ jobs:
           echo Environment file ${{matrix.ENV_FILE}}
           conda info
           conda list
+      - name: Install tf on windows
+        if: matrix.os == 'windows-latest'
+        run: pip install --user tensorflow==2.2.0
       - name: Install donkey
-        run: |
-          if: matrix.os == 'windows-latest'
-          pip install --user tensorflow==2.2.0
-          pip install -e .[pc]
+        run: pip install -e .[pc]
       - name: Run tests
-        run: |
-          env
-          pytest
+        run: pytest

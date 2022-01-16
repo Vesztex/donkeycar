@@ -51,8 +51,6 @@ def create_models(keras_pilot, dir):
     return km, kl, krt
 
 
-@pytest.mark.skipif(os.environ.get('RUNNER_OS') == 'Windows',
-                    reason='Fails in windows as tensorrt is not supported')
 @pytest.mark.parametrize('keras_pilot', test_data)
 def test_keras_vs_tflite_and_tensorrt(keras_pilot, tmp_dir):
     """ This test cannot run for the 3D CNN model in tflite and the LSTM

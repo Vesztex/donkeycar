@@ -15,8 +15,6 @@ jobs:
             ENV_FILE: install/envs/mac.yml
           - os: ubuntu-latest
             ENV_FILE: install/envs/ubuntu.yml
-          - os: windows-latest
-            ENV_FILE: install/envs/windows.yml
       fail-fast: false
     defaults:
       run:
@@ -28,7 +26,6 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: 3.7
-          if: matrix.os != 'windows-latest'
           mamba-version: "*"
           activate-environment: donkey
           environment-file: ${{matrix.ENV_FILE}}
@@ -40,9 +37,6 @@ jobs:
           echo Environment file ${{matrix.ENV_FILE}}
           conda info
           conda list
-      - name: Install tf on windows
-        if: matrix.os == 'windows-latest'
-        run: pip install --user tensorflow==2.2.0
       - name: Install donkey
         run: pip install -e .[pc]
       - name: Run tests

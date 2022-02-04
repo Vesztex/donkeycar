@@ -20,7 +20,8 @@ class DonkeyGymEnv(object):
                  headless=0, env_name="donkey-generated-track-v0",
                  sync="asynchronous", conf={}, record_location=False,
                  record_gyroaccel=False, record_velocity=False,
-                 record_lidar=False, record_laps=True, delay=0, new_sim=True):
+                 record_lidar=False, record_laps=True, delay=0, new_sim=True,
+                 respawn_on_game_over=False):
 
         if sim_path != "remote":
             if not os.path.exists(sim_path):
@@ -51,11 +52,12 @@ class DonkeyGymEnv(object):
         self.record_velocity = record_velocity
         self.record_lidar = record_lidar
         self.record_laps = record_laps
-        self.last_hit = 'none'
+        self.respawn_on_game_over = respawn_on_game_over
+        self.done = False
 
     def update(self):
         while self.running:
-            self.frame, _, _, self.info = self.env.step(self.action)
+            self.frame, _, self.done, self.info = self.env.step(self.action)
 
     def run_threaded(self, steering, throttle, brake=None):
         if steering is None or throttle is None:
@@ -66,11 +68,13 @@ class DonkeyGymEnv(object):
         if self.delay > 0.0:
             time.sleep(self.delay / 1000.0)
         self.action = [steering, throttle, brake]
-        # log if I hit something
         hit = self.info.get('hit', 'none')
-        if hit != self.last_hit:
-            logger.info(f'Hit: {hit}')
-            self.last_hit = hit
+
+        if self.done:
+            logger.info('Game Over')
+            if self.respawn_on_game_over:
+                self.env.reset()
+                self.done = False
 
         # Output Sim-car position and other information if configured
         outputs = [self.frame]

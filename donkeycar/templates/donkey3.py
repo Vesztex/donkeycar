@@ -318,12 +318,16 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
 
     if verbose:
         donkeycar.logger.setLevel(logging.DEBUG)
+    else:
+        donkeycar.logger.setLevel(logging.INFO)
 
+    cfg.GYM_CONF['log_level'] = donkeycar.logger.level
     car = dk.vehicle.Vehicle()
     # check if sim is running
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     is_sim = sock.connect_ex((cfg.SIM_HOST, 9091)) == 0
     sock.close()
+    # respawn car at game over when driving with auto pilot
     cam = DonkeyGymEnv(cfg.DONKEY_SIM_PATH, host=cfg.SIM_HOST,
                        env_name=cfg.DONKEY_GYM_ENV_NAME, conf=cfg.GYM_CONF,
                        record_location=True,
@@ -331,7 +335,8 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
                        record_velocity=cfg.SIM_RECORD_VELOCITY,
                        record_lidar=cfg.SIM_RECORD_LIDAR,
                        delay=cfg.SIM_ARTIFICIAL_LATENCY,
-                       new_sim=not is_sim)
+                       new_sim=not is_sim,
+                       respawn_on_game_over=model_type is not None)
     threaded = True
     inputs = ['angle', 'throttle']
     outputs = [CAM_IMG, 'pos/pos', 'car/speed', 'pos/cte']

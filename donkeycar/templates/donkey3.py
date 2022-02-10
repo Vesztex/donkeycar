@@ -346,12 +346,12 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
         outputs += ['car/vel']
     if cfg.SIM_RECORD_LIDAR:
         outputs += ['lidar/dist_array']
-    outputs += ['last_lap_time']
+    outputs += ['last_lap_time', 'game_over']
 
     car.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
     car.add(GymOdometer(), inputs=['pos/pos'], outputs=['car/distance'])
     lap_timer = GymLapTimer()
-    car.add(lap_timer, inputs=['last_lap_time', 'car/distance'],
+    car.add(lap_timer, inputs=['last_lap_time', 'car/distance', 'game_over'],
             outputs=['car/lap'])
 
 # load model if present ----------------------------------------------------

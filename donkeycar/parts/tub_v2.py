@@ -123,7 +123,7 @@ class Tub(object):
 
             if this_lap != lap:
                 assert this_lap > lap, f'Found smaller lap {this_lap} than ' \
-                    f'previous lap {lap} in session {session_id}'
+                                       f'previous lap {lap} in session {session_id}'
                 this_time_stamp_ms = record['_timestamp_ms']
                 lap_time = (this_time_stamp_ms - time_stamp_ms) / 1000
                 this_dist = record['car/distance']
@@ -168,18 +168,24 @@ class Tub(object):
             lap_timer = session_dict.get('laptimer')
             assert lap_timer, f"Missing laptimer in session_id {session_id} " \
                               f"metadata"
+            # Remove lap zero if it shouldn't be considered. It should be first
+            # entry, but check before removal.
+            if not use_lap_0 and lap_timer[0]['lap'] == 0:
+                del(lap_timer[0])
+            # Remove laps that are not valid
+            laps_filtered = [l for l in lap_timer if l.get('valid', True)]
             # lap_timer is a list of dictionaries, sort here by time
-            laps_sorted = sorted(lap_timer, key=itemgetter('time'))
-            num_laps = len(laps_sorted) - int(not use_lap_0)
+            laps_sorted = sorted(laps_filtered, key=itemgetter('time'))
+            num_laps = len(laps_sorted)
             for i, lap_i in enumerate(laps_sorted):
-                # jump over lap 0 as it might be incomplete
-                if lap_i == 0 and not use_lap_0:
-                    continue
                 rel_i = (i + 1) / num_laps
                 session_lap_rank[(session_id, lap_i['lap'])] = rel_i
-            logger.info(f'Session: {session_id} with {num_laps} laps, '
-                        f'min time: {laps_sorted[0]["time"]:5.2f}, '
-                        f'max time: {laps_sorted[-1]["time"]:5.2f}')
+            log_text = f'Session {session_id} with {num_laps} valid laps out ' \
+                       f'of {len(lap_timer)}'
+            if num_laps > 0:
+                log_text += f', min time: {laps_sorted[0]["time"]:5.2f}, ' \
+                            f'max time: {laps_sorted[-1]["time"]:5.2f} '
+            logger.info(log_text)
         return session_lap_rank
 
     def all_lap_times(self):

@@ -69,7 +69,7 @@ class DonkeyGymEnv(object):
             time.sleep(self.delay / 1000.0)
         self.action = [steering, throttle, brake]
         hit = self.info.get('hit', 'none')
-
+        game_over = self.done
         if self.done:
             logger.info('Game Over')
             if self.respawn_on_game_over:
@@ -90,6 +90,7 @@ class DonkeyGymEnv(object):
             outputs.append(self.info['lidar'])
         if self.record_laps:
             outputs.append(self.info.get('last_lap_time', 0.0))
+            outputs.append(game_over)
         if len(outputs) == 1:
             return self.frame
         else:
@@ -105,38 +106,44 @@ class GymLapTimer:
     def __init__(self):
         self.current_lap = 0
         self.last_lap_time = 0.0
-        self.lap_times = []
         self.last_lap_distance = 0.0
-        self.lap_lengths = []
+        self.lap_info = []
+        self.is_valid = True
         logger.info("Create GymLapTimer")
 
-    def run(self, last_lap_time, distance):
+    def run(self, last_lap_time, distance, game_over):
         if last_lap_time != self.last_lap_time:
             logger.info(f'Recorded lap {self.current_lap} in '
                         f'{last_lap_time: 6.2f}s')
-            # update current lap
-            self.current_lap += 1
-            self.lap_times.append(last_lap_time)
             lap_length = distance - self.last_lap_distance
-            self.lap_lengths.append(lap_length)
             # store current values
             self.last_lap_time = last_lap_time
             self.last_lap_distance = distance
+            info = dict(lap=self.current_lap, time=last_lap_time,
+                        distance=lap_length, valid=self.is_valid)
+            self.lap_info.append(info)
+            # update current lap and reset valid lap
+            self.current_lap += 1
+            self.is_valid = True
+        else:
+            # set invald lap once we get a game over trigger
+            if game_over:
+                self.is_valid = False
+
         return self.current_lap
 
     def shutdown(self):
         logger.info('All lap times:')
         pt = PrettyTable()
-        pt.field_names = ["lap", "time (s)"]
-        for i, lap in enumerate(self.lap_times):
-            row = [str(i), f'{lap: 4.2f}']
+        pt.field_names = ["lap", "time (s)", "distance", "valid"]
+        for info in self.lap_info:
+            row = [info["lap"], f'{info["time"]: 4.2f}',
+                   f'{info["distance"]: 5.3f}', info["valid"]]
             pt.add_row(row)
         logger.info('\n' + str(pt))
 
     def to_list(self):
-        info = [dict(lap=i, time=t, distance=l) for i, (t, l) in
-                enumerate(zip(self.lap_times, self.lap_lengths))]
-        return info
+        return self.lap_info
 
 
 class GymOdometer:

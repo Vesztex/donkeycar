@@ -271,7 +271,7 @@ class KerasPilot(ABC):
         """ Find the canonically named Flatten layer and return number of
         layers after that"""
         assert isinstance(self.interpreter, KerasInterpreter) and \
-               self.interpreter. model, "Wrong interpreter or no model set"
+               self.interpreter.model, "Wrong interpreter or no model set"
         i = 0
         while self.interpreter.model.layers[i].name != 'flattened':
             i += 1
@@ -280,12 +280,14 @@ class KerasPilot(ABC):
     def freeze_first_layers(self, num_last_layers_to_train=None):
         if num_last_layers_to_train is None:
             num_last_layers_to_train = self.get_num_last_layers_to_train()
-        num_to_freeze = len(self.model.layers) - num_last_layers_to_train
+        assert isinstance(self.interpreter, KerasInterpreter), \
+            'Can only freeze layers in Keras model but not in TfLite and others'
+        num_to_freeze = len(self.interpreter.model.layers) - num_last_layers_to_train
         frozen_layers = []
         for i in range(num_to_freeze):
             self.interpreter.model.layers[i].trainable = False
             frozen_layers.append(self.interpreter.model.layers[i].name)
-        print('Freezing layers {}'.format(frozen_layers))
+        logger.info(f'Freezing layers {frozen_layers}')
         return num_to_freeze
 
 

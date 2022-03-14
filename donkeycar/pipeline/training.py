@@ -110,6 +110,8 @@ def train(cfg: Config, tub_paths: str, model: str = None,
     kl = get_model_by_type(model_type, cfg)
     if transfer:
         kl.load(transfer)
+        if getattr(cfg, 'FREEZE_LAYERS', False):
+            kl.freeze_first_layers()
     if cfg.PRINT_MODEL_SUMMARY:
         print(kl.interpreter.model.summary())
 

@@ -2,7 +2,7 @@ import copy
 import time
 import logging
 import numpy as np
-from typing import Dict, Tuple, Optional, Union, List, Sequence, Callable
+from typing import Dict, Tuple, Union, List, Callable
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import regularizers
@@ -66,6 +66,10 @@ class KerasSquarePlus(KerasLinear):
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])})
         return shapes
+
+    def get_num_last_layers_to_train(self):
+        l = len(square_plus_dense(self.size))
+        l += 2  # angle, throttle
 
 
 class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
@@ -169,11 +173,12 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
                    'throttle': tf.TensorShape([])})
         return shapes
 
-    def run(self, img_arr: np.ndarray, lap_pct: List[float]) -> \
+    def run(self, img_arr: np.ndarray, *other_arr: List[float]) -> \
             Tuple[Union[float, np.ndarray], ...]:
         # Only called at start to fill the previous values
         np_mem_arr = np.array(self.mem_seq).reshape((2 * self.mem_length,))
         img_arr_norm = normalize_image(img_arr)
+        lap_pct, = other_arr
         np_lap_arr = np.array(lap_pct)
         angle, throttle = super().inference(img_arr_norm, np_mem_arr,
                                             np_lap_arr)
@@ -558,9 +563,9 @@ class WorldPilot(KerasWorldImu):
         # convert image array into latent vector first
         img_arr = img_arr.reshape((1,) + img_arr.shape)
         # now we run the model returning drive vector and last latent vector
-        inputs = [img_arr, imu_arr,
-                  np.array([self.latent_seq]), np.array([self.drive_seq])]
-        [angle, throttle, latent] = self.model.predict(inputs)
+        inputs = (img_arr, imu_arr,
+                  np.array([self.latent_seq]), np.array([self.drive_seq]))
+        [angle, throttle, latent] = self.interpreter.predict(*inputs)
         # convert drive array of ndarray into more convenient type
         drive_arr = np.array([angle[0][0], throttle[0][0]])
         # add new results for angle, throttle and latent vector into sequence
@@ -664,7 +669,7 @@ class ModelLoader:
             self.update_trigger = True
             return False
         else:
-            # check pilot is loaded and we shove it into the remote object
+            # check pilot is loaded, and we shove it into the remote object
             if self.is_updated:
                 self.remote_model.update(self.model)
                 # reset update state to false so we don't update until
@@ -672,7 +677,7 @@ class ModelLoader:
                 self.is_updated = False
                 print('ModelLoader updated model.')
                 return True
-            # otherwise no updated model available - do nothing
+            # otherwise, no updated model available - do nothing
             else:
                 return False
 
@@ -691,8 +696,9 @@ class ModelLoader:
                 time.sleep(1.0)
 
 
-def linear_square_plus_cnn(x, size='R', is_seq=False):
+def linear_square_plus_cnn(img_in, size='R', l2=0.001, is_seq=False):
     drop = 0.02
+    x = img_in
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
     if size in ['XS', 'S', 'M']:
@@ -742,17 +748,31 @@ def linear_square_plus_cnn(x, size='R', is_seq=False):
                     x = MaxPooling2D(pool_size=(3, 3), padding='same',
                                      name='pool' + str(i))(x)
 
+    # flatten and pack into latent vector:
     flat = Flatten(name='flattened')
-    x = TD(flat, name='td_flat')(x) if is_seq else flat(x)
-    return x
+    units = square_plus_dense(size)[0]
+    if is_seq:
+        x = TD(flat, name='td_flat')(x)
+        x = LSTM(units=units,
+                 kernel_regularizer=regularizers.l2(l2),
+                 recurrent_regularizer=regularizers.l2(l2),
+                 name='lstm_latent',
+                 return_sequences=True)(x)
+    else:
+        x = flat(x)
+        x = Dense(units=units, activation='relu',
+                  kernel_regularizer=regularizers.l2(l2),
+                  name='dense_latent')(x)
+    output = x
+    return Model(inputs=[img_in], outputs=[output], name='CNN')
 
 
 def square_plus_dense(size='R'):
-    d = dict(XS=[72] * 3 + [48],
-             S=[96] * 4 + [48],
-             M=[128] * 5 + [64],
-             L=[144] * 8,
-             R=[128] * 5 + [64])
+    d = dict(XS=[72] * 2 + [48],
+             S=[96] * 3 + [48],
+             M=[128] * 4 + [64],
+             L=[144] * 7,
+             R=[128] * 4 + [64])
     if size not in d:
         raise ValueError('size must be in', d.keys(), 'but was', size)
     return d[size]
@@ -764,13 +784,16 @@ def linear_square_plus(input_shape=(120, 160, 3), size='S', seq_len=None,
     l2 = 0.001
     if seq_len:
         input_shape = (seq_len,) + input_shape
-    img_in = Input(shape=input_shape, name='img_in')
-    x = img_in
-    x = linear_square_plus_cnn(x, size, seq_len is not None)
-    inputs = [img_in]
-    model = square_plus_output_layers(x, size, l2, inputs, imu_dim=None,
-                                      seq_len=seq_len,
-                                      pos_throttle=pos_throttle)
+
+    img_in = keras.Input(shape=input_shape, name='img_in')
+    cnn = linear_square_plus_cnn(img_in, size, l2, seq_len is not None)
+
+    latent = cnn(img_in)
+    outputs = square_plus_output_layers(latent, size, l2,
+                                        seq_len=seq_len,
+                                        pos_throttle=pos_throttle)
+    name = create_name(False, None, 0, False, seq_len, size)
+    model = Model(inputs=[img_in], outputs=outputs, name=name)
     return model
 
 
@@ -784,9 +807,10 @@ def linear_square_plus_imu(input_shape=(120, 160, 3),
         input_shape = (seq_len,) + input_shape
         imu_shape = (seq_len,) + imu_shape
     img_in = Input(shape=input_shape, name='img_in')
+    cnn = linear_square_plus_cnn(img_in, size, l2, seq_len is not None)
+    x = cnn(img_in)
+
     imu_in = Input(shape=imu_shape, name="imu_in")
-    x = img_in
-    x = linear_square_plus_cnn(x, size, seq_len is not None)
     y = imu_in
     imu_dense_size = dict(XS=20, S=24, M=36, L=48, R=36)
     imu_dense = Dense(units=imu_dense_size[size], activation='relu',
@@ -794,9 +818,11 @@ def linear_square_plus_imu(input_shape=(120, 160, 3),
                       name='dense_imu')
     y = TD(imu_dense, name='td_imu_dense')(y) if seq_len else imu_dense(y)
     z = concatenate([x, y])
+    outputs = square_plus_output_layers(z, size, l2, seq_len,
+                                        pos_throttle=pos_throttle)
+    name = create_name(False, None, 0, False, seq_len, size)
     inputs = [img_in, imu_in]
-    model = square_plus_output_layers(z, size, l2, inputs, imu_dim, seq_len,
-                                      pos_throttle=pos_throttle)
+    model = Model(inputs=inputs, outputs=outputs, name=name)
     return model
 
 
@@ -806,18 +832,12 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
     l2 = 0.001
     drop2 = 0.1 #0.02 #0.1
     img_in = Input(shape=input_shape, name='img_in')
+    cnn = linear_square_plus_cnn(img_in, size, l2)
+    latent = cnn(img_in)
     mem_in = Input(shape=(2 * mem_length,), name='mem_in')
-    x = img_in
-    x = linear_square_plus_cnn(x, size)
-    y = mem_in
-    for i in range(mem_depth):
-        y = Dense(4 * mem_length, activation='relu', name=f'mem_{i}')(y)
-        y = Dropout(drop2)(y)
-    for i in range(0, mem_length - 1):  # memlength # memlength-1
-        y = Dense(2 * (mem_length - i), activation='relu', name=f'mem_c_{i}')(y)
-        y = Dropout(drop2)(y)
-
-    concat = [x, y]
+    memory = memory_model(mem_in, mem_length, mem_depth, drop2)
+    mem_out = memory(mem_in)
+    concat = [latent, mem_out]
     inputs = [img_in, mem_in]
     if has_lap_pct:
         # using leaky relu here with negative branch so we get some
@@ -831,16 +851,27 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
         concat.append(xl)
         inputs.append(lap_in)
     z = concatenate(concat)
-
-    model = square_plus_output_layers(z, size, l2, inputs, None, None,
-                                      mem_length, has_lap_pct=has_lap_pct,
-                                      pos_throttle=pos_throttle)
+    outputs = square_plus_output_layers(z, size, l2, None,
+                                        pos_throttle=pos_throttle)
+    name = create_name(has_lap_pct, None, mem_length, True, None, size)
+    model = Model(inputs=inputs, outputs=outputs, name=name)
     return model
 
 
-def square_plus_output_layers(in_tensor, size, l2, model_inputs,
-                              imu_dim=None, seq_len=None, mem_len=None,
-                              has_lap_pct=False, pos_throttle=True):
+def memory_model(in_tensor, mem_length, mem_depth, drop):
+    y = in_tensor
+    for i in range(mem_depth):
+        y = Dense(4 * mem_length, activation='relu', name=f'mem_{i}')(y)
+        y = Dropout(drop)(y)
+    for i in range(0, mem_length - 1):  # memlength # memlength-1
+        y = Dense(2 * (mem_length - i), activation='relu', name=f'mem_c_{i}')(y)
+        y = Dropout(drop)(y)
+    model = Model(inputs=[in_tensor], outputs=[y], name='Memory')
+    return model
+
+
+def square_plus_output_layers(in_tensor, size, l2,
+                              seq_len=None, pos_throttle=True):
     layers = square_plus_dense(size)
     z = in_tensor
     for i, l in zip(range(len(layers)), layers):
@@ -858,7 +889,11 @@ def square_plus_output_layers(in_tensor, size, l2, model_inputs,
     angle_out = Dense(units=1, activation='tanh', name='angle')(z)
     activation = 'sigmoid' if pos_throttle else 'tanh'
     throttle_out = Dense(units=1, activation=activation, name='throttle')(z)
-    if len(model_inputs) > 1:
+    return [angle_out, throttle_out]
+
+
+def create_name(has_lap_pct, imu_dim, mem_len, multi_input, seq_len, size):
+    if multi_input:
         if imu_dim:
             name = f'SquarePlusImu_{size}_{imu_dim}'
         elif has_lap_pct:
@@ -872,7 +907,5 @@ def square_plus_output_layers(in_tensor, size, l2, model_inputs,
         name = 'SquarePlus_' + size
     if seq_len:
         name += '_lstm_' + str(seq_len)
-    model = Model(inputs=model_inputs, outputs=[angle_out, throttle_out],
-                  name=name)
-    return model
+    return name
 

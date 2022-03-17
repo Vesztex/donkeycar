@@ -1,0 +1,15 @@
+# vehicle file
+verbose: True
+parts:
+  - cvcam:
+      parameters:
+        image_w: cfg.image_w
+        image_h: cfg.image_h
+      outputs: [cam/img_array]
+  - tubwriter:
+      parameters:
+        base_path: data2/tub_new
+        inputs: [cam/img_array]
+        types: [image_array]
+      inputs: [cam/img_array]
+      outputs: [img_index]

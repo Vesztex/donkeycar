@@ -2,6 +2,9 @@ import time
 import cv2
 import numpy as np
 
+from donkeycar.parts.part import Part
+
+
 class ImgGreyscale():
 
     def run(self, img_arr):
@@ -151,10 +154,9 @@ class ArrowKeyboardControls:
             if keyCode == code:
                 return self.vec[iCode]
         return (0., 0.)
+
         
-        
-        
-class Pipeline():
+class Pipeline:
     def __init__(self, steps):
         self.steps = steps
     
@@ -166,8 +168,9 @@ class Pipeline():
             
             val = f(val, *args, **kwargs)
         return val
-    
-class CvCam(object):
+
+
+class CvCam(Part):
     def __init__(self, image_w=160, image_h=120, image_d=3, iCam=0):
 
         self.frame = None

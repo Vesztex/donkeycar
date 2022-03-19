@@ -344,7 +344,6 @@ class Tub(object):
         except:
             pass
 
-
     def write_exclude(self):
         if 0 == len(self.exclude):
             # If the exclude set is empty don't leave an empty file around.
@@ -353,7 +352,6 @@ class Tub(object):
         else:
             with open(self.exclude_path, 'w') as f:
                 json.dump(list(self.exclude), f)
-
 
 
 class TubWriter(Tub):

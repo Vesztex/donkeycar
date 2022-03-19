@@ -1,15 +1,17 @@
 # vehicle file
-verbose: True
 parts:
   - cvcam:
-      parameters:
+      arguments:
         image_w: cfg.image_w
         image_h: cfg.image_h
       outputs: [cam/img_array]
+      threaded: true
   - tubwriter:
-      parameters:
-        base_path: data2/tub_new
+      arguments:
+        base_path: cfg.data_path
         inputs: [cam/img_array]
         types: [image_array]
       inputs: [cam/img_array]
       outputs: [img_index]
+      add_only_if: cfg.sim_record_location
+

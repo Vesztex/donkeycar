@@ -7,7 +7,10 @@ class PartFactory(type):
     register = {}
 
     def __init__(cls, name, bases, dct):
-        cls.register[cls.__name__.lower()] = cls.create
+        l_name = name.lower()
+        # don't register base class constructor
+        if l_name != 'part':
+            cls.register[l_name] = cls.create
 
     @classmethod
     def make(mcs, concrete, kwargs):

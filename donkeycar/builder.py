@@ -3,49 +3,49 @@ from donkeycar.parts.part import PartFactory
 from donkeycar import Vehicle
 # -- !!! THIS import cannot be removed as otherwise the metaclass
 # initialisation does not run for all parts !!!
-from donkeycar.parts.camera import *
+import donkeycar.parts
 
 
 class Builder:
     """
-    Class that builds donkey parts from a yaml file
+    Class that builds a donkey vehicle from a yaml file
     """
     def __init__(self, cfg, car_file='car.yml'):
         """
-        :param cfg:         car config file
+        :param cfg:         car config
         :param car_file:    car construction recipe
         """
         self.cfg = cfg
         self.car_file = car_file
-        self.verbose = False
 
-    def insert_config(self, parameters):
+    def insert_config(self, arguments):
         """
-        Function to replace parameters called cfg.xyz or cfg.XYZ with XYZ
-        from the car config file
-        :param dict parameters:  input parameters
-        :return:                updated parameters
-        :rtype:                 dict
+        Function to do in-place replacement of parameters called cfg.xyz or
+        cfg.XYZ with XYZ from the car config file.
+        :param dict arguments:  input/output dictionary
         """
-        if parameters is None:
-            return
-        for k, v in parameters.items():
-            if type(v) is str and v[:4].lower() == 'cfg.':
-                parameters[k] = getattr(self.cfg, v[4:].upper())
+        if arguments:
+            for k, v in arguments.items():
+                if type(v) is str and v[:4].lower() == 'cfg.':
+                    arguments[k] = getattr(self.cfg, v[4:].upper())
 
     def build_vehicle(self):
         with open(self.car_file) as f:
-            obj_file = yaml.load(f, Loader=yaml.FullLoader)
+            car_description = yaml.load(f, Loader=yaml.FullLoader)
 
-        self.verbose = obj_file.get('verbose', False)
-        parts = obj_file.get('parts')
+        parts = car_description.get('parts')
         car = Vehicle()
 
         for part in parts:
             for part_name, part_params in part.items():
+                # replace any cfg parameters
+                self.insert_config(part_params)
+                # check if add_only_if is present
+                if part_params.get('add_only_if') is False:
+                    continue
                 # we are using .get on part parameters here as the part might
-                # might not require any
-                part_args = part_params.get('parameters')
+                # not require any
+                part_args = part_params.get('arguments')
                 # updated part parameters with config values
                 self.insert_config(part_args)
                 # this creates the part
@@ -53,10 +53,10 @@ class Builder:
                 inputs = part_params.get('inputs', [])
                 outputs = part_params.get('outputs', [])
                 threaded = part_params.get('threaded', False)
-                run_condition = None
+                run_condition = part_params.get('run_condition')
                 # adding part to vehicle
                 car.add(vehicle_part, inputs=inputs, outputs=outputs,
                         threaded=threaded, run_condition=run_condition)
 
-        return car, self.vehicle_hz, self.max_loop_count, self.verbose
+        return car
 

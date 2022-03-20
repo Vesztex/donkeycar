@@ -1,4 +1,4 @@
-# vehicle file
+
 parts:
   - cvcam:
       arguments:
@@ -14,4 +14,3 @@ parts:
       inputs: [cam/img_array]
       outputs: [img_index]
       add_only_if: cfg.sim_record_location
-

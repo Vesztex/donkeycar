@@ -9,7 +9,7 @@ import logging
 from typing import Tuple
 
 import donkeycar as dk
-from donkeycar.parts.part import Creatable
+from donkeycar.parts.part import Creatable, CreatableFactory
 from donkeycar.parts.pins import OutputPin, PwmPin, PinState
 from donkeycar.utilities.deprecated import deprecated
 
@@ -71,13 +71,14 @@ def pulse_ms(pulse_bits: int) -> float:
     return pulse_bits / 4095
 
 
-class PulseController:
+class PulseController(Creatable):
     """
     Controller that provides a servo PWM pulse using the given PwmPin
     See pins.py for pin provider implementations.
     """
 
-    def __init__(self, pwm_pin:PwmPin, pwm_scale:float = 1.0, pwm_inverted:bool = False) -> None:
+    def __init__(self, pwm_pin: PwmPin, pwm_scale: float = 1.0,
+                 pwm_inverted: bool = False) -> None:
         """
         :param pwm_pin:PwnPin pin that will emit the pulse.
         :param pwm_scale:float scaling the 12 bit pulse value to compensate
@@ -89,7 +90,7 @@ class PulseController:
         self.inverted = pwm_inverted
         self.started = pwm_pin.state() != PinState.NOT_STARTED
 
-    def set_pulse(self, pulse:int) -> None:
+    def set_pulse(self, pulse: int) -> None:
         """
         Set the length of the pulse using a 12 bit integer (0..4095)
         :param pulse:int 12bit integer (0..4095)
@@ -104,12 +105,18 @@ class PulseController:
             pulse = 4095 - pulse
         self.pwm_pin.duty_cycle(int(pulse * self.scale) / 4095)
 
-    def run(self, pulse:int) -> None:
+    def run(self, pulse: int) -> None:
         """
         Set the length of the pulse using a 12 bit integer (0..4095)
         :param pulse:int 12bit integer (0..4095)
         """
         self.set_pulse(pulse)
+
+    @classmethod
+    def create(cls, kwargs):
+        pwm_pin = CreatableFactory.make('pwmpin', kwargs['pwm_pin'])
+        kwargs['pwm_pin'] = pwm_pin
+        return PulseController(**kwargs)
 
 
 @deprecated("Deprecated in favor or PulseController.  This will be removed in a future release")
@@ -205,12 +212,11 @@ class PiGPIO_PWM():
         if self.output > 0:
             self.pgio.hardware_PWM(self.pin, self.freq, int(self.output if self.inverted == False else 1e6 - self.output))
 
-
     def run(self, pulse):
         self.set_pulse(pulse)
 
 
-class PWMSteering:
+class PWMSteering(Creatable):
     """
     Wrapper over a PWM pulse controller to convert angles to PWM pulses.
     """
@@ -252,6 +258,9 @@ class PWMSteering:
         self.pulse = 0
         time.sleep(0.3)
         self.running = False
+
+    @classmethod
+    def create(cls, kwargs):
 
 
 class PWMThrottle:

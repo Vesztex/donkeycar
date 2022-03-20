@@ -571,17 +571,17 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
             pwm_scale=dt["PWM_STEERING_SCALE"],
             pwm_inverted=dt["PWM_STEERING_INVERTED"])
         steering = PWMSteering(controller=steering_controller,
-                                        left_pulse=dt["STEERING_LEFT_PWM"],
-                                        right_pulse=dt["STEERING_RIGHT_PWM"])
+                               left_pulse=dt["STEERING_LEFT_PWM"],
+                               right_pulse=dt["STEERING_RIGHT_PWM"])
         
         throttle_controller = PulseController(
             pwm_pin=pins.pwm_pin_by_id(dt["PWM_THROTTLE_PIN"]),
             pwm_scale=dt["PWM_THROTTLE_SCALE"],
             pwm_inverted=dt['PWM_THROTTLE_INVERTED'])
         throttle = PWMThrottle(controller=throttle_controller,
-                                            max_pulse=dt['THROTTLE_FORWARD_PWM'],
-                                            zero_pulse=dt['THROTTLE_STOPPED_PWM'],
-                                            min_pulse=dt['THROTTLE_REVERSE_PWM'])
+                               max_pulse=dt['THROTTLE_FORWARD_PWM'],
+                               zero_pulse=dt['THROTTLE_STOPPED_PWM'],
+                               min_pulse=dt['THROTTLE_REVERSE_PWM'])
         V.add(steering, inputs=['angle'], threaded=True)
         V.add(throttle, inputs=['throttle'], threaded=True)
 
@@ -668,8 +668,8 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
             pwm_scale=dt['PWM_STEERING_SCALE'],
             pwm_inverted=dt['PWM_STEERING_INVERTED'])
         steering = PWMSteering(controller=steering_controller,
-                                        left_pulse=dt['STEERING_LEFT_PWM'],
-                                        right_pulse=dt['STEERING_RIGHT_PWM'])
+                               left_pulse=dt['STEERING_LEFT_PWM'],
+                               right_pulse=dt['STEERING_RIGHT_PWM'])
 
         motor = actuator.L298N_HBridge_2pin(
             pins.pwm_pin_by_id(dt['FWD_DUTY_PIN']),
@@ -690,8 +690,8 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
             pwm_scale=dt['PWM_STEERING_SCALE'],
             pwm_inverted=dt['PWM_STEERING_INVERTED'])
         steering = PWMSteering(controller=steering_controller,
-                                        left_pulse=dt['STEERING_LEFT_PWM'],
-                                        right_pulse=dt['STEERING_RIGHT_PWM'])
+                               left_pulse=dt['STEERING_LEFT_PWM'],
+                               right_pulse=dt['STEERING_RIGHT_PWM'])
 
         motor = actuator.L298N_HBridge_3pin(
             pins.output_pin_by_id(dt['FWD_PIN']),

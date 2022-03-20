@@ -29,6 +29,32 @@ class Builder:
                 if type(v) is str and v[:4].lower() == 'cfg.':
                     arguments[k] = getattr(self.cfg, v[4:].upper())
 
+    @staticmethod
+    def insert_components(arguments, components):
+        """
+        Function to do in-place replacement of parameter string values that are
+        objects, here called components. Components are defined in the
+        components dictionary, where keys are the component names and values
+        are dicts with types and arguments, eg:
+
+        components:
+          - input_pin_1:
+              type: inputpin
+              arguments:
+                pin_id: RPI_GPIO.BCM.4
+
+        :param dict arguments:      input/output dictionary
+        :param dict components:     components dictionary
+        """
+        if arguments:
+            for k, v in arguments.items():
+                if type(v) is str and v in components:
+                    component = components[v]
+                    # create component as object
+                    obj = CreatableFactory.make(component['type'],
+                                                component['arguments'])
+                    arguments[k] = obj
+
     def build_vehicle(self):
         with open(self.car_file) as f:
             car_description = yaml.load(f, Loader=yaml.FullLoader)

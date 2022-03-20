@@ -1,8 +1,8 @@
 """
 pins.py - high level ttl an pwm pin abstraction.
 This is designed to allow drivers that use ttl and pwm
-pins to be reusable with different underlying libaries
-and techologies.
+pins to be reusable with different underlying libraries
+and technologies.
 
 The abstract classes InputPin, OutputPin and PwmPin
 provide an interface for starting, using and cleaning up the pins.
@@ -65,7 +65,7 @@ class PinScheme:
 
 #
 # #### Base interface for input/output/pwm pins
-# #### Implementations derive from these abstact classes
+# #### Implementations derive from these abstract classes
 #
 
 class PinPartMeta(type(Creatable), type(ABC)):
@@ -117,12 +117,12 @@ class InputPin(ABC, Creatable, metaclass=PinPartMeta):
     @classmethod
     def create(cls, kwargs):
         """
-        Creating function for automatic factor registration
+        class function for automatic factory registration
         """
         return input_pin_by_id(**kwargs)
 
 
-class OutputPin(ABC):
+class OutputPin(ABC, Creatable, metaclass=PinPartMeta):
 
     def __init__(self) -> None:
         super().__init__()
@@ -164,8 +164,15 @@ class OutputPin(ABC):
         """
         pass  # subclasses must override
 
+    @classmethod
+    def create(cls, kwargs):
+        """
+        class function for automatic factory registration
+        """
+        return output_pin_by_id(**kwargs)
 
-class PwmPin(ABC):
+
+class PwmPin(ABC, Creatable, metaclass=PinPartMeta):
 
     def __init__(self) -> None:
         super().__init__()
@@ -209,6 +216,12 @@ class PwmPin(ABC):
         """
         pass  # subclasses must override
 
+    @classmethod
+    def create(cls, kwargs):
+        """
+        class function for automatic factory registration
+        """
+        return pwm_pin_by_id(**kwargs)
 
 #
 # ####### Factory Methods
@@ -275,20 +288,23 @@ def pwm_pin_by_id(pin_id: str, frequency_hz: int = 60) -> PwmPin:
         i2c_bus = int(i2c_bus)
         i2c_address = int(i2c_address, base=16)
         pin_number = int(parts[2])
-        return pwm_pin(pin_provider, pin_number, i2c_bus=i2c_bus, i2c_address=i2c_address, frequency_hz=frequency_hz)
+        return pwm_pin(pin_provider, pin_number, i2c_bus=i2c_bus,
+                       i2c_address=i2c_address, frequency_hz=frequency_hz)
 
     if parts[0] == PinProvider.RPI_GPIO:
         pin_provider = parts[0]
         pin_scheme = parts[1]
         pin_number = int(parts[2])
-        return pwm_pin(pin_provider, pin_number, pin_scheme=pin_scheme, frequency_hz=frequency_hz)
+        return pwm_pin(pin_provider, pin_number, pin_scheme=pin_scheme,
+                       frequency_hz=frequency_hz)
 
     if parts[0] == PinProvider.PIGPIO:
         pin_provider = parts[0]
         if PinScheme.BCM != parts[1]:
             raise ValueError("Pin scheme must be BCM for PIGPIO")
         pin_number = int(parts[2])
-        return pwm_pin(pin_provider, pin_number, pin_scheme=PinScheme.BCM, frequency_hz=frequency_hz)
+        return pwm_pin(pin_provider, pin_number, pin_scheme=PinScheme.BCM,
+                       frequency_hz=frequency_hz)
 
     raise ValueError(f"Unknown pin provider {parts[0]}")
 
@@ -305,14 +321,16 @@ def input_pin_by_id(pin_id: str, pull: int = PinPull.PULL_NONE) -> InputPin:
         pin_provider = parts[0]
         pin_scheme = parts[1]
         pin_number = int(parts[2])
-        return input_pin(pin_provider, pin_number, pin_scheme=pin_scheme, pull=pull)
+        return input_pin(pin_provider, pin_number,
+                         pin_scheme=pin_scheme, pull=pull)
 
     if parts[0] == PinProvider.PIGPIO:
         pin_provider = parts[0]
         if PinScheme.BCM != parts[1]:
             raise ValueError("Pin scheme must be BCM for PIGPIO")
         pin_number = int(parts[2])
-        return input_pin(pin_provider, pin_number, pin_scheme=PinScheme.BCM, pull=pull)
+        return input_pin(pin_provider, pin_number,
+                         pin_scheme=PinScheme.BCM, pull=pull)
 
     raise ValueError(f"Unknown pin provider {parts[0]}")
 
@@ -365,7 +383,8 @@ def output_pin(
     if pin_provider == PinProvider.RPI_GPIO:
         return OutputPinGpio(pin_number, pin_scheme)
     if pin_provider == PinProvider.PCA9685:
-        return OutputPinPCA9685(pin_number, pca9685(i2c_bus, i2c_address, frequency_hz))
+        return OutputPinPCA9685(pin_number,
+                                pca9685(i2c_bus, i2c_address, frequency_hz))
     if pin_provider == PinProvider.PIGPIO:
         if pin_scheme != PinScheme.BCM:
             raise ValueError("Pin scheme must be PinScheme.BCM for PIGPIO")
@@ -394,7 +413,8 @@ def pwm_pin(
     if pin_provider == PinProvider.RPI_GPIO:
         return PwmPinGpio(pin_number, pin_scheme, frequency_hz)
     if pin_provider == PinProvider.PCA9685:
-        return PwmPinPCA9685(pin_number, pca9685(i2c_bus, i2c_address, frequency_hz))
+        return PwmPinPCA9685(pin_number,
+                             pca9685(i2c_bus, i2c_address, frequency_hz))
     if pin_provider == PinProvider.PIGPIO:
         if pin_scheme != PinScheme.BCM:
             raise ValueError("Pin scheme must be PinScheme.BCM for PIGPIO")
@@ -414,6 +434,8 @@ try:
 except ImportError:
     logger.warn("RPi.GPIO was not imported.")
     globals()["GPIO"] = None
+    # TODO: remove before commit!!!!
+    # gpio_pin_scheme = {PinScheme.BOARD: 'board', PinScheme.BCM: 'bcm'}
 
 
 def gpio_fn(pin_scheme: int, fn: Callable[[], Any]):
@@ -529,7 +551,8 @@ class PwmPinGpio(PwmPin):
     """
     PWM output pin using Rpi.GPIO/Jetson.GPIO
     """
-    def __init__(self, pin_number: int, pin_scheme: str, frequency_hz: float = 50) -> None:
+    def __init__(self, pin_number: int, pin_scheme: str,
+                 frequency_hz: float = 50) -> None:
         self.pin_number = pin_number
         self.pin_scheme = gpio_pin_scheme[pin_scheme]
         self.frequency = int(frequency_hz)
@@ -538,11 +561,13 @@ class PwmPinGpio(PwmPin):
 
     def start(self, duty: float = 0) -> None:
         if self.pwm is not None:
-            raise RuntimeError("Attempt to start PwmPinGpio that is already started.")
+            raise RuntimeError("Attempt to start PwmPinGpio that is already "
+                               "started.")
         if duty < 0 or duty > 1:
             raise ValueError("duty_cycle must be in range 0 to 1")
         gpio_fn(self.pin_scheme, lambda: GPIO.setup(self.pin_number, GPIO.OUT))
-        self.pwm = gpio_fn(self.pin_scheme, lambda: GPIO.PWM(self.pin_number, self.frequency))
+        self.pwm = gpio_fn(self.pin_scheme,
+                           lambda: GPIO.PWM(self.pin_number, self.frequency))
         self.pwm.start(duty * 100)  # takes duty in range 0 to 100
         self._state = duty
 
@@ -763,7 +788,8 @@ except ImportError:
 
 
 class InputPinPigpio(InputPin):
-    def __init__(self, pin_number: int, pull: int = PinPull.PULL_NONE, pgpio=None) -> None:
+    def __init__(self, pin_number: int, pull: int = PinPull.PULL_NONE,
+                 pgpio=None) -> None:
         """
         Input pin ttl HIGH/LOW using PiGPIO library
         :param pin_number: GPIO.BOARD mode pin number

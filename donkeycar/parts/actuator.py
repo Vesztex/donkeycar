@@ -4,12 +4,12 @@ Classes to control the motors and servos. These classes
 are wrapped in a mixer class before being used in the drive loop.
 """
 
-from abc import ABC, abstractmethod
 import time
 import logging
 from typing import Tuple
 
 import donkeycar as dk
+from donkeycar.parts.part import Part
 from donkeycar.parts.pins import OutputPin, PwmPin, PinState
 from donkeycar.utilities.deprecated import deprecated
 
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 #   and so you may choose is low max throttle pwm)
 #
 
-def duty_cycle(pulse_ms:float, frequency_hz:float) -> float:
+def duty_cycle(pulse_ms: float, frequency_hz: float) -> float:
     """
     Calculate the duty cycle, 0 to 1, of a pulse given
     the frequency and the pulse length
@@ -55,7 +55,7 @@ def duty_cycle(pulse_ms:float, frequency_hz:float) -> float:
     return duty
 
 
-def pulse_ms(pulse_bits:int) -> float:
+def pulse_ms(pulse_bits: int) -> float:
     """
     Calculate pulse width in milliseconds given a 
     12bit pulse (as a PCA9685 would use).

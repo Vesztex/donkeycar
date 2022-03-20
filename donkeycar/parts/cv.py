@@ -2,7 +2,7 @@ import time
 import cv2
 import numpy as np
 
-from donkeycar.parts.part import Part
+from donkeycar.parts.part import Creatable
 
 
 class ImgGreyscale():
@@ -170,7 +170,7 @@ class Pipeline:
         return val
 
 
-class CvCam(Part):
+class CvCam(Creatable):
     def __init__(self, image_w=160, image_h=120, image_d=3, iCam=0):
 
         self.frame = None

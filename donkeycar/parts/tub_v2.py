@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 
 from donkeycar.parts.datastore_v2 import Manifest, ManifestIterator
-from donkeycar.parts.part import Part
+from donkeycar.parts.part import Creatable
 
 
 class Tub(object):
@@ -106,7 +106,7 @@ class Tub(object):
         return name
 
 
-class TubWriter(Part):
+class TubWriter(Creatable):
     """
     A Donkey part, which can write records to the datastore.
     """

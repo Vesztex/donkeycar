@@ -9,7 +9,7 @@ import logging
 from typing import Tuple
 
 import donkeycar as dk
-from donkeycar.parts.part import Part
+from donkeycar.parts.part import Creatable
 from donkeycar.parts.pins import OutputPin, PwmPin, PinState
 from donkeycar.utilities.deprecated import deprecated
 

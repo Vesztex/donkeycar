@@ -5,20 +5,25 @@ import numpy as np
 from PIL import Image
 import glob
 from donkeycar.utils import rgb2gray
+from donkeycar.parts.part import Part
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+
 class CameraError(Exception):
     pass
 
-class BaseCamera:
+
+class BaseCamera(Part):
 
     def run_threaded(self):
         return self.frame
 
+
 class PiCamera(BaseCamera):
-    def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20, vflip=False, hflip=False):
+    def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20,
+                 vflip=False, hflip=False):
         from picamera.array import PiRGBArray
         from picamera import PiCamera
 
@@ -87,7 +92,8 @@ class PiCamera(BaseCamera):
 
 
 class Webcam(BaseCamera):
-    def __init__(self, image_w=160, image_h=120, image_d=3, framerate = 20, camera_index = 0):
+    def __init__(self, image_w=160, image_h=120, image_d=3,
+                 framerate=20, camera_index=0):
         #
         # pygame is not installed by default.
         # Installation on RaspberryPi (with env activated):
@@ -115,7 +121,8 @@ class Webcam(BaseCamera):
             import pygame.camera
         except ModuleNotFoundError as e:
             logger.error("Unable to import pygame.  Try installing it:\n"
-                         "    sudo apt-get install libsdl2-mixer-2.0-0 libsdl2-image-2.0-0 libsdl2-2.0-0\n"
+                         "    sudo apt-get install libsdl2-mixer-2.0-0" 
+                         "libsdl2-image-2.0-0 libsdl2-2.0-0\n"
                          "    pip install pygame")
             raise e
 
@@ -133,7 +140,8 @@ class Webcam(BaseCamera):
 
             logger.info(f'Available cameras {l}')
             if camera_index < 0 or camera_index >= len(l):
-                raise CameraError(f"The 'CAMERA_INDEX={camera_index}' configuration in myconfig.py is out of range.")
+                raise CameraError(f"The 'CAMERA_INDEX={camera_index}' "
+                                  f"configuration in myconfig.py is out of range.")
 
             self.cam = pygame.camera.Camera(l[camera_index], self.resolution, "RGB")
             self.cam.start()
@@ -147,15 +155,17 @@ class Webcam(BaseCamera):
 
             if self.frame is None:
                 raise CameraError("Unable to start Webcam.\n"
-                                   "If more than one camera is available then"
-                                   " make sure your 'CAMERA_INDEX' is correct in myconfig.py")
+                                  "If more than one camera is available then "
+                                  "make sure your 'CAMERA_INDEX' is correct "
+                                  "in myconfig.py")
 
         except CameraError:
             raise
         except Exception as e:
             raise CameraError("Unable to open Webcam.\n"
-                               "If more than one camera is available then"
-                               " make sure your 'CAMERA_INDEX' is correct in myconfig.py") from e
+                              "If more than one camera is available then make "
+                              "sure your 'CAMERA_INDEX' is correct in myconfig.py") \
+                from e
         logger.info("Webcam ready.")
 
     def run(self):
@@ -180,7 +190,6 @@ class Webcam(BaseCamera):
             if s > 0:
                 time.sleep(s)
 
-
     def run_threaded(self):
         return self.frame
 
@@ -200,11 +209,19 @@ class CSICamera(BaseCamera):
     Credit: https://github.com/feicccccccc/donkeycar/blob/dev/donkeycar/parts/camera.py
     gstreamer init string from https://github.com/NVIDIA-AI-IOT/jetbot/blob/master/jetbot/camera.py
     '''
-    def gstreamer_pipeline(self, capture_width=3280, capture_height=2464, output_width=224, output_height=224, framerate=21, flip_method=0) :   
-        return 'nvarguscamerasrc ! video/x-raw(memory:NVMM), width=%d, height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! nvvidconv flip-method=%d ! nvvidconv ! video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! videoconvert ! appsink' % (
-                capture_width, capture_height, framerate, flip_method, output_width, output_height)
+    def gstreamer_pipeline(self, capture_width=3280, capture_height=2464,
+                           output_width=224, output_height=224, framerate=21,
+                           flip_method=0) :
+        return 'nvarguscamerasrc ! video/x-raw(memory:NVMM), width=%d, ' \
+               'height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! ' \
+               'nvvidconv flip-method=%d ! nvvidconv ! video/x-raw, ' \
+               'width=(int)%d, height=(int)%d, format=(string)BGRx ! ' \
+               'videoconvert ! appsink' % (
+                capture_width, capture_height, framerate, flip_method,
+                output_width, output_height)
     
-    def __init__(self, image_w=160, image_h=120, image_d=3, capture_width=3280, capture_height=2464, framerate=60, gstreamer_flip=0):
+    def __init__(self, image_w=160, image_h=120, image_d=3, capture_width=3280,
+                 capture_height=2464, framerate=60, gstreamer_flip=0):
         '''
         gstreamer_flip = 0 - no flip
         gstreamer_flip = 1 - rotate CCW 90
@@ -275,13 +292,15 @@ class CSICamera(BaseCamera):
 
 class V4LCamera(BaseCamera):
     '''
-    uses the v4l2capture library from this fork for python3 support: https://github.com/atareao/python3-v4l2capture
+    uses the v4l2capture library from this fork for python3 support:
+    https://github.com/atareao/python3-v4l2capture
     sudo apt-get install libv4l-dev
     cd python3-v4l2capture
     python setup.py build
     pip install -e .
     '''
-    def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20, dev_fn="/dev/video0", fourcc='MJPG'):
+    def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20,
+                 dev_fn="/dev/video0", fourcc='MJPG'):
 
         self.running = True
         self.frame = None
@@ -297,9 +316,12 @@ class V4LCamera(BaseCamera):
 
         # Suggest an image size to the device. The device may choose and
         # return another size if it doesn't support the suggested one.
-        self.size_x, self.size_y = self.video.set_format(self.image_w, self.image_h, fourcc=self.fourcc)
+        self.size_x, self.size_y = self.video.set_format(self.image_w,
+                                                         self.image_h,
+                                                         fourcc=self.fourcc)
 
-        logger.info("V4L camera granted %d, %d resolution." % (self.size_x, self.size_y))
+        logger.info("V4L camera granted %d, %d resolution."
+                    % (self.size_x, self.size_y))
 
         # Create a buffer to store image data in. This must be done before
         # calling 'start' if v4l2capture is compiled with libv4l2. Otherwise

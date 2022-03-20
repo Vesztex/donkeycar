@@ -27,6 +27,7 @@ Use PCA9685 on bus 0 at address 0x40, channel 7
 """
 from abc import ABC, abstractmethod
 from typing import Any, Callable
+from donkeycar.parts.part import Creatable
 import logging
 
 
@@ -67,7 +68,11 @@ class PinScheme:
 # #### Implementations derive from these abstact classes
 #
 
-class InputPin(ABC):
+class PinPartMeta(type(Creatable), type(ABC)):
+    pass
+
+
+class InputPin(ABC, Creatable, metaclass=PinPartMeta):
 
     def __init__(self) -> None:
         super().__init__()
@@ -108,6 +113,13 @@ class InputPin(ABC):
         :return: PinState.LOW/HIGH or PinState.NOT_STARTED if pin not started
         """
         return PinState.NOT_STARTED  # subclasses must override
+
+    @classmethod
+    def create(cls, kwargs):
+        """
+        Creating function for automatic factor registration
+        """
+        return input_pin_by_id(**kwargs)
 
 
 class OutputPin(ABC):
@@ -404,7 +416,7 @@ except ImportError:
     globals()["GPIO"] = None
 
 
-def gpio_fn(pin_scheme:int, fn:Callable[[], Any]):
+def gpio_fn(pin_scheme: int, fn: Callable[[], Any]):
     """
     Convenience method to enforce the desired GPIO pin scheme
     before calling a GPIO function.
@@ -421,18 +433,22 @@ def gpio_fn(pin_scheme:int, fn:Callable[[], Any]):
     if prev_scheme is None:
         GPIO.setmode(pin_scheme)
     elif prev_scheme != pin_scheme:
-        raise RuntimeError(f"Attempt to change GPIO pin scheme from ({prev_scheme}) to ({pin_scheme})"
-                           " after it has been set.  All RPi.GPIO user must use the same pin scheme.")
+        raise RuntimeError(
+            f"Attempt to change GPIO pin scheme from ({prev_scheme}) to ("
+            f"{pin_scheme}) after it has been set.  All RPi.GPIO user must "
+            f"use the same pin scheme.")
     val = fn()
     return val
 
 
 class InputPinGpio(InputPin):
-    def __init__(self, pin_number: int, pin_scheme: str, pull: int = PinPull.PULL_NONE) -> None:
+    def __init__(self, pin_number: int, pin_scheme: str,
+                 pull: int = PinPull.PULL_NONE) -> None:
         """
         Input pin ttl HIGH/LOW using RPi.GPIO/Jetson.GPIO
-        :param pin_number: GPIO.BOARD mode point number
-        :param pull: enable a pull up or down resistor on pin.  Default is PinPull.PULL_NONE
+        :param pin_number:  GPIO.BOARD mode point number
+        :param pull:        enable a pull up or down resistor on pin.
+                            Default is PinPull.PULL_NONE
         """
         self.pin_number = pin_number
         self.pin_scheme = gpio_pin_scheme[pin_scheme]
@@ -447,17 +463,23 @@ class InputPinGpio(InputPin):
 
     def start(self, on_input=None, edge=PinEdge.RISING) -> None:
         """
-        :param on_input: function to call when an edge is detected, or None to ignore
-        :param edge: type of edge(s) that trigger on_input; default is
+        :param on_input:    function to call when an edge is detected, or None
+                            to ignore
+        :param edge:        type of edge(s) that trigger on_input; default is
         """
         if self.state() != PinState.NOT_STARTED:
-            raise RuntimeError(f"Attempt to start InputPinGpio({self.pin_number}) that is already started.")
-        gpio_fn(self.pin_scheme, lambda: GPIO.setup(self.pin_number, GPIO.IN, pull_up_down=gpio_pin_pull[self.pull]))
+            raise RuntimeError(f"Attempt to start InputPinGpio("
+                               f"{self.pin_number}) that is already started.")
+        gpio_fn(self.pin_scheme,
+                lambda: GPIO.setup(self.pin_number, GPIO.IN,
+                                   pull_up_down=gpio_pin_pull[self.pull]))
         if on_input is not None:
             self.on_input = on_input
             gpio_fn(
                 self.pin_scheme,
-                lambda: GPIO.add_event_detect(self.pin_number, gpio_pin_edge[edge], callback=self._callback))
+                lambda: GPIO.add_event_detect(self.pin_number,
+                                              gpio_pin_edge[edge],
+                                              callback=self._callback))
         self.input()  # read first state
 
     def stop(self) -> None:
@@ -469,7 +491,8 @@ class InputPinGpio(InputPin):
         return self._state
 
     def input(self) -> int:
-        self._state = gpio_fn(self.pin_scheme, lambda: GPIO.input(self.pin_number))
+        self._state = gpio_fn(self.pin_scheme,
+                              lambda: GPIO.input(self.pin_number))
         return self._state
 
 
@@ -484,7 +507,8 @@ class OutputPinGpio(OutputPin):
 
     def start(self, state: int = PinState.LOW) -> None:
         if self.state() != PinState.NOT_STARTED:
-            raise RuntimeError(f"Attempt to start OutputPinGpio({self.pin_number}) that is already started.")
+            raise RuntimeError(f"Attempt to start OutputPinGpio("
+                               f"{self.pin_number}) that is already started.")
         gpio_fn(self.pin_scheme, lambda: GPIO.setup(self.pin_number, GPIO.OUT))
         self.output(state)
 
@@ -621,7 +645,7 @@ def pca9685(busnum: int, address: int, frequency: int = 60):
     return pca
 
 
-class OutputPinPCA9685(ABC):
+class OutputPinPCA9685(OutputPin):
     """
     Output pin ttl HIGH/LOW using PCA9685
     """

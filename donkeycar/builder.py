@@ -1,5 +1,5 @@
 import yaml
-from donkeycar.parts.part import PartFactory
+from donkeycar.parts.part import CreatableFactory
 from donkeycar import Vehicle
 # -- !!! THIS import cannot be removed as otherwise the metaclass
 # initialisation does not run for all parts !!!
@@ -49,7 +49,7 @@ class Builder:
                 # updated part parameters with config values
                 self.insert_config(part_args)
                 # this creates the part
-                vehicle_part = PartFactory.make(part_name, part_args)
+                vehicle_part = CreatableFactory.make(part_name, part_args)
                 inputs = part_params.get('inputs', [])
                 outputs = part_params.get('outputs', [])
                 threaded = part_params.get('threaded', False)

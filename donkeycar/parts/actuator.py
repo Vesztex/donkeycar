@@ -258,7 +258,7 @@ class PWMSteering(Creatable):
         self.running = False
 
     @classmethod
-    def create(cls, cfg):
+    def create(cls, cfg, kwargs):
         dt = cfg.PWM_STEERING_THROTTLE
         pwm_pin = output_pin_by_id(dt["PWM_STEERING_PIN"])
         controller = PulseController(pwm_pin=pwm_pin,
@@ -324,7 +324,7 @@ class PWMThrottle(Creatable):
         self.running = False
 
     @classmethod
-    def create(cls, cfg):
+    def create(cls, cfg, kwargs):
         dt = cfg.PWM_STEERING_THROTTLE
         pwm_pin = output_pin_by_id(dt["PWM_THROTTLE_PIN"])
         controller = PulseController(pwm_pin=pwm_pin,
@@ -755,7 +755,7 @@ class L298N_HBridge_3pin(object):
                         where 1 is full forward and -1 is full backwards.
         """
         if throttle > 1 or throttle < -1:
-            raise ValueError( "Speed must be between 1(forward) and -1(reverse)")
+            raise ValueError("Speed must be between 1(forward) and -1(reverse)")
         
         self.speed = throttle
         self.throttle = dk.utils.map_range_float(throttle, -1, 1, -self.max_duty, self.max_duty)

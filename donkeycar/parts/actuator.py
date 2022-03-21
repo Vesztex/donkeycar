@@ -261,9 +261,13 @@ class PWMSteering(Creatable):
 
     @classmethod
     def create(cls, kwargs):
+        controller = CreatableFactory.make('pulsecontroller',
+                                           kwargs['controller'])
+        kwargs['controller'] = controller
+        return PWMSteering(**kwargs)
 
 
-class PWMThrottle:
+class PWMThrottle(Creatable):
     """
     Wrapper over a PWM pulse controller to convert -1 to 1 throttle
     values to PWM pulses.
@@ -317,6 +321,12 @@ class PWMThrottle:
         self.run(0)
         self.running = False
 
+    @classmethod
+    def create(cls, kwargs):
+        controller = CreatableFactory.make('pulsecontroller',
+                                           kwargs['controller'])
+        kwargs['controller'] = controller
+        return PWMSteering(**kwargs)
 
 #
 # This seems redundant.  If it's really emulating and PCA9685, then
@@ -474,7 +484,6 @@ class Adafruit_DCMotor_Hat:
             self.motor.run(self.BACKWARD)
             
         self.motor.setSpeed(self.throttle)
-        
 
     def shutdown(self):
         self.mh.getMotor(self.motor_num).run(Adafruit_MotorHAT.RELEASE)

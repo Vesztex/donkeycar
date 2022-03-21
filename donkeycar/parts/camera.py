@@ -20,6 +20,11 @@ class BaseCamera(Creatable):
     def run_threaded(self):
         return self.frame
 
+    @classmethod
+    def create(cls, cfg):
+        return cls(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
+                   image_d=cfg.IMAGE_DEPTH, framerate=cfg.CAMERA_FRAMERATE)
+
 
 class PiCamera(BaseCamera):
     def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20,
@@ -391,7 +396,7 @@ class ImageListCamera(BaseCamera):
         #self.image_filenames.sort(key=os.path.getmtime)
         self.num_images = len(self.image_filenames)
         logger.info('%d images loaded.' % self.num_images)
-        logger.info( self.image_filenames[:10])
+        logger.info(self.image_filenames[:10])
         self.i_frame = 0
         self.frame = None
         self.update()

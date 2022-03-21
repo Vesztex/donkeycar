@@ -35,32 +35,6 @@ class Builder:
                     exec("overwrite = v")
                     arguments[k] = overwrite
 
-    @staticmethod
-    def insert_components(arguments, components):
-        """
-        Function to do in-place replacement of parameter string values that are
-        objects, here called components. Components are defined in the
-        components dictionary, where keys are the component names and values
-        are dicts with types and arguments, eg:
-
-        components:
-          - input_pin_1:
-              type: inputpin
-              arguments:
-                pin_id: RPI_GPIO.BCM.4
-
-        :param dict arguments:      input/output dictionary
-        :param dict components:     components dictionary
-        """
-        if arguments:
-            for k, v in arguments.items():
-                if type(v) is str and v in components:
-                    component = components[v]
-                    # create component as object
-                    obj = CreatableFactory.make(component['type'],
-                                                component['arguments'])
-                    arguments[k] = obj
-
     def build_vehicle(self):
         with open(self.car_file) as f:
             car_description = yaml.load(f, Loader=yaml.FullLoader)
@@ -70,24 +44,22 @@ class Builder:
 
         for part in parts:
             for part_name, part_params in part.items():
-                # replace any cfg parameters
-                self.insert_config(part_params)
                 # check if add_only_if is present
                 if part_params.get('add_only_if') is False:
                     continue
                 # we are using .get on part parameters here as the part might
-                # not require any
-                part_args = part_params.get('arguments')
+                # not have it, then return an empty dict as ** needs to work
+                part_args = part_params.get('arguments', {})
                 # updated part parameters with config values
                 self.insert_config(part_args)
                 # this creates the part
-                vehicle_part = CreatableFactory.make(part_name, part_args)
+                part = CreatableFactory.make(part_name, self.cfg, part_args)
                 inputs = part_params.get('inputs', [])
                 outputs = part_params.get('outputs', [])
                 threaded = part_params.get('threaded', False)
                 run_condition = part_params.get('run_condition')
                 # adding part to vehicle
-                car.add(vehicle_part, inputs=inputs, outputs=outputs,
+                car.add(part, inputs=inputs, outputs=outputs,
                         threaded=threaded, run_condition=run_condition)
 
         return car

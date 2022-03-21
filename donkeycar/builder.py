@@ -26,8 +26,14 @@ class Builder:
         """
         if arguments:
             for k, v in arguments.items():
+                # go recursive if dictionary
+                if type(v) is dict:
+                    self.insert_config(v)
                 if type(v) is str and v[:4].lower() == 'cfg.':
-                    arguments[k] = getattr(self.cfg, v[4:].upper())
+                    overwrite = None
+                    cfg = self.cfg
+                    exec("overwrite = v")
+                    arguments[k] = overwrite
 
     @staticmethod
     def insert_components(arguments, components):

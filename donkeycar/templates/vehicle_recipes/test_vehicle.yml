@@ -2,15 +2,23 @@
 parts:
   - cvcam:
       arguments:
-        image_w: cfg.image_w
-        image_h: cfg.image_h
+        image_w: cfg.IMAGE_W
+        image_h: cfg.IMAGE_H
       outputs: [cam/img_array]
       threaded: true
   - tubwriter:
       arguments:
-        base_path: cfg.data_path
+        base_path: cfg.DATA_PATH
         inputs: [cam/img_array]
         types: [image_array]
       inputs: [cam/img_array]
       outputs: [img_index]
-      add_only_if: cfg.sim_record_location
+      add_only_if: cfg.SIM_RECORD_LOCATION
+  - pwmthrottle:
+      arguments:
+        controller:
+          pwm_pin: cfg.PWM_STEERING_THROTTLE["PWM_STEERING_PIN"]
+          pwm_scale: cfg.PWM_STEERING_THROTTLE["PWM_STEERING_SCALE"]
+          pwm_inverted: cfg.PWM_STEERING_THROTTLE["PWM_STEERING_INVERTED"]
+        left_pulse: cfg.PWM_STEERING_THROTTLE["STEERING_LEFT_PWM"]
+        right_pulse: cfg.PWM_STEERING_THROTTLE["STEERING_RIGHT_PWM"]

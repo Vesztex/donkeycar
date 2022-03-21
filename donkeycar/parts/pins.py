@@ -27,7 +27,6 @@ Use PCA9685 on bus 0 at address 0x40, channel 7
 """
 from abc import ABC, abstractmethod
 from typing import Any, Callable
-from donkeycar.parts.part import Creatable
 import logging
 
 
@@ -68,11 +67,7 @@ class PinScheme:
 # #### Implementations derive from these abstract classes
 #
 
-class PinPartMeta(type(Creatable), type(ABC)):
-    pass
-
-
-class InputPin(ABC, Creatable, metaclass=PinPartMeta):
+class InputPin(ABC):
 
     def __init__(self) -> None:
         super().__init__()
@@ -114,15 +109,8 @@ class InputPin(ABC, Creatable, metaclass=PinPartMeta):
         """
         return PinState.NOT_STARTED  # subclasses must override
 
-    @classmethod
-    def create(cls, kwargs):
-        """
-        class function for automatic factory registration
-        """
-        return input_pin_by_id(**kwargs)
 
-
-class OutputPin(ABC, Creatable, metaclass=PinPartMeta):
+class OutputPin(ABC):
 
     def __init__(self) -> None:
         super().__init__()
@@ -164,15 +152,8 @@ class OutputPin(ABC, Creatable, metaclass=PinPartMeta):
         """
         pass  # subclasses must override
 
-    @classmethod
-    def create(cls, kwargs):
-        """
-        class function for automatic factory registration
-        """
-        return output_pin_by_id(**kwargs)
 
-
-class PwmPin(ABC, Creatable, metaclass=PinPartMeta):
+class PwmPin(ABC):
 
     def __init__(self) -> None:
         super().__init__()
@@ -216,13 +197,6 @@ class PwmPin(ABC, Creatable, metaclass=PinPartMeta):
         """
         pass  # subclasses must override
 
-    @classmethod
-    def create(cls, kwargs):
-        """
-        class function for automatic factory registration
-        """
-        return pwm_pin_by_id(**kwargs)
-
 #
 # ####### Factory Methods
 #
@@ -256,7 +230,8 @@ def output_pin_by_id(pin_id: str, frequency_hz: int = 60) -> OutputPin:
         i2c_address = int(i2c_address, base=16)
         frequency_hz = int(frequency_hz)
         pin_number = int(parts[2])
-        return output_pin(pin_provider, pin_number, i2c_bus=i2c_bus, i2c_address=i2c_address, frequency_hz=frequency_hz)
+        return output_pin(pin_provider, pin_number, i2c_bus=i2c_bus,
+                          i2c_address=i2c_address, frequency_hz=frequency_hz)
 
     if parts[0] == PinProvider.RPI_GPIO:
         pin_provider = parts[0]

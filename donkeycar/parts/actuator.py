@@ -9,6 +9,7 @@ import logging
 from typing import Tuple
 
 import donkeycar as dk
+from donkeycar.parts.pins import OutputPin, PwmPin, PinState, output_pin_by_id
 from donkeycar.parts.part import Part
 from donkeycar import utils
 from donkeycar.utils import clamp
@@ -43,7 +44,7 @@ logger = logging.getLogger(__name__)
 #   and so you may choose is low max throttle pwm)
 #
 
-def duty_cycle(pulse_ms:float, frequency_hz:float) -> float:
+def duty_cycle(pulse_ms: float, frequency_hz: float) -> float:
     """
     Calculate the duty cycle, 0 to 1, of a pulse given
     the frequency and the pulse length
@@ -57,7 +58,7 @@ def duty_cycle(pulse_ms:float, frequency_hz:float) -> float:
     return duty
 
 
-def pulse_ms(pulse_bits:int) -> float:
+def pulse_ms(pulse_bits: int) -> float:
     """
     Calculate pulse width in milliseconds given a
     12bit pulse (as a PCA9685 would use).
@@ -108,21 +109,16 @@ class PulseController(Creatable):
             pulse = 4095 - pulse
         self.pwm_pin.duty_cycle(int(pulse * self.scale) / 4095)
 
-    def run(self, pulse:int) -> None:
+    def run(self, pulse: int) -> None:
         """
         Set the length of the pulse using a 12 bit integer (0..4095)
         :param pulse:int 12bit integer (0..4095)
         """
         self.set_pulse(pulse)
 
-    @classmethod
-    def create(cls, kwargs):
-        pwm_pin = CreatableFactory.make('pwmpin', kwargs['pwm_pin'])
-        kwargs['pwm_pin'] = pwm_pin
-        return PulseController(**kwargs)
 
-
-@deprecated("Deprecated in favor or PulseController.  This will be removed in a future release")
+@deprecated("Deprecated in favor or PulseController.  This will be removed in "
+            "a future release")
 class PCA9685:
     ''' 
     PWM motor controler using PCA9685 boards. 
@@ -262,15 +258,17 @@ class PiGPIO_PWM():
         self.inverted = inverted
         self.pgio.set_mode(self.pin, pigpio.OUTPUT)
         self.dead_zone = 37000
+        self.output = None
 
     def __del__(self):
         self.pgio.stop()
 
     def set_pulse(self, pulse):
-#
         self.output = pulse * 200
         if self.output > 0:
-            self.pgio.hardware_PWM(self.pin, self.freq, int(self.output if self.inverted == False else 1e6 - self.output))
+            self.pgio.hardware_PWM(
+                self.pin, self.freq,
+                int(self.output if not self.inverted else 1e6 - self.output))
 
     def run(self, pulse):
         self.set_pulse(pulse)
@@ -321,11 +319,15 @@ class PWMSteering(Creatable):
         self.running = False
 
     @classmethod
-    def create(cls, kwargs):
-        controller = CreatableFactory.make('pulsecontroller',
-                                           kwargs['controller'])
-        kwargs['controller'] = controller
-        return PWMSteering(**kwargs)
+    def create(cls, cfg):
+        dt = cfg.PWM_STEERING_THROTTLE
+        pwm_pin = output_pin_by_id(dt["PWM_STEERING_PIN"])
+        controller = PulseController(pwm_pin=pwm_pin,
+                                     pwm_scale=dt["PWM_STEERING_SCALE"],
+                                     pwm_inverted=dt["PWM_STEERING_INVERTED"])
+        return PWMSteering(controller=controller,
+                           left_pulse=dt["STEERING_LEFT_PWM"],
+                           right_pulse=dt["STEERING_RIGHT_PWM"])
 
 
 class PWMThrottle(Creatable):
@@ -384,11 +386,16 @@ class PWMThrottle(Creatable):
         self.running = False
 
     @classmethod
-    def create(cls, kwargs):
-        controller = CreatableFactory.make('pulsecontroller',
-                                           kwargs['controller'])
-        kwargs['controller'] = controller
-        return PWMSteering(**kwargs)
+    def create(cls, cfg):
+        dt = cfg.PWM_STEERING_THROTTLE
+        pwm_pin = output_pin_by_id(dt["PWM_THROTTLE_PIN"])
+        controller = PulseController(pwm_pin=pwm_pin,
+                                     pwm_scale=dt["PWM_THROTTLE_SCALE"],
+                                     pwm_inverted=dt["PWM_THROTTLE_INVERTED"])
+        return PWMThrottle(controller=controller,
+                           max_pulse=dt['THROTTLE_FORWARD_PWM'],
+                           zero_pulse=dt['THROTTLE_STOPPED_PWM'],
+                           min_pulse=dt['THROTTLE_REVERSE_PWM'])
 
 #
 # This seems redundant.  If it's really emulating and PCA9685, then
@@ -444,7 +451,8 @@ class JHat:
 # If that can be addressed then we would keep this,
 # otherwise this should be removed.
 #
-@deprecated("JHatReader is unsupported/undocumented in the framework.  It may be removed in a future release.")
+@deprecated("JHatReader is unsupported/undocumented in the framework.  It may "
+            "be removed in a future release.")
 class JHatReader:
     ''' 
     Read RC controls from teensy 
@@ -507,7 +515,8 @@ class JHatReader:
 # DRIVE_TRAIN_TYPE = "DC_TWO_WHEEL_ADAFRUIT"
 # and integrate this into complete.py
 #
-@deprecated("This appears to be unsupported/undocumented in the framework. This may be removed in a future release")
+@deprecated("This appears to be unsupported/undocumented in the framework. "
+            "This may be removed in a future release")
 class Adafruit_DCMotor_Hat:
     ''' 
     Adafruit DC Motor Controller 
@@ -527,8 +536,7 @@ class Adafruit_DCMotor_Hat:
         atexit.register(self.turn_off_motors)
         self.speed = 0
         self.throttle = 0
-    
-        
+
     def run(self, speed):
         '''
         Update the speed of the motor where 1 is full forward and
@@ -656,7 +664,8 @@ class Maestro:
 # Another route is to implement Firmata protocol (perhaps a version of the Arduino sketch,
 # see ArduinoFirmata below)
 #
-@deprecated("This appears to be unsupported/undocumented in the framework. This may be removed in a future release")
+@deprecated("This appears to be unsupported/undocumented in the framework. This"
+            " may be removed in a future release")
 class Teensy:
     '''
     Teensy Servo controller
@@ -772,7 +781,9 @@ class L298N_HBridge_3pin(object):
     the L298N, such as the TB6612FNG motor driver.
     """
 
-    def __init__(self, pin_forward:OutputPin, pin_backward:OutputPin, pwm_pin:PwmPin, zero_throttle:float=0, max_duty=0.9):
+    def __init__(self, pin_forward: OutputPin, pin_backward: OutputPin,
+                 pwm_pin: PwmPin, zero_throttle: float = 0,
+                 max_duty: float = 0.9):
         """
         :param pin_forward:OutputPin when HIGH the motor will turn clockwise
                         using the output of the pwm_pin as a duty_cycle
@@ -838,7 +849,7 @@ class TwoWheelSteeringThrottle(object):
     in order to implemeht steering.
     """
 
-    def run(self, throttle:float, steering:float) -> Tuple[float, float]:
+    def run(self, throttle: float, steering: float) -> Tuple[float, float]:
         """
         :param throttle:float throttle value in range -1 to 1,
                         where 1 is full forward and -1 is full backwards.
@@ -981,6 +992,7 @@ class RPi_GPIO_Servo(object):
 
 
     def shutdown(self):
+        import RPi.GPIO as GPIO
         self.pwm.stop()
         GPIO.cleanup()
 

@@ -187,7 +187,7 @@ class CvCam(Creatable):
         '''
         poll the camera for a frame
         '''
-        while(self.running):
+        while self.running:
             self.poll()
 
     def run_threaded(self):
@@ -201,6 +201,11 @@ class CvCam(Creatable):
         self.running = False
         time.sleep(0.2)
         self.cap.release()
+
+    @classmethod
+    def create(cls, cfg):
+        return cls(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
+                   image_d=cfg.IMAGE_DEPTH)
 
 
 class CvImageView(object):

@@ -130,6 +130,9 @@ class TubWriter(Creatable):
     def shutdown(self):
         self.close()
 
+    @classmethod
+    def create(cls, cfg):
+
 
 class TubWiper:
     """

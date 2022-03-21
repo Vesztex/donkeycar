@@ -131,7 +131,8 @@ class TubWriter(Creatable):
         self.close()
 
     @classmethod
-    def create(cls, cfg):
+    def create(cls, cfg, kwargs):
+        return TubWriter(base_path=cfg.DATA_PATH, **kwargs)
 
 
 class TubWiper:

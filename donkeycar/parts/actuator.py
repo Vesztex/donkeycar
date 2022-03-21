@@ -809,7 +809,7 @@ class L298N_HBridge_3pin(object):
         self.pin_backward.start(PinState.LOW)
         self.pwm_pin.start(0)
 
-    def run(self, throttle:float) -> None:
+    def run(self, throttle: float) -> None:
         """
         Update the speed of the motor
         :param throttle:float throttle value in range -1 to 1,

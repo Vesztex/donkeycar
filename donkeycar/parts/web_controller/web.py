@@ -23,12 +23,13 @@ import tornado.gen
 import tornado.websocket
 from socket import gethostname
 
+from .. import Creatable
 from ... import utils
 
 logger = logging.getLogger(__name__)
 
 
-class RemoteWebServer():
+class RemoteWebServer:
     '''
     A controller that repeatedly polls a remote webserver and expects
     the response to be angle, throttle and drive mode.
@@ -99,7 +100,7 @@ class RemoteWebServer():
         pass
 
 
-class LocalWebController(tornado.web.Application):
+class LocalWebController(tornado.web.Application, Creatable):
 
     def __init__(self, port=8887, mode='user'):
         '''
@@ -107,7 +108,7 @@ class LocalWebController(tornado.web.Application):
         the web handlers.
         '''
 
-        print('Starting Donkey Server...', end='')
+        logger.info('Starting Donkey Server...')
 
         this_dir = os.path.dirname(os.path.realpath(__file__))
         self.static_file_path = os.path.join(this_dir, 'templates', 'static')
@@ -139,11 +140,11 @@ class LocalWebController(tornado.web.Application):
 
         settings = {'debug': True}
         super().__init__(handlers, **settings)
-        print("... you can now go to {}.local:{} to drive "
-              "your car.".format(gethostname(), port))
+        logger.info(f"... you can now go to {gethostname()}.local:{port} to "
+                    f"drive your car.")
 
     def update(self):
-        ''' Start the tornado webserver. '''
+        """ Start the tornado webserver. """
         asyncio.set_event_loop(asyncio.new_event_loop())
         self.listen(self.port)
         self.loop = IOLoop.instance()
@@ -185,12 +186,12 @@ class LocalWebController(tornado.web.Application):
             self.recording = recording
             changes["recording"] = self.recording
         if self.recording_latch is not None:
-            self.recording = self.recording_latch;
-            self.recording_latch = None;
-            changes["recording"] = self.recording;
+            self.recording = self.recording_latch
+            self.recording_latch = None
+            changes["recording"] = self.recording
 
         # Send record count to websocket clients
-        if (self.num_records is not None and self.recording is True):
+        if self.num_records is not None and self.recording is True:
             if self.num_records % 10 == 0:
                 changes['num_records'] = self.num_records
 
@@ -325,7 +326,7 @@ class VideoAPI(RequestHandler):
         my_boundary = "--boundarydonotcross\n"
         while True:
 
-            interval = .01
+            interval = .001
             if served_image_timestamp + interval < time.time() and \
                     hasattr(self.application, 'img_arr'):
 

@@ -410,7 +410,7 @@ except ImportError:
     logger.warn("RPi.GPIO was not imported.")
     globals()["GPIO"] = None
     # TODO: remove before commit!!!!
-    # gpio_pin_scheme = {PinScheme.BOARD: 'board', PinScheme.BCM: 'bcm'}
+    gpio_pin_scheme = {PinScheme.BOARD: 'board', PinScheme.BCM: 'bcm'}
 
 
 def gpio_fn(pin_scheme: int, fn: Callable[[], Any]):

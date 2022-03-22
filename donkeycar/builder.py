@@ -30,10 +30,7 @@ class Builder:
                 if type(v) is dict:
                     self.insert_config(v)
                 if type(v) is str and v[:4].lower() == 'cfg.':
-                    overwrite = None
-                    cfg = self.cfg
-                    exec("overwrite = v")
-                    arguments[k] = overwrite
+                    arguments[k] = getattr(self.cfg, v[4:])
 
     def build_vehicle(self):
         with open(self.car_file) as f:

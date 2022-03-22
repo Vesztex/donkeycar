@@ -1,15 +1,22 @@
 
 parts:
-  - cvcam:
-      outputs: [cam/img_array]
+  - mockcamera:
+      outputs: [cam/image_array]
       threaded: true
-  - pwmthrottle:
-      outputs: [user/throttle]
-  - pwmsteering:
-      outputs: [user/angle]
+#  - pwmthrottle:
+#      outputs: [user/throttle]
+#  - pwmsteering:
+#      outputs: [user/angle]
+  - localwebcontroller:
+      arguments:
+        port: cfg.WEB_CONTROL_PORT
+        mode: cfg.WEB_INIT_MODE
+      inputs: [cam/image_array, tub/num_records]
+      outputs: [user/angle, user/throttle, user/mode, recording]
+      threaded: true
   - tubwriter:
       arguments:
         inputs: [cam/image_array, user/angle, user/throttle, user/mode]
         types: [image_array, float, float, str]
-      inputs: [cam/img_array, user/angle, user/throttle, user/mode]
+      inputs: [cam/image_array, user/angle, user/throttle, user/mode]
       outputs: [tub/current_index]

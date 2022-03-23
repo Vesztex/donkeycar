@@ -1,4 +1,5 @@
 import yaml
+import graphviz
 from donkeycar.parts.part import CreatableFactory
 from donkeycar import Vehicle
 # -- !!! THIS import cannot be removed as otherwise the metaclass
@@ -60,4 +61,26 @@ class Builder:
                         threaded=threaded, run_condition=run_condition)
 
         return car
+
+    def plot_vehicle(self, car):
+
+        g = graphviz.Digraph('Vehicle', filename='vehicle.py',
+                             graph_attr={'splines': 'ortho'})
+        g.attr('node', shape='box')
+        #g.attr('edge', splines='ortho')
+
+        for part_dict in car.parts:
+            g.node(part_dict['part'].__class__.__name__)
+
+        for part_dict in car.parts:
+            outputs = part_dict.get('outputs')
+            for output in outputs:
+                for part_dict_in in car.parts:
+                    inputs = part_dict_in['inputs']
+                    if output in inputs:
+                        g.edge(part_dict['part'].__class__.__name__,
+                               part_dict_in['part'].__class__.__name__,
+                               label=output)
+
+        g.view()
 

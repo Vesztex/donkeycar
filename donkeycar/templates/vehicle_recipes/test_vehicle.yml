@@ -8,11 +8,11 @@ parts:
 #  - pwmsteering:
 #      outputs: [user/angle]
   - localwebcontroller:
-      arguments:
-        port: cfg.WEB_CONTROL_PORT
-        mode: cfg.WEB_INIT_MODE
       inputs: [cam/image_array, tub/num_records]
       outputs: [user/angle, user/throttle, user/mode, recording]
+      threaded: true
+  - webfpv:
+      inputs: [cam/image_array]
       threaded: true
   - tubwriter:
       arguments:

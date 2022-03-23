@@ -100,7 +100,7 @@ class RemoteWebServer:
         pass
 
 
-class LocalWebController(tornado.web.Application, Creatable):
+class LocalWebController(Application, Creatable):
 
     def __init__(self, port=8887, mode='user'):
         '''
@@ -124,7 +124,6 @@ class LocalWebController(tornado.web.Application, Creatable):
         self.wsclients = []
         self.loop = None
 
-
         handlers = [
             (r"/", RedirectHandler, dict(url="/drive")),
             (r"/drive", DriveAPI),
@@ -146,8 +145,8 @@ class LocalWebController(tornado.web.Application, Creatable):
     def update(self):
         """ Start the tornado webserver. """
         asyncio.set_event_loop(asyncio.new_event_loop())
+        self.loop = tornado.ioloop.IOLoop.current()
         self.listen(self.port)
-        self.loop = IOLoop.instance()
         self.loop.start()
 
     def update_wsclients(self, data):
@@ -206,7 +205,15 @@ class LocalWebController(tornado.web.Application, Creatable):
         return self.run_threaded(img_arr, num_records, mode, recording)
 
     def shutdown(self):
-        pass
+        self.loop.stop()
+
+    @classmethod
+    def create(cls, cfg, kwargs):
+        if 'port' not in kwargs:
+            kwargs.update(port=cfg.WEB_CONTROL_PORT)
+        if 'mode' not in kwargs:
+            kwargs.update(mode=cfg.WEB_INIT_MODE)
+        return LocalWebController(**kwargs)
 
 
 class DriveAPI(RequestHandler):
@@ -351,7 +358,7 @@ class BaseHandler(RequestHandler):
         await self.render("templates/base_fpv.html", **data)
 
 
-class WebFpv(Application):
+class WebFpv(Application, Creatable):
     """
     Class for running an FPV web server that only shows the camera in real-time.
     The web page contains the camera view and auto-adjusts to the web browser
@@ -377,12 +384,15 @@ class WebFpv(Application):
         super().__init__(handlers, **settings)
         print("Started Web FPV server. You can now go to {}.local:{} to "
               "view the car camera".format(gethostname(), self.port))
+        self.loop = None
+        self.img_arr = None
 
     def update(self):
         """ Start the tornado webserver. """
         asyncio.set_event_loop(asyncio.new_event_loop())
+        self.loop = tornado.ioloop.IOLoop.current()
         self.listen(self.port)
-        IOLoop.instance().start()
+        self.loop.start()
 
     def run_threaded(self, img_arr=None):
         self.img_arr = img_arr
@@ -391,6 +401,12 @@ class WebFpv(Application):
         self.img_arr = img_arr
 
     def shutdown(self):
-        pass
+        self.loop.stop()
+
+    @classmethod
+    def create(cls, cfg, kwargs):
+        if 'port' not in kwargs:
+            kwargs.update(port=cfg.WEB_FPV_PORT)
+        return cls(**kwargs)
 
 

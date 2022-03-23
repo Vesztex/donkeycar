@@ -417,6 +417,7 @@ NETWORK_JS_SERVER_IP = None         #when listening for network joystick control
 JOYSTICK_DEADZONE = 0.01            # when non zero, this is the smallest throttle before recording triggered.
 JOYSTICK_THROTTLE_DIR = -1.0         # use -1.0 to flip forward/backward, use 1.0 to use joystick's natural forward/backward
 USE_FPV = False                     # send camera data to FPV webserver
+WEB_FPV_PORT = 8890                 # port for FPV webserver
 JOYSTICK_DEVICE_FILE = "/dev/input/js0" # this is the unix file use to access the joystick.
 
 #For the categorical model, this limits the upper bound of the learned throttle

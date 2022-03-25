@@ -9,7 +9,7 @@ parts:
 #      outputs: [user/angle]
   - localwebcontroller:
       inputs: [cam/image_array, tub/num_records]
-      outputs: [user/angle, user/throttle, user/mode, recording]
+      outputs: [user/angle, usr/throttle, user/mode, recording]
       threaded: true
   - webfpv:
       inputs: [cam/image_array]
@@ -20,3 +20,4 @@ parts:
         types: [image_array, float, float, str]
       inputs: [cam/image_array, user/angle, user/throttle, user/mode]
       outputs: [tub/current_index]
+      run_condition: recording

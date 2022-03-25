@@ -25,6 +25,9 @@ class BaseCamera(Creatable):
         return cls(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
                    image_d=cfg.IMAGE_DEPTH, **kwargs)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 class PiCamera(BaseCamera):
     def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20,
@@ -363,6 +366,7 @@ class MockCamera(BaseCamera):
     Fake camera. Returns only a single static frame
     '''
     def __init__(self, image_w=160, image_h=120, image_d=3, image=None):
+        super().__init__(image_w=image_w, image_h=image_h, image_d=image_d)
         if image is not None:
             self.frame = image
         else:

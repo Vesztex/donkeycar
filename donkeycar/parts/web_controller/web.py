@@ -107,7 +107,7 @@ class LocalWebController(Application, Creatable):
         Create and publish variables needed on many of
         the web handlers.
         '''
-
+        Creatable.__init__(self, port=port, mode=mode)
         logger.info('Starting Donkey Server...')
 
         this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -138,7 +138,7 @@ class LocalWebController(Application, Creatable):
         ]
 
         settings = {'debug': True}
-        super().__init__(handlers, **settings)
+        Application.__init__(self, handlers, **settings)
         logger.info(f"... you can now go to {gethostname()}.local:{port} to "
                     f"drive your car.")
 
@@ -368,6 +368,7 @@ class WebFpv(Application, Creatable):
     """
 
     def __init__(self, port=8890):
+        Creatable.__init__(self, port=port)
         self.port = port
         this_dir = os.path.dirname(os.path.realpath(__file__))
         self.static_file_path = os.path.join(this_dir, 'templates', 'static')
@@ -381,7 +382,7 @@ class WebFpv(Application, Creatable):
         ]
 
         settings = {'debug': True}
-        super().__init__(handlers, **settings)
+        Application.__init__(self, handlers, **settings)
         print("Started Web FPV server. You can now go to {}.local:{} to "
               "view the car camera".format(gethostname(), self.port))
         self.loop = None

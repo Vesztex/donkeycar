@@ -28,6 +28,9 @@ class Creatable(object, metaclass=CreatableFactory):
     def create(cls, cfg, kwargs):
         return cls(**kwargs)
 
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
 
 class TestCreatable(Creatable):
     """

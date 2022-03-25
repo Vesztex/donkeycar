@@ -64,23 +64,40 @@ class Builder:
 
     def plot_vehicle(self, car):
 
-        g = graphviz.Digraph('Vehicle', filename='vehicle.py',
-                             graph_attr={'splines': 'ortho'})
+        g = graphviz.Digraph('Vehicle', filename='vehicle.py', format='png')
+
         g.attr('node', shape='box')
         #g.attr('edge', splines='ortho')
 
+        # build all parts as nodes first
         for part_dict in car.parts:
-            g.node(part_dict['part'].__class__.__name__)
+            part = part_dict['part']
+            name = part.__class__.__name__
+            label = name
+            for k, v in part.kwargs.items():
 
+                label += f'\n{k}: {str(v)}'
+            g.node(name, label=label)
+
+        # connect all part with outputs to inputs
         for part_dict in car.parts:
             outputs = part_dict.get('outputs')
+            output_part_name = part_dict['part'].__class__.__name__
             for output in outputs:
+                found = False
                 for part_dict_in in car.parts:
                     inputs = part_dict_in['inputs']
+                    input_part_name = part_dict_in['part'].__class__.__name__
                     if output in inputs:
-                        g.edge(part_dict['part'].__class__.__name__,
-                               part_dict_in['part'].__class__.__name__,
-                               label=output)
-
+                        g.edge(output_part_name, input_part_name, label=output)
+                        found = True
+                    run_condition = part_dict_in.get('run_condition')
+                    # if output is a run condition draw different edge
+                    if run_condition == output:
+                        g.edge(output_part_name, input_part_name,
+                               label=output, style='dashed')
+                        found = True
+                if not found:
+                    g.edge(output_part_name, 'Unused', label=output)
         g.view()
 

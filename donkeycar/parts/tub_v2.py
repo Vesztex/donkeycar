@@ -112,6 +112,8 @@ class TubWriter(Creatable):
     """
     def __init__(self, base_path, inputs=[], types=[], metadata=[],
                  max_catalog_len=1000):
+        super().__init__(base_path=base_path, inputs=inputs, types=types,
+                         metadata=metadata, max_catalog_len=max_catalog_len)
         self.tub = Tub(base_path, inputs, types, metadata, max_catalog_len)
 
     def run(self, *args):

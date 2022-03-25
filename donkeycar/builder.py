@@ -1,10 +1,13 @@
 import yaml
 import graphviz
+import logging
 from donkeycar.parts.part import CreatableFactory
 from donkeycar import Vehicle
 # -- !!! THIS import cannot be removed as otherwise the metaclass
 # initialisation does not run for all parts !!!
 import donkeycar.parts
+
+logger = logging.getLogger(__name__)
 
 
 class Builder:
@@ -35,8 +38,10 @@ class Builder:
 
     def build_vehicle(self):
         with open(self.car_file) as f:
-            car_description = yaml.load(f, Loader=yaml.FullLoader)
-
+            try:
+                car_description = yaml.safe_load(f)
+            except yaml.YAMLError as e:
+                logger.error(e)
         parts = car_description.get('parts')
         car = Vehicle()
 
@@ -75,7 +80,6 @@ class Builder:
             name = part.__class__.__name__
             label = name
             for k, v in part.kwargs.items():
-
                 label += f'\n{k}: {str(v)}'
             g.node(name, label=label)
 

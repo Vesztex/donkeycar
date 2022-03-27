@@ -15,7 +15,7 @@ from docopt import docopt
 import donkeycar as dk
 import cv2
 
-from donkeycar.parts.cv import CvImageView, ImgBGR2RGB, ImgRGB2BGR, ImageScale, ImgWriter, ArrowKeyboardControls
+from donkeycar.parts.cv import CvImageView, ImgBGR2RGB, ImageScale, ArrowKeyboardControls
 from donkeycar.parts.salient import SalientVis
 from donkeycar.parts.network import MQTTValuePub, MQTTValueSub
 from donkeycar.parts.transform import Lambda

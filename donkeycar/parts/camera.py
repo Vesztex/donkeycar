@@ -27,28 +27,34 @@ class BaseCamera(Creatable):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.frame = None
 
 
 class PiCamera(BaseCamera):
+    """
+    PiCamera part for the Raspberry Pi camera.
+    """
     def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20,
                  vflip=False, hflip=False):
         from picamera.array import PiRGBArray
         from picamera import PiCamera
+        super().__init__(image_w=image_w, image_h=image_h, image_d=image_d,
+                         framerate=framerate, vflip=vflip, hflip=hflip)
 
+        # PiCamera gets resolution (height, width) initialize the camera and
+        # stream
         resolution = (image_w, image_h)
-        # initialize the camera and stream
-        self.camera = PiCamera() #PiCamera gets resolution (height, width)
+        self.camera = PiCamera()
         self.camera.resolution = resolution
         self.camera.framerate = framerate
         self.camera.vflip = vflip
         self.camera.hflip = hflip
         self.rawCapture = PiRGBArray(self.camera, size=resolution)
-        self.stream = self.camera.capture_continuous(self.rawCapture,
-            format="rgb", use_video_port=True)
+        self.stream = self.camera.capture_continuous(
+            self.rawCapture, format="rgb", use_video_port=True)
 
         # initialize the frame and the variable used to indicate
         # if the thread should be stopped
-        self.frame = None
         self.on = True
         self.image_d = image_d
 
@@ -69,6 +75,9 @@ class PiCamera(BaseCamera):
         logger.info("PiCamera ready.")
 
     def run(self):
+        """
+        Donkey car parts interface for threaded parts
+        """
         # grab the frame from the stream and clear the stream in
         # preparation for the next frame
         if self.stream is not None:
@@ -100,6 +109,10 @@ class PiCamera(BaseCamera):
 
 
 class Webcam(BaseCamera):
+    """
+    Web camera that is based on the PyGame package. Allows a generic camera
+    to by used as long as pygame supports it.
+    """
     def __init__(self, image_w=160, image_h=120, image_d=3,
                  framerate=20, camera_index=0):
         #
@@ -109,17 +122,17 @@ class Webcam(BaseCamera):
         # sudo apt-get install libsdl2-mixer-2.0-0 libsdl2-image-2.0-0 libsdl2-2.0-0
         # pip install pygame
         #
-        super().__init__()
+        super().__init__(image_w=image_w, image_h=image_h, image_d=image_d,
+                         framerate=framerate, camera_index=camera_index)
         self.cam = None
         self.framerate = framerate
 
         # initialize variable used to indicate
         # if the thread should be stopped
-        self.frame = None
         self.image_d = image_d
         self.image_w = image_w
         self.image_h = image_h
-
+        self.resolution = None
         self.init_camera(image_w, image_h, image_d, camera_index)
         self.on = True
 
@@ -128,14 +141,10 @@ class Webcam(BaseCamera):
             import pygame
             import pygame.camera
         except ModuleNotFoundError as e:
-            logger.error("Unable to import pygame.  Try installing it:\n"
-                         "    sudo apt-get install libsdl2-mixer-2.0-0" 
-                         "libsdl2-image-2.0-0 libsdl2-2.0-0\n"
-                         "    pip install pygame")
+            logger.error("Unable to import pygame, missing package")
             raise e
 
         logger.info('Opening Webcam...')
-
         self.resolution = (image_w, image_h)
 
         try:
@@ -177,14 +186,20 @@ class Webcam(BaseCamera):
         logger.info("Webcam ready.")
 
     def run(self):
+        """
+        Donkey car parts interface
+        """
         import pygame.image
         if self.cam.query_image():
             snapshot = self.cam.get_image()
             if snapshot is not None:
                 snapshot1 = pygame.transform.scale(snapshot, self.resolution)
-                self.frame = pygame.surfarray.pixels3d(pygame.transform.rotate(pygame.transform.flip(snapshot1, True, False), 90))
+                self.frame = pygame.surfarray.pixels3d(
+                    pygame.transform.rotate(
+                        pygame.transform.flip(snapshot1, True, False), 90)
+                )
                 if self.image_d == 1:
-                    self.frame = rgb2gray(frame)
+                    self.frame = rgb2gray(self.frame)
 
         return self.frame
 
@@ -197,9 +212,6 @@ class Webcam(BaseCamera):
             s = 1 / self.framerate - (stop - start).total_seconds()
             if s > 0:
                 time.sleep(s)
-
-    def run_threaded(self):
-        return self.frame
 
     def shutdown(self):
         # indicate that the thread should be stopped
@@ -236,13 +248,16 @@ class CSICamera(BaseCamera):
         gstreamer_flip = 2 - flip vertically
         gstreamer_flip = 3 - rotate CW 90
         '''
+        super().__init__(image_w=image_w, image_h=image_h, image_d=image_d,
+                         capture_width=capture_width,
+                         capture_height=capture_height, framerate=framerate,
+                         gstreamer_flip=gstreamer_flip)
         self.w = image_w
         self.h = image_h
         self.flip_method = gstreamer_flip
         self.capture_width = capture_width
         self.capture_height = capture_height
         self.framerate = framerate
-        self.frame = None
         self.init_camera()
         self.running = True
 
@@ -275,16 +290,22 @@ class CSICamera(BaseCamera):
         logger.info("CSICamera ready.")
 
     def update(self):
+        """
+        Donkey car part threaded interface
+        """
         while self.running:
             self.poll_camera()
 
     def poll_camera(self):
         import cv2
-        self.ret , frame = self.camera.read()
+        self.ret, frame = self.camera.read()
         if frame is not None:
             self.frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     def run(self):
+        """
+        Donkey car part interface
+        """
         self.poll_camera()
         return self.frame
 
@@ -309,19 +330,19 @@ class V4LCamera(BaseCamera):
     '''
     def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20,
                  dev_fn="/dev/video0", fourcc='MJPG'):
-
+        super().__init__(image_w=image_w, image_h=image_h, image_d=image_d,
+                         framerate=framerate, dev_fn=dev_fn, fourcc=fourcc)
         self.running = True
-        self.frame = None
         self.image_w = image_w
         self.image_h = image_h
         self.dev_fn = dev_fn
         self.fourcc = fourcc
+        self.video = None
 
     def init_video(self):
         import v4l2capture
 
         self.video = v4l2capture.Video_device(self.dev_fn)
-
         # Suggest an image size to the device. The device may choose and
         # return another size if it doesn't support the suggested one.
         self.size_x, self.size_y = self.video.set_format(self.image_w,
@@ -344,6 +365,7 @@ class V4LCamera(BaseCamera):
         self.video.start()
 
     def update(self):
+        """ Donkey car threaded interface """
         import select
         from donkeycar.parts.image import JpgToImgArr
 
@@ -357,6 +379,7 @@ class V4LCamera(BaseCamera):
             self.frame = jpg_conv.run(image_data)
 
     def shutdown(self):
+        """ Donkey car interface """
         self.running = False
         time.sleep(0.5)
 
@@ -385,8 +408,10 @@ class ImageListCamera(BaseCamera):
     Use the images from a tub as a fake camera output
     '''
     def __init__(self, path_mask='~/mycar/data/**/images/*.jpg'):
-        self.image_filenames = glob.glob(os.path.expanduser(path_mask), recursive=True)
-    
+        self.image_filenames = glob.glob(os.path.expanduser(path_mask),
+                                         recursive=True)
+        super.__init__(path_mask=path_mask)
+
         def get_image_index(fnm):
             sl = os.path.basename(fnm).split('_')
             return int(sl[0])
@@ -398,18 +423,17 @@ class ImageListCamera(BaseCamera):
         so, sorting by image index works better, but only with one path.
         '''
         self.image_filenames.sort(key=get_image_index)
-        #self.image_filenames.sort(key=os.path.getmtime)
         self.num_images = len(self.image_filenames)
         logger.info('%d images loaded.' % self.num_images)
         logger.info(self.image_filenames[:10])
         self.i_frame = 0
-        self.frame = None
         self.update()
 
     def update(self):
         pass
 
     def run_threaded(self):        
+        """ Donkey car threaded interface """
         if self.num_images > 0:
             self.i_frame = (self.i_frame + 1) % self.num_images
             self.frame = Image.open(self.image_filenames[self.i_frame]) 

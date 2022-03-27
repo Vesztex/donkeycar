@@ -80,7 +80,7 @@ class Builder:
         :param Vehicle car: input car to be plotted
         """
         g = graphviz.Digraph('Vehicle', filename='vehicle.py')
-        g.attr('var_data', shape='box')
+        g.attr('node', shape='box')
 
         # build all parts as nodes first
         car_parts = car.parts

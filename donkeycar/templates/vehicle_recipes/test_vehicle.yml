@@ -8,8 +8,8 @@ parts:
 #  - pwmsteering:
 #      outputs: [user/angle]
   - localwebcontroller:
-      inputs: [cam/image_array, tub/num_records]
-      outputs: [user/angle, usr/throttle, user/mode, recording]
+      inputs: [cam/image_array, tub/current_index]
+      outputs: [user/angle, user/throttle, user/mode, recording]
       threaded: true
   - webfpv:
       inputs: [cam/image_array]

@@ -76,7 +76,8 @@ class Builder:
             the data flow of input and output variables is as expected and
             input, output and run_condition variables are correctly labelled
             as they are free-form text strings. """
-        g = graphviz.Digraph('Vehicle', filename='vehicle.py', format='png')
+        #g = graphviz.Digraph('Vehicle', filename='vehicle.py', format='png')
+        g = graphviz.Digraph('Vehicle', filename='vehicle.py')
         g.attr('node', shape='box')
 
         # build all parts as nodes first
@@ -93,8 +94,10 @@ class Builder:
         variable_tracker = set()
         for part_dict in car_parts:
             name = part_dict['part'].__class__.__name__
-            variable_tracker.update((name, 'i', i) for i in part_dict.get('inputs', []))
-            variable_tracker.update((name, 'o', o) for o in part_dict.get('outputs', []))
+            variable_tracker.update((name, 'i', i)
+                                    for i in part_dict.get('inputs', []))
+            variable_tracker.update((name, 'o', o)
+                                    for o in part_dict.get('outputs', []))
             run_condition = part_dict.get('run_condition')
             if run_condition:
                 variable_tracker.add((name, 'r', run_condition))
@@ -108,10 +111,12 @@ class Builder:
         for node in variable_tracker:
             name, io, var = node
             # no input defined for input or run_condition
-            if io in 'ir':
+            if io == 'i':
                 g.edge('Non defined', name, var, color='red')
+            elif io == 'r':
+                g.edge('Non defined', name, var, color='red', style='dotted')
             # output goes nowhere
-            if io == 'o':
+            elif io == 'o':
                 g.edge(name, 'Not used', var, color='red')
             print(node)
         g.view()
@@ -150,16 +155,13 @@ class Builder:
                         nodes.discard((lower_part_name, 'r', output_upper))
 
 
-if __name__ == "main":
+if __name__ == "__main__":
     import donkeycar as dk
-    from os.path import expanduser
-
-    cfg = dk.load_config()
-    yml = expanduser('~/Python/donkeycar/donkeycar/templates/vehicle_recipes'
-                     '/test_vehicle.yml')
+    import os
+    yml = os.path.join(os.path.dirname(dk.__file__), 'templates',
+                       'vehicle_recipes', 'test_vehicle.yml')
+    cfg = donkeycar.load_config(os.path.join(os.getcwd(), 'config.py'))
     b = Builder(cfg, yml)
     v = b.build_vehicle()
-    # v.start()
-
     b.plot_vehicle(v)
-
+    # v.start()

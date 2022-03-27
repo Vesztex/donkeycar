@@ -98,7 +98,7 @@ class Vehicle:
 
         class_name = part.__class__.__name__
         part_name = f'{class_name}.{self.part_counter[class_name]}'
-        logger.info(f'Adding {"threaded " if threaded else ""} part '
+        logger.info(f'Adding {"threaded " if threaded else ""}part '
                     f'{part_name}.')
         self.part_counter[class_name] += 1
         entry = {'part': part, 'inputs': inputs, 'outputs': outputs,

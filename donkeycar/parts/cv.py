@@ -3,9 +3,11 @@ import cv2
 import numpy as np
 
 from donkeycar.parts.part import Creatable
+from donkeycar.utilities.deprecated import deprecated
 
 
-class ImgGreyscale():
+@deprecated("This part is not used anywhere")
+class ImgGreyscale:
 
     def run(self, img_arr):
         img_arr = cv2.cvtColor(img_arr, cv2.COLOR_RGB2GRAY)
@@ -14,7 +16,9 @@ class ImgGreyscale():
     def shutdown(self):
         pass
 
-class ImgWriter():
+
+@deprecated("This part is not used anywhere")
+class ImgWriter:
 
     def __init__(self, filename):
         self.filename = filename
@@ -25,7 +29,8 @@ class ImgWriter():
     def shutdown(self):
         pass
 
-class ImgBGR2RGB():
+
+class ImgBGR2RGB:
 
     def run(self, img_arr):
         if img_arr is None:
@@ -39,7 +44,9 @@ class ImgBGR2RGB():
     def shutdown(self):
         pass
 
-class ImgRGB2BGR():
+
+@deprecated("This part is not used anywhere")
+class ImgRGB2BGR:
 
     def run(self, img_arr):
         if img_arr is None:
@@ -50,7 +57,8 @@ class ImgRGB2BGR():
     def shutdown(self):
         pass
 
-class ImageScale():
+
+class ImageScale:
 
     def __init__(self, scale):
         self.scale = scale
@@ -66,7 +74,9 @@ class ImageScale():
     def shutdown(self):
         pass
 
-class ImageRotateBound():
+
+@deprecated("This part is not used anywhere")
+class ImageRotateBound:
     '''
     credit:
     https://www.pyimagesearch.com/2017/01/02/rotate-images-correctly-with-opencv-and-python/
@@ -105,13 +115,14 @@ class ImageRotateBound():
     def shutdown(self):
         pass
 
-class ImgCanny():
+
+@deprecated("This part is not used anywhere")
+class ImgCanny:
 
     def __init__(self, low_threshold=60, high_threshold=110):
         self.low_threshold = low_threshold
         self.high_threshold = high_threshold
-        
-        
+
     def run(self, img_arr):
         return cv2.Canny(img_arr, 
                          self.low_threshold, 
@@ -121,7 +132,8 @@ class ImgCanny():
         pass
     
 
-class ImgGaussianBlur():
+@deprecated("This part is not used anywhere")
+class ImgGaussianBlur:
 
     def __init__(self, kernal_size=5):
         self.kernal_size = kernal_size
@@ -155,24 +167,10 @@ class ArrowKeyboardControls:
                 return self.vec[iCode]
         return (0., 0.)
 
-        
-class Pipeline:
-    def __init__(self, steps):
-        self.steps = steps
-    
-    def run(self, val):
-        for step in self.steps:
-            f = step['f']
-            args = step['args']
-            kwargs = step['kwargs']
-            
-            val = f(val, *args, **kwargs)
-        return val
-
 
 class CvCam(Creatable):
     def __init__(self, image_w=160, image_h=120, image_d=3, iCam=0):
-
+        super().__init__(image_w=image_w, image_h=image_h, iCam=iCam)
         self.frame = None
         self.cap = cv2.VideoCapture(iCam)
         self.running = True

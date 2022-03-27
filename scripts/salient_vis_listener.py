@@ -14,7 +14,7 @@ import math
 from docopt import docopt
 import donkeycar as dk
 
-from donkeycar.parts.cv import CvImageView, ImgBGR2RGB, ImgRGB2BGR, ImageScale, ImgWriter
+from donkeycar.parts.cv import CvImageView, ImgBGR2RGB, ImageScale
 from donkeycar.parts.salient import SalientVis
 from donkeycar.parts.network import ZMQValueSub, UDPValueSub, TCPClientValue
 from donkeycar.parts.transform import Lambda

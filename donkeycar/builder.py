@@ -51,34 +51,36 @@ class Builder:
         for part in parts:
             for part_name, part_params in part.items():
                 # check if add_only_if is present
-                if part_params.get('add_only_if') is False:
-                    continue
-                # we are using .get on part parameters here as the part might
-                # not have it, then return an empty dict as ** needs to work
-                part_args = part_params.get('arguments', {})
-                # updated part parameters with config values
-                self.insert_config(part_args)
-                # this creates the part
-                part = CreatableFactory.make(part_name, self.cfg, part_args)
-                inputs = part_params.get('inputs', [])
-                outputs = part_params.get('outputs', [])
-                threaded = part_params.get('threaded', False)
-                run_condition = part_params.get('run_condition')
-                # adding part to vehicle
-                car.add(part, inputs=inputs, outputs=outputs,
-                        threaded=threaded, run_condition=run_condition)
+                if part_params.get('add_only_if') is None or True:
+                    # We are not using .get on part parameters here because the
+                    # part might not have it. Rather return an empty dict
+                    # because ** needs to work later on this return value
+                    part_args = part_params.get('arguments', {})
+                    # updated part parameters with config values
+                    self.insert_config(part_args)
+                    part = CreatableFactory.make(part_name, self.cfg, part_args)
+                    inputs = part_params.get('inputs', [])
+                    outputs = part_params.get('outputs', [])
+                    threaded = part_params.get('threaded', False)
+                    run_condition = part_params.get('run_condition')
+                    # adding part to vehicle
+                    car.add(part, inputs=inputs, outputs=outputs,
+                            threaded=threaded, run_condition=run_condition)
 
         return car
 
     def plot_vehicle(self, car):
-        """ Function to provide a graphviz (dot) plot of the vehicle
-            architecture. This is meant to be an auxiliary helper to control
-            the data flow of input and output variables is as expected and
-            input, output and run_condition variables are correctly labelled
-            as they are free-form text strings. """
-        #g = graphviz.Digraph('Vehicle', filename='vehicle.py', format='png')
+        """
+        Function to provide a graphviz (dot) plot of the vehicle
+        architecture. This is meant to be an auxiliary helper to control the
+        data flow of input and output variables is as expected and input,
+        output and run_condition variables are correctly labelled as they are
+        free-form text strings.
+
+        :param Vehicle car: input car to be plotted
+        """
         g = graphviz.Digraph('Vehicle', filename='vehicle.py')
-        g.attr('node', shape='box')
+        g.attr('var_data', shape='box')
 
         # build all parts as nodes first
         car_parts = car.parts
@@ -88,6 +90,7 @@ class Builder:
             label = name
             for k, v in part.kwargs.items():
                 label += f'\n{k}: {str(v)}'
+            label += f'\nThreaded: {"thread" in part_dict}'
             g.node(name, label=label)
 
         # add all input, output, run_condition variables of all parts
@@ -108,8 +111,8 @@ class Builder:
         # reverse order and connect from bottom to top
         self.traverse_parts(reversed_parts, g, variable_tracker, 'green')
         # connected nodes now have all been removed, add the unconnected
-        for node in variable_tracker:
-            name, io, var = node
+        for var_data in variable_tracker:
+            name, io, var = var_data
             # no input defined for input or run_condition
             if io == 'i':
                 g.edge('Non defined', name, var, color='red')
@@ -118,16 +121,33 @@ class Builder:
             # output goes nowhere
             elif io == 'o':
                 g.edge(name, 'Not used', var, color='red')
-            print(node)
+            print(var_data)
         g.view()
 
     @staticmethod
-    def traverse_parts(car_parts, g, nodes, color='blue'):
+    def traverse_parts(car_parts, g, var_data, color='blue'):
+        """
+        Method to traverse the parts list and edges to the nodes from outputs of
+        higher parts to inputs and run_condition of lower parts. Output ->
+        input edges are solid and output -> run_condition edges are dotted.
+
+        The method also updates the passed in set of (parts, type, variable)
+        tuples. For every found edge the corresponding start and end points
+        are removed. Hence if the set contains all points it will contain
+        only non-joined points after return.
+
+
+        :param list car_parts:      list of parts as taken from the vehicle
+        :param graphviz.Digraph g:  dot graph to be updated
+        :param set var_data:        set of all variable data that gets updated
+        :param string color:        color of edge
+        :return: None
+        """
+
         car_parts_copy = copy(car_parts)
         for part_dict in car_parts:
             outputs_upper = part_dict.get('outputs', [])
             upper_part_name = part_dict['part'].__class__.__name__
-            print(f'Checking upper part {upper_part_name}')
             # copy contains all parts that come after the current part
             car_parts_copy.pop(0)
             for output_upper in outputs_upper:
@@ -135,14 +155,12 @@ class Builder:
                 for part_dict_lower in car_parts_copy:
                     inputs_lower = part_dict_lower.get('inputs', [])
                     lower_part_name = part_dict_lower['part'].__class__.__name__
-                    print(f'Checking lower part {lower_part_name}')
                     if output_upper in inputs_lower:
                         g.edge(upper_part_name, lower_part_name,
                                label=output_upper, color=color)
-                        found_output_upper = True
                         # remove found entries from all nodes
-                        nodes.discard((upper_part_name, 'o', output_upper))
-                        nodes.discard((lower_part_name, 'i', output_upper))
+                        var_data.discard((upper_part_name, 'o', output_upper))
+                        var_data.discard((lower_part_name, 'i', output_upper))
 
                     run_condition_lower = part_dict_lower.get('run_condition')
                     # if output is a run condition draw different edge
@@ -150,9 +168,8 @@ class Builder:
                         g.edge(upper_part_name, lower_part_name,
                                label=output_upper, style='dotted',
                                color=color)
-                        found_output_upper = True
-                        nodes.discard((upper_part_name, 'o', output_upper))
-                        nodes.discard((lower_part_name, 'r', output_upper))
+                        var_data.discard((upper_part_name, 'o', output_upper))
+                        var_data.discard((lower_part_name, 'r', output_upper))
 
 
 if __name__ == "__main__":

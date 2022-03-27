@@ -80,23 +80,23 @@ class Builder:
         :param Vehicle car: input car to be plotted
         """
         g = graphviz.Digraph('Vehicle', filename='vehicle.py')
-        g.attr('node', shape='box')
+        g.attr('node', shape='box', ordering='out')
+        car_parts = car.parts
 
         # build all parts as nodes first
-        car_parts = car.parts
         for part_dict in car_parts:
-            part = part_dict['part']
-            name = part.__class__.__name__
+            name = part_dict['name']
             label = name
-            for k, v in part.kwargs.items():
+            for k, v in part_dict['part'].kwargs.items():
                 label += f'\n{k}: {str(v)}'
             label += f'\nThreaded: {"thread" in part_dict}'
             g.node(name, label=label)
 
-        # add all input, output, run_condition variables of all parts
+        # add all input, output, run_condition variables of all parts to a
+        # tracker
         variable_tracker = set()
         for part_dict in car_parts:
-            name = part_dict['part'].__class__.__name__
+            name = part_dict['name']
             variable_tracker.update((name, 'i', i)
                                     for i in part_dict.get('inputs', []))
             variable_tracker.update((name, 'o', o)
@@ -107,9 +107,9 @@ class Builder:
 
         reversed_parts = list(reversed(car_parts))
         # connect all parts' outputs to inputs from top to bottom
-        self.traverse_parts(car_parts, g, variable_tracker, 'blue')
+        self.traverse_parts(car_parts, g, variable_tracker, True)
         # reverse order and connect from bottom to top
-        self.traverse_parts(reversed_parts, g, variable_tracker, 'green')
+        self.traverse_parts(reversed_parts, g, variable_tracker, False)
         # connected nodes now have all been removed, add the unconnected
         for var_data in variable_tracker:
             name, io, var = var_data
@@ -125,7 +125,7 @@ class Builder:
         g.view()
 
     @staticmethod
-    def traverse_parts(car_parts, g, var_data, color='blue'):
+    def traverse_parts(car_parts, g, var_data, top_down=True):
         """
         Method to traverse the parts list and edges to the nodes from outputs of
         higher parts to inputs and run_condition of lower parts. Output ->
@@ -140,24 +140,27 @@ class Builder:
         :param list car_parts:      list of parts as taken from the vehicle
         :param graphviz.Digraph g:  dot graph to be updated
         :param set var_data:        set of all variable data that gets updated
-        :param string color:        color of edge
+        :param bool top_down:       if top down graph or bottom up
         :return: None
         """
 
+        color = 'blue' if top_down else 'green'
+        constraint = str(top_down)
         car_parts_copy = copy(car_parts)
         for part_dict in car_parts:
             outputs_upper = part_dict.get('outputs', [])
-            upper_part_name = part_dict['part'].__class__.__name__
+            upper_part_name = part_dict['name']
             # copy contains all parts that come after the current part
             car_parts_copy.pop(0)
             for output_upper in outputs_upper:
                 # here we cycle through all later parts
                 for part_dict_lower in car_parts_copy:
                     inputs_lower = part_dict_lower.get('inputs', [])
-                    lower_part_name = part_dict_lower['part'].__class__.__name__
+                    lower_part_name = part_dict_lower['name']
                     if output_upper in inputs_lower:
                         g.edge(upper_part_name, lower_part_name,
-                               label=output_upper, color=color)
+                               label=output_upper, color=color,
+                               constraint=constraint)
                         # remove found entries from all nodes
                         var_data.discard((upper_part_name, 'o', output_upper))
                         var_data.discard((lower_part_name, 'i', output_upper))
@@ -167,7 +170,8 @@ class Builder:
                     if run_condition_lower == output_upper:
                         g.edge(upper_part_name, lower_part_name,
                                label=output_upper, style='dotted',
-                               color=color)
+                               color=color,
+                               constraint=constraint)
                         var_data.discard((upper_part_name, 'o', output_upper))
                         var_data.discard((lower_part_name, 'r', output_upper))
 

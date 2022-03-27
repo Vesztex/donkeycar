@@ -3,21 +3,22 @@ parts:
   - mockcamera:
       outputs: [cam/image_array]
       threaded: true
-#  - pwmthrottle:
-#      outputs: [user/throttle]
-#  - pwmsteering:
-#      outputs: [user/angle]
+  - mockcamera:
+      outputs: [cam/image_array_2]
+      threaded: false
+      run_condition: tub/current_index
   - localwebcontroller:
       inputs: [cam/image_array, tub/current_index]
       outputs: [user/angle, user/throttle, user/mode, recording]
       threaded: true
   - webfpv:
-      inputs: [cam/image_array]
+      inputs: [cam/image_array, cam/image_array_2]
       threaded: true
   - tubwriter:
       arguments:
         inputs: [cam/image_array, user/angle, user/throttle, user/mode]
         types: [image_array, float, float, str]
-      inputs: [cam/image_array, user/angle, user/throttle, user/mode]
+      inputs: [cam/image_array, user/angle, user/throttle, user/mode,
+               cam/image_array_2]
       outputs: [tub/current_index]
       run_condition: recording

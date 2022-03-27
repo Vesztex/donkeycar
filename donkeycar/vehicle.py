@@ -7,6 +7,8 @@ Created on Sun Jun 25 10:44:24 2017
 """
 
 import time
+from collections import defaultdict
+
 import numpy as np
 import logging
 from threading import Thread
@@ -68,6 +70,7 @@ class Vehicle:
         self.on = True
         self.threads = []
         self.profiler = PartProfiler()
+        self.part_counter = defaultdict(int)
 
     def add(self, part, inputs=[], outputs=[],
             threaded=False, run_condition=None):
@@ -87,14 +90,19 @@ class Vehicle:
             run_condition : str
                 If a part should be run or not
         """
-        assert type(inputs) is list, "inputs is not a list: %r" % inputs
-        assert type(outputs) is list, "outputs is not a list: %r" % outputs
-        assert type(threaded) is bool, "threaded is not a boolean: %r" % threaded
+        assert type(inputs) is list, f"inputs is not a list: {inputs}"
+        assert type(outputs) is list, f"outputs is not a list: {outputs}"
+        assert type(threaded) is bool, f"threaded is not a boolean: {threaded}"
+        assert run_condition is None or type(run_condition) is str, \
+            f"run_condition is not a string or None: {run_condition}"
 
-        logger.info(f'Adding {"threaded " if threaded else ""}'
-                    f'part {part.__class__.__name__}.')
+        class_name = part.__class__.__name__
+        part_name = f'{class_name}.{self.part_counter[class_name]}'
+        logger.info(f'Adding {"threaded " if threaded else ""} part '
+                    f'{part_name}.')
+        self.part_counter[class_name] += 1
         entry = {'part': part, 'inputs': inputs, 'outputs': outputs,
-                 'run_condition': run_condition}
+                 'run_condition': run_condition, 'name': part_name}
 
         if threaded:
             t = Thread(target=part.update, args=())
@@ -160,8 +168,8 @@ class Vehicle:
                 else:
                     # print a message when could not maintain loop rate.
                     if verbose:
-                        logger.info('WARN::Vehicle: jitter violation in vehicle loop '
-                              'with {0:4.0f}ms'.format(abs(1000 * sleep_time)))
+                        logger.warn(f'Jitter violation in vehicle loop with '
+                                    f'{abs(1000 * sleep_time):4.0f}ms')
 
                 if verbose and loop_count % 200 == 0:
                     self.profiler.report()

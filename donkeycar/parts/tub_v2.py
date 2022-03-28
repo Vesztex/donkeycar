@@ -112,11 +112,25 @@ class TubWriter(Creatable):
     """
     def __init__(self, base_path, inputs=[], types=[], metadata=[],
                  max_catalog_len=1000):
+        """
+        :param str base_path:           path of tub
+        :param list(str) inputs:        list of input variable names
+        :param list(str) types:         list of input variable types
+        :param list(tuple) metadata:    metadata as a list of (key,value) pairs
+        :param int max_catalog_len:     length of each catalog file
+        """
         super().__init__(base_path=base_path, inputs=inputs, types=types,
                          metadata=metadata, max_catalog_len=max_catalog_len)
         self.tub = Tub(base_path, inputs, types, metadata, max_catalog_len)
 
     def run(self, *args):
+        """
+        Run method of donkey car interface
+        :param tuple args:  List of data to be written into the tub. The
+                            order and type need to match the inputs / types
+                            parameters given in the constructor
+        :return int:        current (last) index in tub
+        """
         assert len(self.tub.inputs) == len(args), \
             f'Expected {len(self.tub.inputs)} inputs but received {len(args)}'
         record = dict(zip(self.tub.inputs, args))

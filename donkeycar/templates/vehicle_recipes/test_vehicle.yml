@@ -1,18 +1,20 @@
 
 parts:
   - mockcamera:
-      outputs: [cam/image_array]
-      threaded: true
-  - mockcamera:
       outputs: [cam/image_array_2]
+      threaded: true
+  - imagelistcamera:
+      arguments:
+        path_mask: '/home/dirk/car_test/data/images/*.jpg'
+      outputs: [cam/image_array]
       threaded: false
       run_condition: tub/current_index
   - localwebcontroller:
-      inputs: [cam/image_array, tub/current_index]
+      inputs: [cam/image_array, cam/image_array_2, tub/current_index]
       outputs: [user/angle, user/throttle, user/mode, recording]
       threaded: true
   - webfpv:
-      inputs: [cam/image_array, cam/image_array_2]
+      inputs: [cam/image_array]
       threaded: true
   - tubwriter:
       arguments:

@@ -410,7 +410,7 @@ class ImageListCamera(BaseCamera):
     def __init__(self, path_mask='~/mycar/data/**/images/*.jpg'):
         self.image_filenames = glob.glob(os.path.expanduser(path_mask),
                                          recursive=True)
-        super.__init__(path_mask=path_mask)
+        super().__init__(path_mask=path_mask)
 
         def get_image_index(fnm):
             sl = os.path.basename(fnm).split('_')
@@ -442,3 +442,7 @@ class ImageListCamera(BaseCamera):
 
     def shutdown(self):
         pass
+
+    @classmethod
+    def create(cls, cfg, kwargs):
+        return cls(**kwargs)

@@ -42,7 +42,7 @@ class CreatableFactory(type):
         try:
             return cls.register[creatable].run.__doc__
         except AttributeError:
-            logger.warning(f'Part {creatable} has not run method')
+            logger.warning(f'Part {creatable} has no run method')
             return ''
 
     @classmethod
@@ -50,23 +50,24 @@ class CreatableFactory(type):
         try:
             return cls.register[creatable].run_threaded.__doc__
         except AttributeError:
-            logger.warning(f'Part {creatable} has not run_threaded method')
+            logger.warning(f'Part {creatable} has no run_threaded method')
             return ''
 
     @classmethod
     def pretty_print_of_class(cls, creatable):
         s = '-' * 80 + '\n'
+        s += cls.register[creatable].__name__ + '\n'
         s += cls.get_docstring_of_class(creatable) or '' + '\n'
         s += '-' * 80 + '\n'
         s += 'Construction of the class\n'
         s += cls.get_docstring_of_init_class(creatable) or '' + '\n'
         s += '-' * 80 + '\n'
-        s += 'For non threaded parts the run method is described here:' + '\n'
+        s += 'For non threaded parts the run method is described here:\n'
         run = cls.get_docstring_of_run(creatable) or ''
-        s += run or 'non threaded run is not supported' + '\n'
-        s += 'For threaded parts the run method is described here:' + '\n'
+        s += (run or '\t\tNon threaded run is not supported') + '\n\n'
+        s += 'For threaded parts the run_threaded method is described here:\n'
         run_t = cls.get_docstring_of_run_threaded(creatable) or ''
-        s += run_t or 'threaded run is not supported' + '\n'
+        s += (run_t or '\t\tThreaded run is not supported') + '\n'
         return s
 
 

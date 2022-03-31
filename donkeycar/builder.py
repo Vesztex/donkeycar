@@ -51,7 +51,8 @@ class Builder:
         for part in parts:
             for part_name, part_params in part.items():
                 # check if add_only_if is present
-                if part_params.get('add_only_if') is None or True:
+                add_only_if = part_params.get('add_only_if')
+                if add_only_if is None or add_only_if is True:
                     # We are not using .get on part parameters here because the
                     # part might not have it. Rather return an empty dict
                     # because ** needs to work later on this return value
@@ -185,4 +186,4 @@ if __name__ == "__main__":
     b = Builder(cfg, yml)
     v = b.build_vehicle()
     b.plot_vehicle(v)
-    # v.start()
+    #v.start()

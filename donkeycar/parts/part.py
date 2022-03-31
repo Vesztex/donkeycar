@@ -1,4 +1,5 @@
 from donkeycar.config import Config
+from docstring_parser import parse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -57,18 +58,25 @@ class CreatableFactory(type):
     def pretty_print_of_class(cls, creatable):
         s = '-' * 80 + '\n'
         s += cls.register[creatable].__name__ + '\n'
-        s += cls.get_docstring_of_class(creatable) or '' + '\n'
+        s += '-' * 80 + '\n'
+        s += cls.get_description(cls.get_docstring_of_class(creatable)) + '\n'
         s += '-' * 80 + '\n'
         s += 'Construction of the class\n'
-        s += cls.get_docstring_of_init_class(creatable) or '' + '\n'
+        s += cls.get_description(cls.get_docstring_of_init_class(creatable)) \
+             + '\n'
         s += '-' * 80 + '\n'
-        s += 'For non threaded parts the run method is described here:\n'
-        run = cls.get_docstring_of_run(creatable) or ''
-        s += (run or '\t\tNon threaded run is not supported') + '\n\n'
-        s += 'For threaded parts the run_threaded method is described here:\n'
-        run_t = cls.get_docstring_of_run_threaded(creatable) or ''
-        s += (run_t or '\t\tThreaded run is not supported') + '\n'
+        s += 'For non threaded parts the run method is described here:' + '\n'
+        run = cls.get_description(cls.get_docstring_of_run(creatable))
+        s += (run or 'non threaded run is not supported') + '\n\n'
+        s += 'For threaded parts the run method is described here:' + '\n'
+        run_t = cls.get_description(cls.get_docstring_of_run_threaded(creatable))
+        s += (run_t or 'threaded run is not supported') + '\n'
         return s
+
+    @staticmethod
+    def get_description(doc_string):
+        return parse(doc_string).short_description \
+               or parse(doc_string).long_description or ''
 
 
 class Creatable(object, metaclass=CreatableFactory):

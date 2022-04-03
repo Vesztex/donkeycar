@@ -303,8 +303,8 @@ battery charge and processor temperature or similar.
 
 
 ## Updates
-1. Installed hall effect sensor underneath the build plate which now
-   reads the outrunner magnets directly. This increases the resolution
+1. Installed a bipolar latching hall effect sensor underneath the build plate 
+   which now reads the outrunner magnets directly. This increases the resolution
    by a lot. I have now 630 ticks per meter.
    ![odometer](./assets/odometer.jpeg)
 
@@ -320,11 +320,11 @@ battery charge and processor temperature or similar.
    sensor
    [TSOP 4838](https://www.ebay.co.uk/itm/2pcs-IR-Receiver-Module-38-kHz-TSOP4838-DIP-3-UK-SELLER-675/223411429453?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2057872.m2749.l2649).
    The sensor recognises 38kHz pulsed IR lights, which is used in legacy
-   IR remote controls. To read the signal in the car loop I made a
-   donkey part for it. In order to create that pulsed light I designed a
-   timer 555-based light. I will post the circuit at some point later. I
-   put the light at some place on the track and the car recognises each
-   time is passes the sensor. This gives me laps and lap-times that I
+   IR remote controls. To read the signal into the car loop I made a
+   donkey part for it. In order to generate the pulsed light I designed a
+   simple timer 555-based circuit. Placing the light at some place on the 
+   track makes the car record each time the sensor passes by. This gives me 
+   laps counts and lap-times that I
    add to the tub - super useful. ![laptimer1](./assets/laptimer1.jpeg)
    ![laptimer2](./assets/laptimer2.jpeg)
    ![laptimer3](./assets/laptimer3.jpeg) Please note, the IR diode emits
@@ -333,3 +333,23 @@ battery charge and processor temperature or similar.
 
 5. And this is a sneak preview of s/th new... more to come soon.
    ![sneak](./assets/sneak.jpeg).
+
+## More updates
+1. After having experienced occasional missed lap readings from my IR sensor 
+   I swapped out the TSOP_4383 against an TSSP58038. The TSOP_4383 is very 
+   directional and when the car passes the sensor in the wrong angle or for 
+   a too short interval it might not register. This is annoying because it 
+   will spoil the data which is difficult to fix, once recorded with wrong 
+   lap times and lap counts. 
+   The TSSP58038 is very sensitive. In fact, it is very very very sensitive. 
+   Switch on a 38kHz pulsed IR light pointing into any direction from (almost) 
+   any position in the room and the sensor will trigger. In the beginning I 
+   thought this was bad, but in fact, it is good. I buried the sensor with a 
+   3D printed part about 1cm deep, see here:
+   ![laptimer_car_new](./assets/laptimer-car-new.jpeg)
+   Now, the sensor only triggers if it is within a relatively small angle. 
+   But because of the high sensitivity, the distance between the car and the 
+   emitter light can be large, even outside. 10m are no problem. You need to 
+   be more careful now, where to place the emitter. Placing the emitter on the 
+   wrong place on an S-formed shaped track segment will make it trigger 
+   twice :-).

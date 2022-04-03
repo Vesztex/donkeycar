@@ -1,0 +1,10 @@
+---
+site_name: DocGarbanzo Car
+theme: mkdocs
+
+repo_url: https://github.com/DocGarbanzo/donkeycar/
+edit_uri: edit/new_dev/docs
+
+nav:
+  - Home: index.md
+  - Buggy: buggy.md

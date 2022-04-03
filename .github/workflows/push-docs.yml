@@ -23,7 +23,8 @@ jobs:
           channels: defaults, conda-forge
       - run: |
           conda info
-          conda list
           conda install mkdocs
+          pip install mkdocs-material
+          conda list
           mkdocs gh-deploy --force -v
           echo Created docs on github pages

@@ -1,9 +1,19 @@
-# donkeycar: a python self driving library
+# Donkeycar: a python self driving library
 
-[![Build Status](https://travis-ci.org/autorope/donkeycar.svg?branch=dev)](https://travis-ci.org/autorope/donkeycar)
-[![CodeCov](https://codecov.io/gh/autoropoe/donkeycar/branch/dev/graph/badge.svg)](https://codecov.io/gh/autorope/donkeycar/branch/dev)
-[![PyPI version](https://badge.fury.io/py/donkeycar.svg)](https://badge.fury.io/py/donkeycar)
-[![Py versions](https://img.shields.io/pypi/pyversions/donkeycar.svg)](https://img.shields.io/pypi/pyversions/donkeycar.svg)
+
+![Build Status](https://github.com/autorope/donkeycar/actions/workflows/python-package-conda.yml/badge.svg?branch=main)
+![Lint Status](https://github.com/autorope/donkeycar/actions/workflows/superlinter.yml/badge.svg?branch=main)
+![Release](https://img.shields.io/github/v/release/autorope/donkeycar)
+
+
+[![All Contributors](https://img.shields.io/github/contributors/autorope/donkeycar)](#contributors-)
+![Issues](https://img.shields.io/github/issues/autorope/donkeycar)
+![Pull Requests](https://img.shields.io/github/issues-pr/autorope/donkeycar?)
+![Forks](https://img.shields.io/github/forks/autorope/donkeycar)
+![Stars](https://img.shields.io/github/stars/autorope/donkeycar)
+![License](https://img.shields.io/github/license/autorope/donkeycar)
+
+![Discord](https://img.shields.io/discord/662098530411741184.svg?logo=discord&colorB=7289DA)
 
 Donkeycar is minimalist and modular self driving library for Python. It is
 developed for hobbyists and students with a focus on allowing fast experimentation and easy
@@ -21,7 +31,7 @@ community contributions.
 * Compete in self driving races like [DIY Robocars](http://diyrobocars.com)
 * Experiment with autopilots, mapping computer vision and neural networks.
 * Log sensor data. (images, user inputs, sensor readings)
-* Drive your car via a web or game controller.
+* Drive your car via a web or game controller or RC controller.
 * Leverage community contributed driving data.
 * Use existing CAD models for design upgrades.
 

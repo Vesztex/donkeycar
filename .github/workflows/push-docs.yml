@@ -6,6 +6,8 @@ on:
       - new_dev
     paths:
       - docs/**
+      - .github/workflows/push-docs.yml
+      - mkdocs.yml
 
 jobs:
   mkdocs-build-and-push:

@@ -353,3 +353,17 @@ battery charge and processor temperature or similar.
    be more careful now, where to place the emitter. Placing the emitter on the 
    wrong place on an S-formed shaped track segment will make it trigger 
    twice :-).
+2. The laptimer mishaps above motivated me to also add an LED to the car. 
+   The LED is of common cathode type and its three anodes are connected to 
+   three channels on the PCA9685. Because the PCA9685 board has an integrated 
+   resistor in series to the pwm output pin, you can connect LEDs to these 
+   pins directly without the need of adding a resistor for the required 
+   voltage drop.  
+   ![rgb_led](./assets/rgb_led.jpeg)
+   I created a part for the LED - check out the code if you are interested, it 
+   is using thread queues in order to achieve blinking behaviour that is 
+   independent of the vehicle loop. Like sending a set of three red flashes 
+   when the lap timer has been triggered or a violet flash when deleting 
+   records from the tub, etc. The thread queue handles the management of 
+   these display request, because there could be a couple of them within a 
+   short time.

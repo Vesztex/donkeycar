@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - new_dev
+    paths:
+      - docs/**
 
 jobs:
   mkdocs-build-and-push:

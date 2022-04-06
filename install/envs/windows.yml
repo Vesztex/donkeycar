@@ -37,6 +37,7 @@ dependencies:
   - pyyaml
   - psutil
   - fastai
+  - docstring_parser
   - pip:
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid

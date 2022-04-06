@@ -38,6 +38,7 @@ dependencies:
   - pyyaml
   - tensorflow=2.2.0
   - fastai
+  - docstring_parser
   - pip:
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid

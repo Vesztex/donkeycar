@@ -57,7 +57,8 @@ class KerasPilot(ABC, Creatable, metaclass=KerasMeta):
     def __init__(self,
                  interpreter: Interpreter = KerasInterpreter(),
                  input_shape: Tuple[int, ...] = (120, 160, 3)) -> None:
-        Creatable.__init__(interpreter=Interpreter, input_shape=input_shape)
+        Creatable.__init__(self, interpreter=Interpreter,
+                           input_shape=input_shape)
         self.input_shape = input_shape
         self.optimizer = "adam"
         self.interpreter = interpreter

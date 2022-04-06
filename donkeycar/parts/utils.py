@@ -40,3 +40,23 @@ class Dispatcher(Creatable):
         assert len(args) == self.num_args, \
             f"Expected {self.num_args} arguments, but got {len(args)}"
         return args[index]
+
+
+class Checker(Creatable):
+    """
+    This part is a generic variable checker that checks if an input variable
+    at runtime matches the value of the value given in the constructor or at
+    least one entry if a list is given to the constructor.
+    """
+    def __init__(self, must_match=None):
+        super().__init__(must_match=must_match)
+        self.must_match = must_match
+
+    def run(self, input):
+        """
+        :param Any input:   An input value
+        :return bool:       True if the value equals the saved value or is in
+                            the iterable of the saved values
+        """
+        return input in self.must_match if type(self.must_match) is list \
+            else input == self.must_match

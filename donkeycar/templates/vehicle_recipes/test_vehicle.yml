@@ -5,7 +5,7 @@ parts:
       threaded: true
   - imagelistcamera:
       arguments:
-        path_mask: '/home/dirk/car_test/data/images/*.jpg'
+        path_mask: "/home/dirk/car_test/data/images/*.jpg"
       outputs: [cam/image_array]
       threaded: false
       add_only_if: false
@@ -16,6 +16,15 @@ parts:
   - webfpv:
       inputs: [cam/image_array]
       threaded: true
+  - checker:
+      arguments:
+        must_match: pilot
+      inputs: [user/mode]
+      outputs: [run_pilot]
+  - keraslinear:
+      inputs: [cam/image_array]
+      outputs: [pilot/angle, pilot/throttle]
+      run_condition: run_pilot
   - tubwriter:
       arguments:
         inputs: [cam/image_array, user/angle, user/throttle, user/mode]

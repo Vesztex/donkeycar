@@ -37,6 +37,7 @@ dependencies:
   - pyyaml
   - psutil
   - fastai
+  - docstring_parser
   - pynmea2
   - pyserial
   - utm

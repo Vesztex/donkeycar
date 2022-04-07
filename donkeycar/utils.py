@@ -479,6 +479,7 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> Union['KerasPilot', 'Fa
         interpreter = TensorRT()
         used_model_type = model_type.replace('tensorrt_', '')
     elif 'fastai_' in model_type:
+        from donkeycar.parts.fastai import FastAILinear
         interpreter = FastAIInterpreter()
         used_model_type = model_type.replace('fastai_', '')
         if used_model_type == "linear":

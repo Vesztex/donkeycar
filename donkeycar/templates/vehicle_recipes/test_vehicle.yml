@@ -21,7 +21,9 @@ parts:
         must_match: pilot
       inputs: [user/mode]
       outputs: [run_pilot]
-  - keraslinear:
+  - keraspilot:
+      arguments:
+        modeltype: linear
       inputs: [cam/image_array]
       outputs: [pilot/angle, pilot/throttle]
       run_condition: run_pilot

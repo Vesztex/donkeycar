@@ -65,6 +65,11 @@ class KerasPilot(ABC, Creatable, metaclass=KerasMeta):
         self.interpreter.set_model(self)
         logger.info(f'Created {self} with interpreter: {interpreter}')
 
+    @classmethod
+    def create(cls, cfg, kwargs):
+        from donkeycar.utils import get_model_by_type
+        return get_model_by_type(kwargs['modeltype'], cfg)
+
     def load(self, model_path: str) -> None:
         logger.info(f'Loading model {model_path}')
         self.interpreter.load(model_path)

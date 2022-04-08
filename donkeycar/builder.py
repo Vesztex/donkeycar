@@ -109,8 +109,6 @@ class Builder:
         reversed_parts = list(reversed(car_parts))
         # connect all parts' outputs to inputs from top to bottom
         self.traverse_parts(car_parts, g, variable_tracker, True)
-        # reverse order and connect from bottom to top
-        self.traverse_parts(reversed_parts, g, variable_tracker, False)
         # connected nodes now have all been removed, add the unconnected
         for var_data in variable_tracker:
             name, io, var = var_data
@@ -122,7 +120,6 @@ class Builder:
             # output goes nowhere
             elif io == 'o':
                 g.edge(name, 'Not used', var, color='red')
-            print(var_data)
         g.view()
 
     @staticmethod
@@ -145,36 +142,74 @@ class Builder:
         :return: None
         """
 
-        color = 'blue' if top_down else 'green'
-        constraint = str(top_down)
-        car_parts_copy = copy(car_parts)
+        car_parts_copy_lower = copy(car_parts)
+        car_parts_copy_upper = []
         for part_dict in car_parts:
-            outputs_upper = part_dict.get('outputs', [])
-            upper_part_name = part_dict['name']
+            outputs = part_dict.get('outputs', [])
+            part_name = part_dict['name']
             # copy contains all parts that come after the current part
-            car_parts_copy.pop(0)
-            for output_upper in outputs_upper:
+            car_parts_copy_upper.append(car_parts_copy_lower.pop(0))
+            for output in outputs:
+                # track if output gets overwritten in lower part, which will
+                # invalidate its flow further down
                 # here we cycle through all later parts
-                for part_dict_lower in car_parts_copy:
+                color = 'blue'
+                constraint = str(True)
+                for part_dict_lower in car_parts_copy_lower:
                     inputs_lower = part_dict_lower.get('inputs', [])
                     lower_part_name = part_dict_lower['name']
-                    if output_upper in inputs_lower:
-                        g.edge(upper_part_name, lower_part_name,
-                               label=output_upper, color=color,
+                    if output in inputs_lower:
+                        g.edge(part_name, lower_part_name,
+                               label=output, color=color,
                                constraint=constraint)
                         # remove found entries from all nodes
-                        var_data.discard((upper_part_name, 'o', output_upper))
-                        var_data.discard((lower_part_name, 'i', output_upper))
+                        var_data.discard((part_name, 'o', output))
+                        var_data.discard((lower_part_name, 'i', output))
 
                     run_condition_lower = part_dict_lower.get('run_condition')
                     # if output is a run condition draw different edge
-                    if run_condition_lower == output_upper:
-                        g.edge(upper_part_name, lower_part_name,
-                               label=output_upper, style='dotted',
+                    if run_condition_lower == output:
+                        g.edge(part_name, lower_part_name,
+                               label=output, style='dotted',
                                color=color,
                                constraint=constraint)
-                        var_data.discard((upper_part_name, 'o', output_upper))
-                        var_data.discard((lower_part_name, 'r', output_upper))
+                        var_data.discard((part_name, 'o', output))
+                        var_data.discard((lower_part_name, 'r', output))
+                    outputs_lower = part_dict_lower.get('outputs', [])
+                    # if a lower part overwrites the upper part's output,
+                    # then the upper part's output won't flow anywhere deeper
+                    # and the loop over lower parts stops for that upper output
+                    if output in outputs_lower:
+                        break
+
+                color = 'green'
+                constraint = str(False)
+                for part_dict_upper in car_parts_copy_upper:
+                    inputs_upper = part_dict_upper.get('inputs', [])
+                    upper_part_name = part_dict_upper['name']
+                    if output in inputs_upper:
+                        g.edge(part_name, upper_part_name,
+                               label=output, color=color,
+                               constraint=constraint)
+                        # remove found entries from all nodes
+                        var_data.discard((part_name, 'o', output))
+                        var_data.discard((upper_part_name, 'i', output))
+
+                    run_condition_upper = part_dict_upper.get('run_condition')
+                    # if output is a run condition draw different edge
+                    if run_condition_upper == output:
+                        g.edge(part_name, upper_part_name,
+                               label=output, style='dotted',
+                               color=color,
+                               constraint=constraint)
+                        var_data.discard((part_name, 'o', output))
+                        var_data.discard((upper_part_name, 'r', output))
+                    outputs_upper = part_dict_upper.get('outputs', [])
+                    # if a lower part overwrites the upper part's output,
+                    # then the upper part's output won't flow anywhere deeper
+                    # and the loop over lower parts stops for that upper output
+                    if output in outputs_upper:
+                        break
 
 
 if __name__ == "__main__":

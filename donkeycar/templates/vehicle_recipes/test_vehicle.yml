@@ -3,6 +3,7 @@ parts:
   - cvcam:
       outputs: [cam/image_array]
       threaded: true
+      run_condition: run_pilot
   - imagelistcamera:
       arguments:
         path_mask: "/home/dirk/car_test/data/images/*.jpg"

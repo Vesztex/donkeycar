@@ -106,13 +106,12 @@ class Builder:
             if run_condition:
                 variable_tracker.add((name, 'r', run_condition))
 
-        reversed_parts = list(reversed(car_parts))
         # connect all parts' outputs to inputs from top to bottom
-        self.traverse_parts(car_parts, g, variable_tracker, True)
+        self.traverse_parts(car_parts, g, variable_tracker)
         # connected nodes now have all been removed, add the unconnected
         for var_data in variable_tracker:
             name, io, var = var_data
-            # no input defined for input or run_condition
+            # no variable defined for input or run_condition
             if io == 'i':
                 g.edge('Non defined', name, var, color='red')
             elif io == 'r':
@@ -123,7 +122,7 @@ class Builder:
         g.view()
 
     @staticmethod
-    def traverse_parts(car_parts, g, var_data, top_down=True):
+    def traverse_parts(car_parts, g, var_data):
         """
         Method to traverse the parts list and edges to the nodes from outputs of
         higher parts to inputs and run_condition of lower parts. Output ->
@@ -134,11 +133,9 @@ class Builder:
         are removed. Hence if the set contains all points it will contain
         only non-joined points after return.
 
-
         :param list car_parts:      list of parts as taken from the vehicle
         :param graphviz.Digraph g:  dot graph to be updated
         :param set var_data:        set of all variable data that gets updated
-        :param bool top_down:       if top down graph or bottom up
         :return: None
         """
 
@@ -150,66 +147,51 @@ class Builder:
             # copy contains all parts that come after the current part
             car_parts_copy_upper.append(car_parts_copy_lower.pop(0))
             for output in outputs:
-                # track if output gets overwritten in lower part, which will
-                # invalidate its flow further down
-                # here we cycle through all later parts
-                color = 'blue'
-                constraint = str(True)
-                for part_dict_lower in car_parts_copy_lower:
-                    inputs_lower = part_dict_lower.get('inputs', [])
-                    lower_part_name = part_dict_lower['name']
-                    if output in inputs_lower:
-                        g.edge(part_name, lower_part_name,
-                               label=output, color=color,
-                               constraint=constraint)
-                        # remove found entries from all nodes
-                        var_data.discard((part_name, 'o', output))
-                        var_data.discard((lower_part_name, 'i', output))
+                # parts in the same car loop that run afterwards
+                Builder.create_edges(car_parts_copy_lower, 'blue', True, g,
+                                     output, part_name, var_data)
+                # parts in the next car loop
+                Builder.create_edges(car_parts_copy_upper, 'green', False, g,
+                                     output, part_name, var_data)
 
-                    run_condition_lower = part_dict_lower.get('run_condition')
-                    # if output is a run condition draw different edge
-                    if run_condition_lower == output:
-                        g.edge(part_name, lower_part_name,
-                               label=output, style='dotted',
-                               color=color,
-                               constraint=constraint)
-                        var_data.discard((part_name, 'o', output))
-                        var_data.discard((lower_part_name, 'r', output))
-                    outputs_lower = part_dict_lower.get('outputs', [])
-                    # if a lower part overwrites the upper part's output,
-                    # then the upper part's output won't flow anywhere deeper
-                    # and the loop over lower parts stops for that upper output
-                    if output in outputs_lower:
-                        break
-
-                color = 'green'
-                constraint = str(False)
-                for part_dict_upper in car_parts_copy_upper:
-                    inputs_upper = part_dict_upper.get('inputs', [])
-                    upper_part_name = part_dict_upper['name']
-                    if output in inputs_upper:
-                        g.edge(part_name, upper_part_name,
-                               label=output, color=color,
-                               constraint=constraint)
-                        # remove found entries from all nodes
-                        var_data.discard((part_name, 'o', output))
-                        var_data.discard((upper_part_name, 'i', output))
-
-                    run_condition_upper = part_dict_upper.get('run_condition')
-                    # if output is a run condition draw different edge
-                    if run_condition_upper == output:
-                        g.edge(part_name, upper_part_name,
-                               label=output, style='dotted',
-                               color=color,
-                               constraint=constraint)
-                        var_data.discard((part_name, 'o', output))
-                        var_data.discard((upper_part_name, 'r', output))
-                    outputs_upper = part_dict_upper.get('outputs', [])
-                    # if a lower part overwrites the upper part's output,
-                    # then the upper part's output won't flow anywhere deeper
-                    # and the loop over lower parts stops for that upper output
-                    if output in outputs_upper:
-                        break
+    @staticmethod
+    def create_edges(car_parts, color, constraint, g, output,
+                     part_name, var_data):
+        """
+        Method to draw the edges of the graph
+        :param list car_parts:      car parts list to be connected
+        :param str color:           color of edges
+        :param bool constraint:     if graph should be strictly order top-down
+        :param g graphviz.Digraphg: graph to be used
+        :param str output:          name of output variable to be connected
+        :param str part_name:       vertex (i.e. part) name where output
+                                    variable resides
+        :param set var_data:        recorded set of all parts, inputs, outputs,
+                                    run_conditions which will be updated here
+        :return:                    None
+        """
+        for part_dict in car_parts:
+            inputs = part_dict.get('inputs', [])
+            outputs = part_dict.get('outputs', [])
+            run_condition = part_dict.get('run_condition')
+            this_part_name = part_dict['name']
+            if output in inputs:
+                g.edge(part_name, this_part_name, label=output, color=color,
+                       constraint=str(constraint))
+                # remove found entries from tracker
+                var_data.discard((part_name, 'o', output))
+                var_data.discard((this_part_name, 'i', output))
+            # if output is a run condition draw different edge
+            if run_condition == output:
+                g.edge(part_name, this_part_name, label=output, style='dotted',
+                       color=color, constraint=str(constraint))
+                var_data.discard((part_name, 'o', output))
+                var_data.discard((this_part_name, 'r', output))
+            # if a lower part overwrites the higher part's output,
+            # then the higher part's output won't flow anywhere deeper
+            # and the loop over lower parts stops for that higher output
+            if output in outputs:
+                break
 
 
 if __name__ == "__main__":

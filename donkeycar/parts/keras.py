@@ -57,7 +57,7 @@ class KerasPilot(ABC, Creatable, metaclass=KerasMeta):
     def __init__(self,
                  interpreter: Interpreter = KerasInterpreter(),
                  input_shape: Tuple[int, ...] = (120, 160, 3)) -> None:
-        Creatable.__init__(self, interpreter=Interpreter,
+        Creatable.__init__(self, interpreter=interpreter,
                            input_shape=input_shape)
         self.input_shape = input_shape
         self.optimizer = "adam"
@@ -68,7 +68,7 @@ class KerasPilot(ABC, Creatable, metaclass=KerasMeta):
     @classmethod
     def create(cls, cfg, kwargs):
         from donkeycar.utils import get_model_by_type
-        return get_model_by_type(kwargs['modeltype'], cfg)
+        return get_model_by_type(kwargs['model_type'], cfg)
 
     def load(self, model_path: str) -> None:
         logger.info(f'Loading model {model_path}')

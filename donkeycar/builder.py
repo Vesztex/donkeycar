@@ -89,7 +89,7 @@ class Builder:
             name = part_dict['name']
             label = name
             for k, v in part_dict['part'].kwargs.items():
-                label += f'\n{k}: {str(v)}'
+                label += f'\n{k}: {v}'
             label += f'\nThreaded: {"thread" in part_dict}'
             g.node(name, label=label)
 

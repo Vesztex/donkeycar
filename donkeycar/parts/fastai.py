@@ -36,6 +36,7 @@ XY = Union[float, np.ndarray, Tuple[Union[float, np.ndarray], ...]]
 
 logger = getLogger(__name__)
 
+
 class FastAiPilot(ABC):
     """
     Base class for Fast AI models that will provide steering and throttle to

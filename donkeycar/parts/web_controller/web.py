@@ -208,12 +208,10 @@ class LocalWebController(Application, Creatable):
         self.loop.stop()
 
     @classmethod
-    def create(cls, cfg, kwargs):
-        if 'port' not in kwargs:
-            kwargs.update(port=cfg.WEB_CONTROL_PORT)
-        if 'mode' not in kwargs:
-            kwargs.update(mode=cfg.WEB_INIT_MODE)
-        return LocalWebController(**kwargs)
+    def create(cls, cfg, port=None, mode=None):
+        port = port or cfg.WEB_CONTROL_PORT
+        mode = mode or cfg.WEB_INIT_MODE
+        return LocalWebController(port=port, mode=mode)
 
 
 class DriveAPI(RequestHandler):
@@ -405,9 +403,8 @@ class WebFpv(Application, Creatable):
         self.loop.stop()
 
     @classmethod
-    def create(cls, cfg, kwargs):
-        if 'port' not in kwargs:
-            kwargs.update(port=cfg.WEB_FPV_PORT)
-        return cls(**kwargs)
+    def create(cls, cfg, port=None):
+        port = port or cfg.WEB_FPV_PORT
+        return cls(port=port)
 
 

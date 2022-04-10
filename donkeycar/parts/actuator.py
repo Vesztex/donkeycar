@@ -258,7 +258,7 @@ class PWMSteering(Creatable):
         self.running = False
 
     @classmethod
-    def create(cls, cfg, kwargs):
+    def create(cls, cfg, **kwargs):
         dt = cfg.PWM_STEERING_THROTTLE
         pwm_pin = output_pin_by_id(dt["PWM_STEERING_PIN"])
         controller = PulseController(pwm_pin=pwm_pin,
@@ -324,7 +324,7 @@ class PWMThrottle(Creatable):
         self.running = False
 
     @classmethod
-    def create(cls, cfg, kwargs):
+    def create(cls, cfg, **kwargs):
         dt = cfg.PWM_STEERING_THROTTLE
         pwm_pin = output_pin_by_id(dt["PWM_THROTTLE_PIN"])
         controller = PulseController(pwm_pin=pwm_pin,

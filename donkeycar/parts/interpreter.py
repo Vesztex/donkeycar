@@ -171,13 +171,12 @@ class KerasInterpreter(Interpreter):
     def summary(self) -> str:
         return self.model.summary()
 
+
 class FastAIInterpreter(Interpreter):
 
     def __init__(self):
         super().__init__()
-        self.model: None
-        from fastai import learner as fastai_learner
-        from fastai import optimizer as fastai_optimizer
+        self.model = None
 
     def set_model(self, pilot: 'FastAiPilot') -> None:
         self.model = pilot.create_model()
@@ -227,6 +226,7 @@ class FastAIInterpreter(Interpreter):
 
     def summary(self) -> str:
         return self.model
+
 
 class TfLite(Interpreter):
     """

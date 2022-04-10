@@ -428,7 +428,8 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-def get_model_by_type(model_type: str, cfg: 'Config') -> Union['KerasPilot', 'FastAiPilot']:
+def get_model_by_type(model_type: str, cfg: 'Config') \
+        -> Union['KerasPilot', 'FastAiPilot']:
     '''
     given the string model_type and the configuration settings in cfg
     create a Keras model and return it.
@@ -436,12 +437,14 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> Union['KerasPilot', 'Fa
     from donkeycar.parts.keras import KerasCategorical, KerasLinear, \
         KerasInferred, KerasIMU, KerasMemory, KerasBehavioral, KerasLocalizer, \
         KerasLSTM, Keras3D_CNN
-    from donkeycar.parts.interpreter import KerasInterpreter, TfLite, TensorRT, \
+    from donkeycar.parts.interpreter import KerasInterpreter, TfLite, TensorRT,\
         FastAIInterpreter
 
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE
-    logger.info(f'get_model_by_type: model type is: {model_type}')
+        logger.warning(f'No model type given, defaulting to {model_type}')
+    else:
+        logger.info(f'get_model_by_type: model type is: {model_type}')
     input_shape = (cfg.IMAGE_H, cfg.IMAGE_W, cfg.IMAGE_DEPTH)
     if 'tflite_' in model_type:
         interpreter = TfLite()

@@ -201,7 +201,7 @@ class CvCam(Creatable):
         self.cap.release()
 
     @classmethod
-    def create(cls, cfg, kwargs):
+    def create(cls, cfg, **kwargs):
         return cls(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
                    image_d=cfg.IMAGE_DEPTH, **kwargs)
 

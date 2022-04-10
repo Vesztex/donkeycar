@@ -21,7 +21,7 @@ class BaseCamera(Creatable):
         return self.frame
 
     @classmethod
-    def create(cls, cfg, kwargs):
+    def create(cls, cfg, **kwargs):
         return cls(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
                    image_d=cfg.IMAGE_DEPTH, **kwargs)
 
@@ -444,5 +444,5 @@ class ImageListCamera(BaseCamera):
         pass
 
     @classmethod
-    def create(cls, cfg, kwargs):
+    def create(cls, cfg, **kwargs):
         return cls(**kwargs)

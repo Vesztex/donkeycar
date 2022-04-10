@@ -1,6 +1,8 @@
 from donkeycar.config import Config
 from docstring_parser import parse
+import inspect
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +12,7 @@ class CreatableFactory(type):
     Metaclass to hold the registration dictionary of the part creation function
     """
     registry = {}
+    arg_registry = {}
 
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
@@ -17,10 +20,14 @@ class CreatableFactory(type):
         # don't register base class constructor
         if l_name != 'creatable':
             cls.registry[l_name] = cls
+            all_params_types = inspect.signature(cls.create).parameters
+            all_params = [apt for apt in all_params_types
+                          if apt not in ('cfg', 'kwargs')]
+            cls.arg_registry[l_name] = all_params
 
     @classmethod
     def make(mcs, concrete, cfg, kwargs):
-        return mcs.registry[concrete.lower()].create(cfg, kwargs)
+        return mcs.registry[concrete.lower()].create(cfg, **kwargs)
 
     @classmethod
     def get_all_classes(cls):
@@ -85,7 +92,7 @@ class Creatable(object, metaclass=CreatableFactory):
     constructor without any config
     """
     @classmethod
-    def create(cls, cfg, kwargs):
+    def create(cls, cfg, **kwargs):
         return cls(**kwargs)
 
     def __init__(self, **kwargs):

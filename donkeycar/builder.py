@@ -1,3 +1,4 @@
+
 from copy import copy
 
 import yaml
@@ -38,8 +39,18 @@ class Builder:
                 if type(v) is str and v[:4].lower() == 'cfg.':
                     arguments[k] = getattr(self.cfg, v[4:])
 
-    def build_vehicle(self):
-        """ This function creates the car from the yaml file"""
+    def build_vehicle(self, kwargs):
+        """ This function creates the car from the yaml file
+        :param dict kwargs:     keyword arguments which are resolved through
+                                `kwargs.param` in the yaml file.
+        """
+        def extract(kwargs, part_name):
+            d = dict()
+            for k, v in kwargs.items():
+                if k.startswith(f'{part_name}.') and v is not None:
+                    d[k.replace(f'{part_name}.', '')] = v
+            return d
+
         with open(self.car_file) as f:
             try:
                 car_description = yaml.safe_load(f)
@@ -57,14 +68,18 @@ class Builder:
                     # part might not have it. Rather return an empty dict
                     # because ** needs to work later on this return value
                     part_args = part_params.get('arguments', {})
-                    # updated part parameters with config values
+                    # update part parameters with config values
                     self.insert_config(part_args)
+                    # update part parameters with kwargs
+                    extract_kwargs = extract(kwargs, part_name)
+                    part_args.update(extract_kwargs)
+                    # create part
                     part = CreatableFactory.make(part_name, self.cfg, part_args)
+                    # adding part to vehicle
                     inputs = part_params.get('inputs', [])
                     outputs = part_params.get('outputs', [])
                     threaded = part_params.get('threaded', False)
                     run_condition = part_params.get('run_condition')
-                    # adding part to vehicle
                     car.add(part, inputs=inputs, outputs=outputs,
                             threaded=threaded, run_condition=run_condition)
 
@@ -194,13 +209,25 @@ class Builder:
                 break
 
 
-if __name__ == "__main__":
-    import donkeycar as dk
+def main(args):
     import os
+    import argparse
+    import donkeycar as dk
+    parser = argparse.ArgumentParser(prog=__name__)
+    for part_name, part_arg_list in CreatableFactory.arg_registry.items():
+        for arg_name in part_arg_list:
+            parser.add_argument(f'--{part_name}.{arg_name}')
+    kwargs = vars(parser.parse_args(args))
     yml = os.path.join(os.path.dirname(dk.__file__), 'templates',
                        'vehicle_recipes', 'test_vehicle.yml')
     cfg = donkeycar.load_config(os.path.join(os.getcwd(), 'config.py'))
     b = Builder(cfg, yml)
-    v = b.build_vehicle()
+    v = b.build_vehicle(kwargs)
     b.plot_vehicle(v)
     #v.start()
+
+
+if __name__ == "__main__":
+    import sys
+    args = sys.argv[1:]
+    main(args)

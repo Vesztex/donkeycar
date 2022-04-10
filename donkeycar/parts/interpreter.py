@@ -175,9 +175,7 @@ class FastAIInterpreter(Interpreter):
 
     def __init__(self):
         super().__init__()
-        self.model: None
-        from fastai import learner as fastai_learner
-        from fastai import optimizer as fastai_optimizer
+        self.model = None
 
     def set_model(self, pilot: 'FastAiPilot') -> None:
         self.model = pilot.create_model()

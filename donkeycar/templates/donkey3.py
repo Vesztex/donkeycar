@@ -18,6 +18,8 @@ Options:
     --my_cfg=myconfig.py    overwrite config file name [default: myconfig.py]
 """
 
+# see if this comments disappers when updating the tag
+
 from docopt import docopt
 import logging
 import socket

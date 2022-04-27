@@ -566,25 +566,31 @@ class PwmPinGpio(PwmPin):
 # ----- PCA9685 implementations -----
 #
 class PCA9685:
-    '''
+    """
     Pin controller using PCA9685 boards.
     This is used for most RC Cars.  This
     driver can output ttl HIGH or LOW or
     produce a duty cycle at the given frequency.
-    '''
+    """
     def __init__(self, busnum: int, address: int, frequency: int):
+        try:
+            import Adafruit_PCA9685
+            if busnum is not None:
+                from Adafruit_GPIO import I2C
 
-        import Adafruit_PCA9685
-        if busnum is not None:
-            from Adafruit_GPIO import I2C
+                # monkey-patch I2C driver to use our bus number
+                def get_bus():
+                    return busnum
 
-            # monkey-patch I2C driver to use our bus number
-            def get_bus():
-                return busnum
+                I2C.get_default_bus = get_bus
+            self.pwm = Adafruit_PCA9685.PCA9685(address=address)
+            self.pwm.set_pwm_freq(frequency)
+        except ImportError as e:
+            logger.error("PCA9685 part could not be instantiated as the "
+                         "Adafruit python pacakge is not installed. You can "
+                         "only use this instance for checking the car app but "
+                         "not for running it.")
 
-            I2C.get_default_bus = get_bus
-        self.pwm = Adafruit_PCA9685.PCA9685(address=address)
-        self.pwm.set_pwm_freq(frequency)
         self._frequency = frequency
 
     def get_frequency(self):

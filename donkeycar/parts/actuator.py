@@ -282,6 +282,12 @@ class PWMSteering(Creatable):
     RIGHT_ANGLE = 1
 
     def __init__(self, controller, left_pulse, right_pulse):
+        super().__init__(controller=controller,
+                         controller_pwm_pin=controller.pwm_pin,
+                         controller_scale=controller.scale,
+                         controller_inverted=controller.inverted,
+                         left_pulse=left_pulse,
+                         right_pulse=right_pulse)
 
         if controller is None:
             raise ValueError("PWMSteering requires a set_pulse controller to be passed")

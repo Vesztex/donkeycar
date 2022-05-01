@@ -40,9 +40,19 @@ class Builder:
                     arguments[k] = getattr(self.cfg, v[4:])
 
     def build_vehicle(self, kwargs):
-        """ This function creates the car from the yaml file
-        :param dict kwargs:     keyword arguments which are resolved through
-                                `kwargs.param` in the yaml file.
+        """
+        This function creates the car from the yaml file. Allows overwriting of
+        of constructor parameters in the yaml through kwargs dictionary.
+        For example, the yaml entry:
+          - keraspilot:
+                arguments:
+                    model_type: linear
+        can be alternatively passed or overwritten by passing
+        {'keraspilot': 'linear'} in the kwargs argument.
+
+        :param dict kwargs:     keyword arguments which will extend or
+                                overwrite parameters in the yaml file
+        :return Vehicle:        the assembled Vehicle
         """
         def extract(kwargs, part_name):
             d = dict()
@@ -85,7 +95,7 @@ class Builder:
 
         return car
 
-    def plot_vehicle(self, car):
+    def plot_vehicle(self, car, filename, save=False):
         """
         Function to provide a graphviz (dot) plot of the vehicle
         architecture. This is meant to be an auxiliary helper to control the
@@ -94,8 +104,9 @@ class Builder:
         free-form text strings.
 
         :param Vehicle car: input car to be plotted
+        :param bool save:   if plot should be saved
         """
-        g = graphviz.Digraph('Vehicle', filename='vehicle.py')
+        g = graphviz.Digraph('Vehicle', filename=filename)
         g.attr('node', shape='box', ordering='out')
         car_parts = car.parts
 
@@ -134,7 +145,8 @@ class Builder:
             # output goes nowhere
             elif io == 'o':
                 g.edge(name, 'Not used', var, color='red')
-        g.view()
+
+        g.render(view=True, cleanup=True)
 
     @staticmethod
     def traverse_parts(car_parts, g, var_data):
@@ -223,7 +235,7 @@ def main(args):
     cfg = donkeycar.load_config(os.path.join(os.getcwd(), 'config.py'))
     b = Builder(cfg, yml)
     v = b.build_vehicle(kwargs)
-    b.plot_vehicle(v)
+    b.plot_vehicle(v, 'app')
     #v.start()
 
 

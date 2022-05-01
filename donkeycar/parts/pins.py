@@ -155,8 +155,10 @@ class OutputPin(ABC):
 
 class PwmPin(ABC):
 
-    def __init__(self) -> None:
+    def __init__(self, pin_number: int, frequency: int) -> None:
         super().__init__()
+        self.pin_number = pin_number
+        self.frequency = frequency
 
     @abstractmethod
     def start(self, duty: float = 0) -> None:
@@ -528,9 +530,8 @@ class PwmPinGpio(PwmPin):
     """
     def __init__(self, pin_number: int, pin_scheme: str,
                  frequency_hz: float = 50) -> None:
-        self.pin_number = pin_number
+        super().__init__(pin_number, int(frequency_hz))
         self.pin_scheme = gpio_pin_scheme[pin_scheme]
-        self.frequency = int(frequency_hz)
         self.pwm = None
         self._state = PinState.NOT_STARTED
 
@@ -587,7 +588,7 @@ class PCA9685:
             self.pwm.set_pwm_freq(frequency)
         except ImportError as e:
             logger.error("PCA9685 part could not be instantiated as the "
-                         "Adafruit python pacakge is not installed. You can "
+                         "Adafruit python package is not installed. You can "
                          "only use this instance for checking the car app but "
                          "not for running it.")
 
@@ -710,7 +711,7 @@ class PwmPinPCA9685(PwmPin):
     PWM output pin using PCA9685
     """
     def __init__(self, pin_number: int, pca9685: PCA9685) -> None:
-        self.pin_number = pin_number
+        super().__init__(pin_number, pca9685.get_frequency())
         self.pca9685 = pca9685
         self._state = PinState.NOT_STARTED
 
@@ -888,9 +889,8 @@ class PwmPinPigpio(PwmPin):
     PWM output pin using Rpi.GPIO/Jetson.GPIO
     """
     def __init__(self, pin_number: int, frequency_hz: float = 50, pgpio=None) -> None:
+        super().__init__(pin_number, int(frequency_hz))
         self.pgpio = pgpio
-        self.pin_number: int = pin_number
-        self.frequency: int = int(frequency_hz)
         self._state: int = PinState.NOT_STARTED
 
     def start(self, duty: float = 0) -> None:

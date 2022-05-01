@@ -10,7 +10,8 @@ from typing import Tuple
 
 import donkeycar as dk
 from donkeycar.parts.part import Creatable, CreatableFactory
-from donkeycar.parts.pins import OutputPin, PwmPin, PinState, output_pin_by_id
+from donkeycar.parts.pins import OutputPin, PwmPin, PinState, output_pin_by_id, \
+    pwm_pin_by_id
 from donkeycar.utilities.deprecated import deprecated
 
 logger = logging.getLogger(__name__)
@@ -222,8 +223,8 @@ class PWMSteering(Creatable):
     RIGHT_ANGLE = 1
 
     def __init__(self, controller, left_pulse, right_pulse):
-        super().__init__(controller=controller,
-                         controller_pwm_pin=controller.pwm_pin,
+        super().__init__(pwm_pin_frequency=controller.pwm_pin.frequency,
+                         pwm_pin_number=controller.pwm_pin.pin_number,
                          controller_scale=controller.scale,
                          controller_inverted=controller.inverted,
                          left_pulse=left_pulse,
@@ -266,7 +267,7 @@ class PWMSteering(Creatable):
     @classmethod
     def create(cls, cfg, **kwargs):
         dt = cfg.PWM_STEERING_THROTTLE
-        pwm_pin = output_pin_by_id(dt["PWM_STEERING_PIN"])
+        pwm_pin = pwm_pin_by_id(dt["PWM_STEERING_PIN"])
         controller = PulseController(pwm_pin=pwm_pin,
                                      pwm_scale=dt["PWM_STEERING_SCALE"],
                                      pwm_inverted=dt["PWM_STEERING_INVERTED"])
@@ -291,6 +292,13 @@ class PWMThrottle(Creatable):
         if set_pulse is None or not callable(set_pulse):
             raise ValueError("controller must have a set_pulse method")
 
+        super().__init__(pwm_pin_frequency=controller.pwm_pin.frequency,
+                         pwm_pin_number=controller.pwm_pin.pin_number,
+                         controller_scale=controller.scale,
+                         controller_inverted=controller.inverted,
+                         max_pulse=max_pulse,
+                         min_pulse=min_pulse,
+                         zero_pulse=zero_pulse)
         self.controller = controller
         self.max_pulse = max_pulse
         self.min_pulse = min_pulse
@@ -298,14 +306,21 @@ class PWMThrottle(Creatable):
         self.pulse = zero_pulse
 
         # send zero pulse to calibrate ESC
-        logger.info("Init ESC")
-        self.controller.set_pulse(self.max_pulse)
-        time.sleep(0.01)
-        self.controller.set_pulse(self.min_pulse)
-        time.sleep(0.01)
-        self.controller.set_pulse(self.zero_pulse)
-        time.sleep(1)
-        self.running = True
+        try:
+            logger.info("Init ESC")
+            self.controller.set_pulse(self.max_pulse)
+            time.sleep(0.01)
+            self.controller.set_pulse(self.min_pulse)
+            time.sleep(0.01)
+            self.controller.set_pulse(self.zero_pulse)
+            time.sleep(1)
+            self.running = True
+
+        except Exception as e:
+            logger.exception("PWMThrottle could not be initialised. This "
+                             "instance can only be used in building the car "
+                             "app but not running it.")
+
         logger.info('PWM Throttle created')
 
     def update(self):
@@ -332,7 +347,7 @@ class PWMThrottle(Creatable):
     @classmethod
     def create(cls, cfg, **kwargs):
         dt = cfg.PWM_STEERING_THROTTLE
-        pwm_pin = output_pin_by_id(dt["PWM_THROTTLE_PIN"])
+        pwm_pin = pwm_pin_by_id(dt["PWM_THROTTLE_PIN"])
         controller = PulseController(pwm_pin=pwm_pin,
                                      pwm_scale=dt["PWM_THROTTLE_SCALE"],
                                      pwm_inverted=dt["PWM_THROTTLE_INVERTED"])

@@ -30,6 +30,8 @@ parts:
       run_condition: run_pilot
   - pwmsteering:
       inputs: [user/angle]
+  - pwmthrottle:
+      inputs: [user/throttle]
   - tubwriter:
       arguments:
         inputs: [cam/image_array, user/angle, user/throttle, user/mode,

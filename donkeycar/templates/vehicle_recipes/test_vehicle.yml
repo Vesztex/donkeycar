@@ -19,7 +19,7 @@ parts:
       threaded: true
   - checker:
       arguments:
-        must_match: pilot
+        must_match: [local, local_angle]
       inputs: [user/mode]
       outputs: [run_pilot]
   - keraspilot:
@@ -28,10 +28,24 @@ parts:
       inputs: [cam/image_array]
       outputs: [pilot/angle, pilot/throttle]
       run_condition: run_pilot
+  - dispatcher:
+      # if run_pilot is true (i.e. == 1) return pilot/angle otherwise user/angle
+      inputs: [run_pilot, user/angle, pilot/angle]
+      outputs: [angle]
+  - checker:
+      # check if user/mode is user or locql_angle because then we use user/throttle
+      arguments:
+        must_match: [user, local_angle]
+      inputs: [user/mode]
+      outputs: [user_throttle]
+  - dispatcher:
+    # if user_throttle is true return user/throttle else return pilot/throttle
+      inputs: [user_throttle, pilot/throttle, user/throttle]
+      outputs: [throttle]
   - pwmsteering:
-      inputs: [user/angle]
+      inputs: [angle]
   - pwmthrottle:
-      inputs: [user/throttle]
+      inputs: [throttle]
   - tubwriter:
       arguments:
         inputs: [cam/image_array, user/angle, user/throttle, user/mode,

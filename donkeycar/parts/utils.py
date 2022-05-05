@@ -39,7 +39,7 @@ class Dispatcher(Creatable):
         """
         assert len(args) == self.num_args, \
             f"Expected {self.num_args} arguments, but got {len(args)}"
-        return args[index]
+        return args[int(index)]
 
 
 class Checker(Creatable):

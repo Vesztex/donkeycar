@@ -39,6 +39,8 @@ class Dispatcher(Creatable):
         """
         assert len(args) == self.num_args, \
             f"Expected {self.num_args} arguments, but got {len(args)}"
+        assert int(index) < self.num_args, \
+            f"Can only use index < {self.num_args}"
         return args[int(index)]
 
 

@@ -3,19 +3,9 @@ parts:
   - cvcam:
       outputs: [cam/image_array]
       threaded: true
-      run_condition: run_pilot
-  - imagelistcamera:
-      arguments:
-        path_mask: "/home/dirk/car_test/data/images/*.jpg"
-      outputs: [cam/image_array]
-      threaded: false
-      add_only_if: false
   - localwebcontroller:
       inputs: [cam/image_array, tub/current_index]
       outputs: [user/angle, user/throttle, user/mode, recording]
-      threaded: true
-  - webfpv:
-      inputs: [cam/image_array]
       threaded: true
   - checker:
       arguments:
@@ -23,8 +13,6 @@ parts:
       inputs: [user/mode]
       outputs: [run_pilot]
   - keraspilot:
-      arguments:
-        model_type: linear
       inputs: [cam/image_array]
       outputs: [pilot/angle, pilot/throttle]
       run_condition: run_pilot
@@ -48,10 +36,8 @@ parts:
       inputs: [throttle]
   - tubwriter:
       arguments:
-        inputs: [cam/image_array, user/angle, user/throttle, user/mode,
-                 pilot/angle, pilot/throttle]
-        types: [image_array, float, float, str, float, float]
-      inputs: [cam/image_array, user/angle, user/throttle, user/mode,
-               pilot/angle, pilot/throttle]
+        inputs: [cam/image_array, user/angle, user/throttle, user/mode]
+        types: [image_array, float, float, str]
+      inputs: [cam/image_array, user/angle, user/throttle, user/mode]
       outputs: [tub/current_index]
       run_condition: recording

@@ -1,5 +1,4 @@
 #: import TsPlot donkeycar.management.graph.TsPlot
-#: import get_model_by_type donkeycar.utils.get_model_by_type
 #: import platform sys.platform
 #: import os os
 
@@ -315,6 +314,16 @@
             root.manager.current_screen.keys_enabled = True
             root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
             root.manager.current_screen.update_pilots()
+
+    Button:
+        id: assembly_btn
+        text: 'Car Assembly'
+        on_press:
+            root.manager.current_screen.keys_enabled = False
+            root.manager.current = 'assembly'
+            root.manager.current_screen.keys_enabled = True
+            root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
+
 
 <TubScreen>:
     BoxLayout:
@@ -736,6 +745,46 @@
                     root.stop()
                     self.disabled = True
                     drive_btn.disabled = False
+
+
+<AssemblyScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        TabBar:
+            id: tab_bar
+            manager: root.manager
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: layout_height
+            MySpinner:
+                id: var_spinner
+                text: 'Variables'
+                values: root.variables
+            TextInput:
+                id: add_variable
+                text: ''
+                multiline: False
+                on_focus: app.tub_screen.keys_enabled = not app.tub_screen.keys_enabled
+                on_text_validate:
+                    root.variables.append(self.text)
+            Button:
+                id: del_variable
+                text: 'Delete ' + var_spinner.text
+                on_press: root.variables.remove(var_spinner.text)
+
+        BoxLayout:
+            orientation: 'horizontal'
+            height: layout_height
+            size_hint_y: None
+            MySpinner:
+                id: parts_spinner
+                text: 'Parts'
+                values: root.parts
+            Button:
+                text: 'Add part'
+        Button:
+            text: 'Press for options'
 
 
 <StartScreen>:

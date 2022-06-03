@@ -33,6 +33,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import SpinnerOption, Spinner
 
 from donkeycar import load_config
+from donkeycar.parts import CreatableFactory
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.augmentations import ImageAugmentation
 from donkeycar.pipeline.database import PilotDatabase
@@ -73,6 +74,11 @@ def train_screen():
 
 def car_screen():
     return App.get_running_app().car_screen if App.get_running_app() else None
+
+
+def assembly_screen():
+    return App.get_running_app().assembly_screen if App.get_running_app() else \
+        None
 
 
 def recursive_update(target, source):
@@ -1153,6 +1159,11 @@ class CarScreen(Screen):
             self.pid = None
 
 
+class AssemblyScreen(Screen):
+    parts = ListProperty(CreatableFactory.arg_registry.keys())
+    variables = ListProperty()
+
+
 class StartScreen(Screen):
     img_path = os.path.realpath(os.path.join(
         os.path.dirname(__file__),
@@ -1166,6 +1177,7 @@ class DonkeyApp(App):
     train_screen = None
     pilot_screen = None
     car_screen = None
+    assembly_screen = None
     title = 'Donkey Manager'
 
     def initialise(self, event):
@@ -1183,6 +1195,7 @@ class DonkeyApp(App):
         self.train_screen = TrainScreen(name='train')
         self.pilot_screen = PilotScreen(name='pilot')
         self.car_screen = CarScreen(name='car')
+        self.assembly_screen = AssemblyScreen(name='assembly')
         Window.bind(on_keyboard=self.tub_screen.on_keyboard)
         Window.bind(on_keyboard=self.pilot_screen.on_keyboard)
         Clock.schedule_once(self.initialise)
@@ -1192,6 +1205,7 @@ class DonkeyApp(App):
         sm.add_widget(self.train_screen)
         sm.add_widget(self.pilot_screen)
         sm.add_widget(self.car_screen)
+        sm.add_widget(self.assembly_screen)
         return sm
 
     def on_request_close(self, *args):

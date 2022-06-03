@@ -17,11 +17,11 @@ parts:
       outputs: [pilot/angle, pilot/throttle]
       run_condition: run_pilot
   - dispatcher:
-      # if run_pilot is true (i.e. == 1) return pilot/angle otherwise user/angle
+    # if run_pilot is true (i.e. == 1) return pilot/angle otherwise user/angle
       inputs: [run_pilot, user/angle, pilot/angle]
       outputs: [angle]
   - checker:
-      # check if user/mode is user or locql_angle because then we use user/throttle
+    # check if user/mode is user or local_angle because then we use user/throttle
       arguments:
         must_match: [user, local_angle]
       inputs: [user/mode]

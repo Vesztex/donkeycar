@@ -1159,6 +1159,19 @@ class CarScreen(Screen):
             self.pid = None
 
 
+class PartBuilder(BoxLayout):
+    inputs = ListProperty()
+    outputs = ListProperty()
+    run_condition = StringProperty()
+    threaded = BooleanProperty(False)
+
+    def clear(self):
+        self.inputs = []
+        self.outputs = []
+        self.run_condition = ''
+        self.threaded = False
+
+
 class AssemblyScreen(Screen):
     parts = ListProperty(CreatableFactory.arg_registry.keys())
     variables = ListProperty()

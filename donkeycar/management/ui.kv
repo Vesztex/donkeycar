@@ -773,14 +773,72 @@
                 text: 'Delete ' + var_spinner.text
                 on_press: root.variables.remove(var_spinner.text)
 
-        BoxLayout:
-            orientation: 'horizontal'
-            height: layout_height
-            size_hint_y: None
-            MySpinner:
-                id: parts_spinner
-                text: 'Parts'
-                values: root.parts
+        PartBuilder:
+            id:  part_builder
+            orientation: 'vertical'
+            Label:
+                height: layout_height
+                size_hint_y: None
+                text: 'Create part'
+            BoxLayout:
+                orientation: 'horizontal'
+                height: layout_height
+                size_hint_y: None
+                Label:
+                    text: 'Select Part'
+                MySpinner:
+                    id: parts_spinner
+                    text: 'Parts'
+                    values: root.parts
+            BoxLayout:
+                orientation: 'horizontal'
+                height: layout_height
+                size_hint_y: None
+                Button:
+                    size_hint_x: 0.5
+                    text: 'Add input'
+                    on_press:
+                        app.assembly_screen.ids.part_builder.inputs.append(inputs_spinner.text)
+                        inputs_label.text = ', '.join(app.assembly_screen.ids.part_builder.inputs)
+                MySpinner:
+                    size_hint_x: 0.5
+                    id: inputs_spinner
+                    values: root.variables
+                AutoLabel:
+                    id: inputs_label
+            BoxLayout:
+                orientation: 'horizontal'
+                height: layout_height
+                size_hint_y: None
+                Button:
+                    size_hint_x: 0.5
+                    text: 'Add output'
+                    on_press:
+                        app.assembly_screen.ids.part_builder.outputs.append(outputs_spinner.text)
+                        outputs_label.text = ', '.join(app.assembly_screen.ids.part_builder.outputs)
+                MySpinner:
+                    size_hint_x: 0.5
+                    id: outputs_spinner
+                    values: root.variables
+                AutoLabel:
+                    id: outputs_label
+            BoxLayout:
+                orientation: 'horizontal'
+                height: layout_height
+                size_hint_y: None
+                Button:
+                    text: 'Set runcondition'
+                    on_press:
+                        app.assembly_screen.ids.part_builder.runcondition = runcondition_spinner.text
+                MySpinner:
+                    id: runcondition_spinner
+                    values: root.variables + ['']
+                Label:
+                    text: 'Threaded'
+                CheckBox:
+                    id: threaded_checkbox
+                    on_active: root.threaded = True
+
             Button:
                 text: 'Add part'
         Button:

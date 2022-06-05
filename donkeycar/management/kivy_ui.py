@@ -1170,6 +1170,22 @@ class PartBuilder(BoxLayout):
         self.outputs = []
         self.run_condition = ''
         self.threaded = False
+        assembly_screen().ids.threaded_checkbox.active = False
+        assembly_screen().ids.status.text = 'Fields cleared.'
+
+    def press_input(self):
+        input = assembly_screen().ids.inputs_spinner.text
+        if input:
+            self.inputs.append(input)
+
+    def press_output(self):
+        output = assembly_screen().ids.outputs_spinner.text
+        if output:
+            self.outputs.append(output)
+
+    def on_run_condition(self, obj, run_condition):
+        assembly_screen().ids.status.text \
+            = f'Runcondition set to {run_condition}'
 
 
 class AssemblyScreen(Screen):

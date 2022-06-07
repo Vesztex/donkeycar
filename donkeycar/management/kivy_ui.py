@@ -20,6 +20,8 @@ import plotly.express as px
 from kivy.clock import Clock
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.image import Image
 from kivy.core.image import Image as CoreImage
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
@@ -1186,6 +1188,20 @@ class PartBuilder(BoxLayout):
     def on_run_condition(self, obj, run_condition):
         assembly_screen().ids.status.text \
             = f'Runcondition set to {run_condition}'
+
+
+class PartsList(ScrollView):
+    layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
+    selected_parts = ListProperty()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.add_widget(self.layout)
+
+    def add_part(self, part_name, part_dict):
+        self.selected_parts.append(part_dict)
+        btn = Button(text=part_name, size_hint_y=None, height=40)
+        self.layout.add_widget(btn)
 
 
 class AssemblyScreen(Screen):

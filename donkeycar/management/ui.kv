@@ -776,13 +776,9 @@
             id:  part_builder
             orientation: 'vertical'
             Label:
-                height: layout_height
-                size_hint_y: None
                 text: 'Create part'
             BoxLayout:
                 orientation: 'horizontal'
-                height: layout_height
-                size_hint_y: None
                 Label:
                     text: 'Select Part'
                 MySpinner:
@@ -791,8 +787,6 @@
                     values: root.parts
             BoxLayout:
                 orientation: 'horizontal'
-                height: layout_height
-                size_hint_y: None
                 Button:
                     size_hint_x: 0.5
                     text: 'Add input'
@@ -807,8 +801,6 @@
                     text: ', '.join(root.ids.part_builder.inputs)
             BoxLayout:
                 orientation: 'horizontal'
-                height: layout_height
-                size_hint_y: None
                 Button:
                     size_hint_x: 0.5
                     text: 'Add output'
@@ -823,8 +815,6 @@
                     text: ', '.join(root.ids.part_builder.outputs)
             BoxLayout:
                 orientation: 'horizontal'
-                height: layout_height
-                size_hint_y: None
                 Label:
                     text: 'Set runcondition'
                 MySpinner:
@@ -845,8 +835,17 @@
                 text: 'Add part'
                 on_press:
                     app.assembly_screen.ids.part_builder.clear()
-        Button:
-            text: 'Press for options'
+                    app.assembly_screen.ids.parts_list.add_part(parts_spinner.text, {})
+        Label:
+            height: layout_height
+            size_hint_y: None
+            text: 'Selected parts'
+        BoxLayout:
+            orientation: 'horizontal'
+            PartsList
+                id: parts_list
+            Button:
+                text: 'Press for options'
         StatusLabel:
             id: status
 

@@ -23,7 +23,7 @@ import tornado.gen
 import tornado.websocket
 from socket import gethostname
 
-from .. import Creatable
+from .. import Creatable, PartType
 from ... import utils
 
 logger = logging.getLogger(__name__)
@@ -364,6 +364,7 @@ class WebFpv(Application, Creatable):
     client OS using graphics acceleration. Hence a web browser on the PC is
     faster than a pure python application based on open cv or similar.
     """
+    part_type = PartType.PROCESS
 
     def __init__(self, port=8890):
         Creatable.__init__(self, port=port)

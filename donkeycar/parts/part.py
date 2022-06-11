@@ -1,10 +1,20 @@
 from donkeycar.config import Config
 from docstring_parser import parse
+from enum import Enum
 import inspect
 import logging
 
 
 logger = logging.getLogger(__name__)
+
+
+class PartType(Enum):
+    NONE = 0
+    SENSE = 1
+    PERCEIVE = 2
+    PLAN = 3
+    ACT = 4
+    PROCESS = 5
 
 
 class CreatableFactory(type):
@@ -91,6 +101,8 @@ class Creatable(object, metaclass=CreatableFactory):
     Base class for factory creatable parts, implementing create() by calling
     constructor without any config
     """
+    part_type = PartType.NONE
+
     @classmethod
     def create(cls, cfg, **kwargs):
         return cls(**kwargs)
@@ -104,6 +116,7 @@ class TestCreatable(Creatable):
     Test Part that shows the creation of new parts
     """
     def __init__(self, value=2):
+        super().__init__(value)
         self.value = value
         print('Created TestCreatable with value', self.value)
 

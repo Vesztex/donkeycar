@@ -1,4 +1,4 @@
-from donkeycar.parts.part import Creatable
+from donkeycar.parts.part import Creatable, PartType
 from donkeycar.utilities.deprecated import deprecated
 
 
@@ -26,6 +26,8 @@ class Dispatcher(Creatable):
     pilot/throttle depending on another user input, for example the web
     controller button or a remote control button.
     """
+    part_type = PartType.PROCESS
+
     def __init__(self, num_args=2):
         super().__init__(num_args=num_args)
         self.num_args = num_args
@@ -50,6 +52,8 @@ class Checker(Creatable):
     at runtime matches the value of the value given in the constructor or at
     least one entry if a list is given to the constructor.
     """
+    part_type = PartType.PROCESS
+
     def __init__(self, must_match=None):
         super().__init__(must_match=must_match)
         self.must_match = must_match

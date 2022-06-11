@@ -20,7 +20,7 @@ from tensorflow.python.data.ops.dataset_ops import DatasetV1, DatasetV2
 import donkeycar as dk
 from donkeycar.utils import normalize_image, linear_bin
 from donkeycar.pipeline.types import TubRecord
-from donkeycar.parts.part import Creatable
+from donkeycar.parts.part import Creatable, PartType
 from donkeycar.parts.interpreter import Interpreter, KerasInterpreter
 
 import tensorflow as tf
@@ -54,6 +54,8 @@ class KerasPilot(ABC, Creatable, metaclass=KerasMeta):
     Base class for Keras models that will provide steering and throttle to
     guide a car.
     """
+    part_type = PartType.SENSE
+
     def __init__(self,
                  interpreter: Interpreter = KerasInterpreter(),
                  input_shape: Tuple[int, ...] = (120, 160, 3)) -> None:

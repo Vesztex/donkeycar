@@ -30,6 +30,7 @@ class TriggeredCallback:
     def shutdown(self):
         return
 
+
 class DelayedTrigger:
     def __init__(self, delay):
         self.ticks = 0

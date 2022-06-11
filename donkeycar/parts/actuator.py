@@ -10,7 +10,7 @@ from typing import Tuple
 
 import donkeycar as dk
 from donkeycar.parts.pins import OutputPin, PwmPin, PinState, output_pin_by_id
-from donkeycar.parts.part import Part
+from donkeycar.parts.part import Part, PartType
 from donkeycar import utils
 from donkeycar.utils import clamp
 from donkeycar.parts.pins import OutputPin, PwmPin, PinState
@@ -278,6 +278,8 @@ class PWMSteering(Creatable):
     """
     Wrapper over a PWM pulse controller to convert angles to PWM pulses.
     """
+    part_type = PartType.ACT
+
     LEFT_ANGLE = -1
     RIGHT_ANGLE = 1
 
@@ -341,6 +343,8 @@ class PWMThrottle(Creatable):
     Wrapper over a PWM pulse controller to convert -1 to 1 throttle
     values to PWM pulses.
     """
+    part_type = PartType.ACT
+
     MIN_THROTTLE = -1
     MAX_THROTTLE = 1
 

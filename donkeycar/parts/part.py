@@ -36,12 +36,16 @@ class CreatableFactory(type):
             cls.arg_registry[l_name] = all_params
 
     @classmethod
-    def make(mcs, concrete, cfg, kwargs):
-        return mcs.registry[concrete.lower()].create(cfg, **kwargs)
+    def make(mcs, creatable, cfg, kwargs):
+        return mcs.registry[creatable.lower()].create(cfg, **kwargs)
 
     @classmethod
     def get_all_classes(cls):
         return list(cls.registry.keys())
+
+    @classmethod
+    def get_all_classes_by_part_type(cls, part_type):
+        return [k for k, v in cls.registry.items() if v.part_type == part_type]
 
     @classmethod
     def get_docstring_of_class(cls, creatable):

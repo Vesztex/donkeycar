@@ -1,4 +1,6 @@
 #: import TsPlot donkeycar.management.graph.TsPlot
+#: import PartType donkeycar.parts.part.PartType
+#: import CreatableFactory donkeycar.parts.part.CreatableFactory
 #: import platform sys.platform
 #: import os os
 
@@ -770,7 +772,7 @@
             Button:
                 id: del_variable
                 text: 'Delete ' + var_spinner.text
-                on_press: root.variables.remove(var_spinner.text)
+                on_press: if var_spinner.text != 'Variables': root.variables.remove(var_spinner.text)
 
         PartBuilder:
             id:  part_builder
@@ -780,11 +782,17 @@
             BoxLayout:
                 orientation: 'horizontal'
                 Label:
-                    text: 'Select Part'
+                    size_hint_x: 0.5
+                    text: 'Part type'
+                MySpinner:
+                    id: part_type_spinner
+                    size_hint_x: 0.5
+                    text: 'NONE'
+                    values: [p.name for p in PartType]
                 MySpinner:
                     id: parts_spinner
                     text: 'Parts'
-                    values: root.parts
+                    values: CreatableFactory.get_all_classes_by_part_type(PartType[part_type_spinner.text or 'NONE'])
             BoxLayout:
                 orientation: 'horizontal'
                 Button:

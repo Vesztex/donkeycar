@@ -54,7 +54,7 @@ class KerasPilot(ABC, Creatable, metaclass=KerasMeta):
     Base class for Keras models that will provide steering and throttle to
     guide a car.
     """
-    part_type = PartType.SENSE
+    part_type = PartType.PLAN
 
     def __init__(self,
                  interpreter: Interpreter = KerasInterpreter(),

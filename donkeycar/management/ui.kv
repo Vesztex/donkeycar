@@ -835,6 +835,11 @@
                 CheckBox:
                     id: threaded_checkbox
                     on_active: root.threaded = True
+            ScrollableLabel:
+                size_hint_y: 3.0
+                Label:
+                    size_hint_y: 3.0
+                    text: root.ids.part_builder.get_run_doc(parts_spinner.text)
             Button:
                 text: 'Clear fields'
                 on_press:

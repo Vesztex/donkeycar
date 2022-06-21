@@ -66,6 +66,8 @@ class CreatableFactory(type):
         except AttributeError:
             logger.warning(f'Part {creatable} has no run method')
             return ''
+        finally:
+            return ''
 
     @classmethod
     def get_docstring_of_run_threaded(cls, creatable):
@@ -77,6 +79,8 @@ class CreatableFactory(type):
 
     @classmethod
     def pretty_print_of_class(cls, creatable):
+        if creatable.lower() not in cls.registry:
+            return ''
         s = '-' * 80 + '\n'
         s += cls.registry[creatable].__name__ + '\n'
         s += '-' * 80 + '\n'

@@ -19,6 +19,10 @@ class BaseCamera(Creatable):
     part_type = PartType.SENSE
 
     def run_threaded(self):
+        """
+        Threaded interface for donkey parts.
+        :return: image array if available from the camera, otherwise None
+        """
         return self.frame
 
     @classmethod

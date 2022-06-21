@@ -1189,6 +1189,15 @@ class PartBuilder(BoxLayout):
         assembly_screen().ids.status.text \
             = f'Runcondition set to {run_condition}'
 
+    def get_run_doc(self, part_name):
+        Logger.info(f'Looking for part doc {part_name}')
+        part_l = part_name.lower()
+        if part_l in ['parts', '']:
+            return ''
+        s = CreatableFactory.get_docstring_of_run(part_l)
+        Logger.info(f'Found run docstring: {s}')
+        return s
+
 
 class PartsList(ScrollView):
     layout = GridLayout(cols=1, spacing=10, size_hint_y=None)

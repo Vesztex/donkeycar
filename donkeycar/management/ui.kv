@@ -748,6 +748,37 @@
                     self.disabled = True
                     drive_btn.disabled = False
 
+<PartInfoPopup>:
+    title: "Part: " + self.selected_part
+    size_hint: 1.0, 1.0
+    auto_dismiss: False
+    pos_hint: {'center_x': .5, 'center_y': .5}
+
+    BoxLayout:
+        orientation: "vertical"
+        GridLayout:
+            cols: 2
+            Label:
+                text: 'Description'
+            Label:
+                text: 'This part does blah...'
+            Label:
+                text: 'Construction'
+            Label:
+                text: 'How to construct it'
+            Label:
+                text: 'Run method'
+            Label:
+                text: app.assembly_screen.ids.part_builder.get_run_doc(root.selected_part)
+            Label:
+                text: 'Run threaded method'
+            Label:
+                text: app.assembly_screen.ids.part_builder.get_run_threaded_doc(root.selected_part)
+        Button:
+            size_hint_y: 0.25
+            text: 'Close'
+            on_press: root.dismiss()
+
 
 <AssemblyScreen>:
     BoxLayout:
@@ -835,11 +866,14 @@
                 CheckBox:
                     id: threaded_checkbox
                     on_active: root.threaded = True
-            ScrollableLabel:
-                size_hint_y: 3.0
-                Label:
-                    size_hint_y: 3.0
-                    text: root.ids.part_builder.get_run_doc(parts_spinner.text)
+#            ScrollableLabel:
+#                size_hint_y: 3.0
+#                Label:
+#                    size_hint_y: 3.0
+#                    text: root.ids.part_builder.get_run_doc(parts_spinner.text)
+            Button:
+                text: 'Part info'
+                on_press: root.ids.part_builder.open_info_popup()
             Button:
                 text: 'Clear fields'
                 on_press:

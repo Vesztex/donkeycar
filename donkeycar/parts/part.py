@@ -61,12 +61,12 @@ class CreatableFactory(type):
 
     @classmethod
     def get_docstring_of_run(cls, creatable):
-        return inspect.getdoc(cls.__run__) or ''
+        return inspect.getdoc(cls.registry[creatable].run) or ''
 
     @classmethod
     def get_docstring_of_run_threaded(cls, creatable):
         try:
-            return cls.registry[creatable].run_threaded.__doc__ \
+            return inspect.getdoc(cls.registry[creatable].run_threaded) \
                    or 'Missing docstring in run_threaded'
         except AttributeError:
             logger.warning(f'Part {creatable} has no run_threaded method')

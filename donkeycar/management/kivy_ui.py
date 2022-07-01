@@ -1161,11 +1161,19 @@ class CarScreen(Screen):
             self.pid = None
 
 
+class PartInfoPopup(Popup):
+    selected_part = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
 class PartBuilder(BoxLayout):
     inputs = ListProperty()
     outputs = ListProperty()
     run_condition = StringProperty()
     threaded = BooleanProperty(False)
+    info_popup = ObjectProperty()
 
     def clear(self):
         self.inputs = []
@@ -1190,13 +1198,28 @@ class PartBuilder(BoxLayout):
             = f'Runcondition set to {run_condition}'
 
     def get_run_doc(self, part_name):
-        Logger.info(f'Looking for part doc {part_name}')
         part_l = part_name.lower()
         if part_l in ['parts', '']:
             return ''
         s = CreatableFactory.get_docstring_of_run(part_l)
         Logger.info(f'Found run docstring: {s}')
         return s
+
+    def get_run_threaded_doc(self, part_name):
+        part_l = part_name.lower()
+        if part_l in ['parts', '']:
+            return ''
+        s = CreatableFactory.get_docstring_of_run_threaded(part_l)
+        Logger.info(f'Found run docstring: {s}')
+        return s
+
+    def open_info_popup(self):
+        part = assembly_screen().ids.parts_spinner.text
+        self.info_popup = PartInfoPopup(selected_part=part)
+        self.info_popup.open()
+
+    def selected_part(self):
+        return
 
 
 class PartsList(ScrollView):

@@ -19,7 +19,7 @@ class PartType(Enum):
 
 def format_func_doc(s):
     sp = parse(s)
-    text = sp.long_description or sp.short_description
+    text = (sp.short_description or '') + ' ' + (sp.long_description or '')
     text += '\n\nInput and return parameters:'
     pt = prettytable.PrettyTable(field_names=
                                  ['Number', 'Parameter', 'Type', 'Description'])
@@ -74,23 +74,25 @@ class CreatableFactory(type):
         return list(cls.registry[creatable].__init__.__code__.co_varnames)[1:]
 
     @classmethod
-    def get_docstring_of_run(cls, creatable):
+    def get_args_of_method(cls, creatable, method):
         try:
-            s = inspect.getdoc(cls.registry[creatable].run) or ''
-            s = format_func_doc(s)
-            return s
+            mem_func = getattr(cls.registry[creatable], method)
+            s = inspect.getdoc(mem_func) or ''
+            sp = parse(s)
+            return [param.arg_name for param in sp.params]
         except AttributeError:
-            logger.warning(f'Part {creatable} has no run method')
-            return ''
+            logger.warning(f'Part {creatable} has no {method} method')
+            return []
 
     @classmethod
-    def get_docstring_of_run_threaded(cls, creatable):
+    def get_docstring_of_method(cls, creatable, method):
         try:
-            s = inspect.getdoc(cls.registry[creatable].run_threaded) or ''
+            mem_func = getattr(cls.registry[creatable], method)
+            s = inspect.getdoc(mem_func) or ''
             s = format_func_doc(s)
             return s
         except AttributeError:
-            logger.warning(f'Part {creatable} has no run_threaded method')
+            logger.warning(f'Part {creatable} has no {method} method')
             return ''
 
     @classmethod

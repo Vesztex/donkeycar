@@ -778,8 +778,9 @@
             Label:
                 size_hint_x: pt_asym_factor
                 text: 'Construction'
-            Label:
-                text: 'How to construct it'
+            ScrollableLabel:
+                DocLabel:
+                    text: app.assembly_screen.ids.part_builder.get_construction_doc(root.selected_part)
             Label:
                 size_hint_x: pt_asym_factor
                 text: 'Run method'
@@ -853,9 +854,31 @@
                     id: parts_spinner
                     text: 'Part'
                     values: CreatableFactory.get_all_classes_by_part_type(PartType[part_type_spinner.text or 'NONE'])
+                    on_text:
+                        root.ids.part_builder.set_known_args(self.text)
                 Button:
                     text: 'Part info'
                     on_press: root.ids.part_builder.open_info_popup()
+
+            BoxLayout:
+                orientation: 'horizontal'
+                TextInput:
+                    id: add_arg
+                    multiline: False
+                    size_hint_x: 0.5
+                    text: 'Set argument'
+                    on_text_validate:
+                        root.ids.part_builder.args[args_spinner.text] = self.text
+                        status.text = 'Set argument ' + self.text
+                        self.text = ''
+                MySpinner:
+                    size_hint_x: 0.5
+                    id: args_spinner
+                    values: root.ids.part_builder.known_args
+                AutoLabel:
+                    id: args_label
+                    text: ', '.join(root.ids.part_builder.args.items())
+
             BoxLayout:
                 orientation: 'horizontal'
                 Button:
@@ -870,6 +893,7 @@
                 AutoLabel:
                     id: inputs_label
                     text: ', '.join(root.ids.part_builder.inputs)
+
             BoxLayout:
                 orientation: 'horizontal'
                 Button:
@@ -884,6 +908,7 @@
                 AutoLabel:
                     id: outputs_label
                     text: ', '.join(root.ids.part_builder.outputs)
+
             BoxLayout:
                 orientation: 'horizontal'
                 Label:
@@ -893,6 +918,7 @@
                     values: root.variables + ['']
                     on_text:
                         app.assembly_screen.ids.part_builder.run_condition = self.text
+                        status.text = 'Runcondition set to: ' + self.text
                 Label:
                     text: 'Threaded'
                 CheckBox:

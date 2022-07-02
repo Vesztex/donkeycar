@@ -25,7 +25,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.image import Image
 from kivy.core.image import Image as CoreImage
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
-    ListProperty, BooleanProperty
+    ListProperty, BooleanProperty, DictProperty
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.lang.builder import Builder
@@ -1166,6 +1166,8 @@ class PartInfoPopup(Popup):
 
 
 class PartBuilder(BoxLayout):
+    known_args = ListProperty()
+    args = DictProperty()
     inputs = ListProperty()
     outputs = ListProperty()
     run_condition = StringProperty()
@@ -1190,28 +1192,42 @@ class PartBuilder(BoxLayout):
         if output:
             self.outputs.append(output)
 
-    def on_run_condition(self, obj, run_condition):
-        assembly_screen().ids.status.text \
-            = f'Runcondition set to {run_condition}'
+    def press_args(self):
+        arg = assembly_screen().ids.args_spinner.text
+        if arg:
+            self.args.append(arg)
+
+    def set_known_args(self, part_name):
+        part_l = part_name.lower()
+        if part_l not in ['parts', '']:
+            self.known_args \
+                = CreatableFactory.get_args_of_method(part_l, 'create')
+
+    # def on_run_condition(self, obj, run_condition):
+    #     assembly_screen().ids.status.text \
+    #         = f'Runcondition set to {run_condition}'
 
     def get_run_doc(self, part_name):
         part_l = part_name.lower()
         if part_l in ['parts', '']:
             return ''
-        s = CreatableFactory.get_docstring_of_run(part_l)
-        Logger.info(f'Found run docstring: {s}')
+        s = CreatableFactory.get_docstring_of_method(part_l, 'run')
         return s
 
     def get_run_threaded_doc(self, part_name):
         part_l = part_name.lower()
         if part_l in ['parts', '']:
             return ''
-        s = CreatableFactory.get_docstring_of_run_threaded(part_l)
-        Logger.info(f'Found run docstring: {s}')
+        s = CreatableFactory.get_docstring_of_method(part_l, 'run_threaded')
         return s
 
     def get_part_doc(self, part_name):
         s = CreatableFactory.get_docstring_of_class(part_name)
+        return s
+
+    def get_construction_doc(self, part_name):
+        part_l = part_name.lower()
+        s = CreatableFactory.get_docstring_of_method(part_l, 'create')
         return s
 
     def open_info_popup(self):

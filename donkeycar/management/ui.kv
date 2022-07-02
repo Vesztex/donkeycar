@@ -750,7 +750,7 @@
                     drive_btn.disabled = False
 
 <DocLabel@Label>
-    size_hint_x: 2.0
+    size_hint_x: 1.0
     size_hint_y: 3.0
     halign: 'left'
     valign: 'top'
@@ -772,8 +772,9 @@
             Label:
                 size_hint_x: pt_asym_factor
                 text: 'Description'
-            Label:
-                text: app.assembly_screen.ids.part_builder.get_part_doc(root.selected_part)
+            ScrollableLabel:
+                DocLabel:
+                    text: app.assembly_screen.ids.part_builder.get_part_doc(root.selected_part)
             Label:
                 size_hint_x: pt_asym_factor
                 text: 'Construction'
@@ -796,6 +797,7 @@
             text: 'Close'
             on_press: root.dismiss()
 
+#: set var_box_text 'Select variable to delete'
 
 <AssemblyScreen>:
     BoxLayout:
@@ -807,21 +809,26 @@
             orientation: 'horizontal'
             size_hint_y: None
             height: layout_height
-            MySpinner:
-                id: var_spinner
-                text: 'Variables'
-                values: root.variables
+            AutoLabel:
+                text: 'Type variable name and hit return to add:'
             TextInput:
                 id: add_variable
                 multiline: False
                 # on_focus: app.assembly_screen.keys_enabled = not app.assembly_screen.keys_enabled
                 on_text_validate:
-                    if self.text: root.variables.append(self.text)
+                    if self.text and self.text not in root.variables: root.variables.append(self.text)
+                    status.text = 'Added variable ' + self.text
+                    self.text = ''
+            MySpinner:
+                id: var_spinner
+                text: var_box_text
+                values: root.variables
             Button:
                 id: del_variable
-                text: 'Delete ' + var_spinner.text
-                on_press: if var_spinner.text != 'Variables': root.variables.remove(var_spinner.text)
-
+                text: 'Delete ' + var_spinner.text if var_spinner.text != var_box_text else ''
+                on_press:
+                    if var_spinner.text != var_box_text: root.variables.remove(var_spinner.text); status.text = 'Removed variable ' + var_spinner.text
+                    var_spinner.text = var_box_text
         PartBuilder:
             id:  part_builder
             orientation: 'vertical'
@@ -830,17 +837,18 @@
             BoxLayout:
                 orientation: 'horizontal'
                 Label:
-                    size_hint_x: 0.5
                     text: 'Part type'
                 MySpinner:
                     id: part_type_spinner
-                    size_hint_x: 0.5
                     text: 'NONE'
                     values: [p.name for p in PartType]
                 MySpinner:
                     id: parts_spinner
-                    text: 'Parts'
+                    text: 'Part'
                     values: CreatableFactory.get_all_classes_by_part_type(PartType[part_type_spinner.text or 'NONE'])
+                Button:
+                    text: 'Part info'
+                    on_press: root.ids.part_builder.open_info_popup()
             BoxLayout:
                 orientation: 'horizontal'
                 Button:
@@ -883,23 +891,20 @@
                 CheckBox:
                     id: threaded_checkbox
                     on_active: root.threaded = True
-#            ScrollableLabel:
-#                size_hint_y: 3.0
-#                Label:
-#                    size_hint_y: 3.0
-#                    text: root.ids.part_builder.get_run_doc(parts_spinner.text)
-            Button:
-                text: 'Part info'
-                on_press: root.ids.part_builder.open_info_popup()
-            Button:
-                text: 'Clear fields'
-                on_press:
-                    app.assembly_screen.ids.part_builder.clear()
-            Button:
-                text: 'Add part'
-                on_press:
-                    app.assembly_screen.ids.part_builder.clear()
-                    app.assembly_screen.ids.parts_list.add_part(parts_spinner.text, {})
+            BoxLayout:
+                AutoLabel:
+                    text: 'Clear input / output / runcondition fields?'
+                Button:
+                    text: 'Clear'
+                    on_press:
+                        app.assembly_screen.ids.part_builder.clear()
+                Label:
+                    text: f'Add {parts_spinner.text} to car'
+                Button:
+                    text: 'Add'
+                    on_press:
+                        app.assembly_screen.ids.part_builder.clear()
+                        if parts_spinner.text != 'Part': app.assembly_screen.ids.parts_list.add_part(parts_spinner.text, {})
         Label:
             height: layout_height
             size_hint_y: None

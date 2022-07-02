@@ -862,6 +862,10 @@
 
             BoxLayout:
                 orientation: 'horizontal'
+                MySpinner:
+                    size_hint_x: 0.5
+                    id: args_spinner
+                    values: root.ids.part_builder.known_args
                 TextInput:
                     id: add_arg
                     multiline: False
@@ -869,15 +873,12 @@
                     text: 'Set argument'
                     on_text_validate:
                         root.ids.part_builder.args[args_spinner.text] = self.text
-                        status.text = 'Set argument ' + self.text
+                        status.text = 'Set argument ' + args_spinner.text + ' to: ' + self.text
+                        app.assembly_screen.ids.part_builder.add_arg(args_spinner.text, self.text)
                         self.text = ''
-                MySpinner:
-                    size_hint_x: 0.5
-                    id: args_spinner
-                    values: root.ids.part_builder.known_args
+                        args_label.text = (', '.join(str(k) + ':' + str(v) for k, v in root.ids.part_builder.args.items()))
                 AutoLabel:
                     id: args_label
-                    text: ', '.join(root.ids.part_builder.args.items())
 
             BoxLayout:
                 orientation: 'horizontal'

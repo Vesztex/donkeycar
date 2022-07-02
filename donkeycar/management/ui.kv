@@ -750,7 +750,7 @@
                     drive_btn.disabled = False
 
 <DocLabel@Label>
-    size_hint_x: 1.0
+    size_hint_x: 1.2
     size_hint_y: 3.0
     halign: 'left'
     valign: 'top'
@@ -792,6 +792,8 @@
             ScrollableLabel:
                 DocLabel:
                     text: app.assembly_screen.ids.part_builder.get_run_threaded_doc(root.selected_part)
+        Label:
+            size_hint_y: 0.05
         Button:
             size_hint_y: 0.1
             text: 'Close'
@@ -805,10 +807,15 @@
         TabBar:
             id: tab_bar
             manager: root.manager
+        Label:
+            size_hint_y: None
+            height: layout_height
+            text: 'Define variables'
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: None
             height: layout_height
+
             AutoLabel:
                 text: 'Type variable name and hit return to add:'
             TextInput:
@@ -837,7 +844,7 @@
             BoxLayout:
                 orientation: 'horizontal'
                 Label:
-                    text: 'Part type'
+                    text: 'Part family'
                 MySpinner:
                     id: part_type_spinner
                     text: 'NONE'
@@ -899,9 +906,9 @@
                     on_press:
                         app.assembly_screen.ids.part_builder.clear()
                 Label:
-                    text: f'Add {parts_spinner.text} to car'
+                    text: 'Add ' + parts_spinner.text
                 Button:
-                    text: 'Add'
+                    text: '+'
                     on_press:
                         app.assembly_screen.ids.part_builder.clear()
                         if parts_spinner.text != 'Part': app.assembly_screen.ids.parts_list.add_part(parts_spinner.text, {})

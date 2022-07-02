@@ -1175,6 +1175,7 @@ class PartBuilder(BoxLayout):
     info_popup = ObjectProperty()
 
     def clear(self):
+        self.args = {}
         self.inputs = []
         self.outputs = []
         self.run_condition = ''
@@ -1192,10 +1193,9 @@ class PartBuilder(BoxLayout):
         if output:
             self.outputs.append(output)
 
-    def press_args(self):
-        arg = assembly_screen().ids.args_spinner.text
+    def add_arg(self, arg, val):
         if arg:
-            self.args.append(arg)
+            self.args[arg] = val
 
     def set_known_args(self, part_name):
         part_l = part_name.lower()

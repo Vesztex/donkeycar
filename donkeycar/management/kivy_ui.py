@@ -1164,9 +1164,6 @@ class CarScreen(Screen):
 class PartInfoPopup(Popup):
     selected_part = ObjectProperty()
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
 
 class PartBuilder(BoxLayout):
     inputs = ListProperty()

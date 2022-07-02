@@ -9,6 +9,7 @@
 #:set layout_height common_height + layout_pad_x
 #:set layout_height_double 2 * common_height + layout_pad_x
 #:set layout_pad_xy [layout_pad_x, layout_pad_x // 2]
+#:set pt_asym_factor 0.3
 #:set supported_models ['linear', 'categorical', 'inferred', 'memory', 'behavior', 'localizer', 'rnn', '3d']
 #:set drive_models [pre + t for pre in['', 'tflite_', 'tensorrt_'] for t in supported_models ]
 
@@ -748,6 +749,16 @@
                     self.disabled = True
                     drive_btn.disabled = False
 
+<DocLabel@Label>
+    size_hint_x: 2.0
+    size_hint_y: 3.0
+    halign: 'left'
+    valign: 'top'
+    text_size: self.size
+    font_name: 'data/fonts/RobotoMono-Regular.ttf'
+    font_size: 12 if platform == 'linux' else 24
+
+
 <PartInfoPopup>:
     title: "Part: " + self.selected_part
     size_hint: 1.0, 1.0
@@ -759,23 +770,29 @@
         GridLayout:
             cols: 2
             Label:
+                size_hint_x: pt_asym_factor
                 text: 'Description'
             Label:
-                text: 'This part does blah...'
+                text: app.assembly_screen.ids.part_builder.get_part_doc(root.selected_part)
             Label:
+                size_hint_x: pt_asym_factor
                 text: 'Construction'
             Label:
                 text: 'How to construct it'
             Label:
+                size_hint_x: pt_asym_factor
                 text: 'Run method'
+            ScrollableLabel:
+                DocLabel:
+                    text: app.assembly_screen.ids.part_builder.get_run_doc(root.selected_part)
             Label:
-                text: app.assembly_screen.ids.part_builder.get_run_doc(root.selected_part)
-            Label:
+                size_hint_x: pt_asym_factor
                 text: 'Run threaded method'
-            Label:
-                text: app.assembly_screen.ids.part_builder.get_run_threaded_doc(root.selected_part)
+            ScrollableLabel:
+                DocLabel:
+                    text: app.assembly_screen.ids.part_builder.get_run_threaded_doc(root.selected_part)
         Button:
-            size_hint_y: 0.25
+            size_hint_y: 0.1
             text: 'Close'
             on_press: root.dismiss()
 

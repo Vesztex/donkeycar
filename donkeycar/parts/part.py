@@ -3,7 +3,7 @@ from docstring_parser import parse
 from enum import Enum
 import inspect
 import logging
-
+import prettytable
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,20 @@ class PartType(Enum):
     PLAN = 3
     ACT = 4
     PROCESS = 5
+
+
+def format_func_doc(s):
+    sp = parse(s)
+    text = sp.long_description or sp.short_description
+    text += '\n\nInput and return parameters:'
+    pt = prettytable.PrettyTable(field_names=
+                                 ['Number', 'Parameter', 'Type', 'Description'])
+    for i, param in enumerate(sp.params):
+        pt.add_row([i, param.arg_name, param.type_name, param.description])
+
+    pt.add_row(['', 'return', sp.returns.type_name, sp.returns.description])
+    text += '\n' + pt.get_string()
+    return text
 
 
 class CreatableFactory(type):
@@ -49,7 +63,7 @@ class CreatableFactory(type):
 
     @classmethod
     def get_docstring_of_class(cls, creatable):
-        return cls.registry[creatable].__doc__
+        return inspect.getdoc(cls.registry[creatable])
 
     @classmethod
     def get_docstring_of_init_class(cls, creatable):
@@ -61,13 +75,20 @@ class CreatableFactory(type):
 
     @classmethod
     def get_docstring_of_run(cls, creatable):
-        return inspect.getdoc(cls.registry[creatable].run) or ''
+        try:
+            s = inspect.getdoc(cls.registry[creatable].run) or ''
+            s = format_func_doc(s)
+            return s
+        except AttributeError:
+            logger.warning(f'Part {creatable} has no run method')
+            return ''
 
     @classmethod
     def get_docstring_of_run_threaded(cls, creatable):
         try:
-            return inspect.getdoc(cls.registry[creatable].run_threaded) \
-                   or 'Missing docstring in run_threaded'
+            s = inspect.getdoc(cls.registry[creatable].run_threaded) or ''
+            s = format_func_doc(s)
+            return s
         except AttributeError:
             logger.warning(f'Part {creatable} has no run_threaded method')
             return ''

@@ -1213,6 +1213,10 @@ class PartBuilder(BoxLayout):
         Logger.info(f'Found run docstring: {s}')
         return s
 
+    def get_part_doc(self, part_name):
+        s = CreatableFactory.get_docstring_of_class(part_name)
+        return s
+
     def open_info_popup(self):
         part = assembly_screen().ids.parts_spinner.text
         self.info_popup = PartInfoPopup(selected_part=part)

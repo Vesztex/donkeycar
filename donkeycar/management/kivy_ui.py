@@ -1173,6 +1173,7 @@ class PartBuilder(BoxLayout):
     run_condition = StringProperty()
     threaded = BooleanProperty(False)
     info_popup = ObjectProperty()
+    variables = ListProperty()
 
     def clear(self):
         self.args = {}
@@ -1180,32 +1181,17 @@ class PartBuilder(BoxLayout):
         self.outputs = []
         self.run_condition = ''
         self.threaded = False
-        assembly_screen().ids.threaded_checkbox.active = False
+        self.ids.inputs_spinner.text = self.ids.outputs_spinner.text = ''
+        self.ids.runcondition_spinner.text = ''
+        self.ids.arg_input.text = 'Set argument'
+        self.ids.threaded_checkbox.active = False
         assembly_screen().ids.status.text = 'Fields cleared.'
-
-    def press_input(self):
-        input = assembly_screen().ids.inputs_spinner.text
-        if input:
-            self.inputs.append(input)
-
-    def press_output(self):
-        output = assembly_screen().ids.outputs_spinner.text
-        if output:
-            self.outputs.append(output)
-
-    def add_arg(self, arg, val):
-        if arg:
-            self.args[arg] = val
 
     def set_known_args(self, part_name):
         part_l = part_name.lower()
         if part_l not in ['parts', '']:
             self.known_args \
                 = CreatableFactory.get_args_of_method(part_l, 'create')
-
-    # def on_run_condition(self, obj, run_condition):
-    #     assembly_screen().ids.status.text \
-    #         = f'Runcondition set to {run_condition}'
 
     def get_run_doc(self, part_name):
         part_l = part_name.lower()
@@ -1231,7 +1217,7 @@ class PartBuilder(BoxLayout):
         return s
 
     def open_info_popup(self):
-        part = assembly_screen().ids.parts_spinner.text
+        part = self.ids.parts_spinner.text
         self.info_popup = PartInfoPopup(selected_part=part)
         self.info_popup.open()
 

@@ -802,6 +802,108 @@
 
 #: set var_box_text 'Select variable to delete'
 
+<PartBuilder>:
+    orientation: 'vertical'
+    Label:
+        text: 'Create part'
+    BoxLayout:
+        orientation: 'horizontal'
+        Label:
+            text: 'Part family'
+        MySpinner:
+            id: part_type_spinner
+            text: 'NONE'
+            values: [p.name for p in PartType]
+        MySpinner:
+            id: parts_spinner
+            text: 'Part'
+            values: CreatableFactory.get_all_classes_by_part_type(PartType[part_type_spinner.text or 'NONE'])
+            on_text:
+                root.set_known_args(self.text)
+        Button:
+            text: 'Part info'
+            on_press: root.open_info_popup()
+
+    BoxLayout:
+        orientation: 'horizontal'
+        MySpinner:
+            size_hint_x: 0.5
+            id: args_spinner
+            values: root.known_args
+        TextInput:
+            id: arg_input
+            multiline: False
+            size_hint_x: 0.5
+            text: 'Set argument'
+            on_text_validate:
+                root.args[args_spinner.text] = self.text
+                app.assembly_screen.ids.status.text = 'Set argument ' + args_spinner.text + ' to: ' + self.text
+        AutoLabel:
+            id: args_label
+            text: str(root.args)
+
+    BoxLayout:
+        orientation: 'horizontal'
+        Button:
+            size_hint_x: 0.5
+            text: 'Add input'
+            on_press:
+                if inputs_spinner.text: root.inputs.append(inputs_spinner.text)
+        MySpinner:
+            size_hint_x: 0.5
+            id: inputs_spinner
+            values: root.variables
+        AutoLabel:
+            id: inputs_label
+            text: ', '.join(root.inputs)
+
+    BoxLayout:
+        orientation: 'horizontal'
+        Button:
+            size_hint_x: 0.5
+            text: 'Add output'
+            on_press:
+                if outputs_spinner.text: root.outputs.append(outputs_spinner.text)
+        MySpinner:
+            size_hint_x: 0.5
+            id: outputs_spinner
+            values: root.variables
+        AutoLabel:
+            id: outputs_label
+            text: ', '.join(root.outputs)
+
+    BoxLayout:
+        orientation: 'horizontal'
+        Label:
+            text: 'Set runcondition'
+        MySpinner:
+            id: runcondition_spinner
+            values: root.variables
+            on_text:
+                root.run_condition = self.text
+                app.assembly_screen.ids.status.text = 'Runcondition set to: ' + self.text
+        Label:
+            text: 'Threaded'
+        CheckBox:
+            id: threaded_checkbox
+            on_active: root.threaded = True
+    BoxLayout:
+        AutoLabel:
+            text: 'Clear input / output / runcondition fields?'
+        Button:
+            text: 'Clear'
+            on_press:
+                root.clear()
+        Label:
+            text: 'Add ' + parts_spinner.text
+        Button:
+            id: addpart_button
+            text: '+'
+            on_press:
+                root.clear()
+                if parts_spinner.text != 'Part': app.assembly_screen.ids.parts_list.add_part(parts_spinner.text, {})
+
+
 <AssemblyScreen>:
     BoxLayout:
         orientation: 'vertical'
@@ -839,106 +941,7 @@
                     var_spinner.text = var_box_text
         PartBuilder:
             id:  part_builder
-            orientation: 'vertical'
-            Label:
-                text: 'Create part'
-            BoxLayout:
-                orientation: 'horizontal'
-                Label:
-                    text: 'Part family'
-                MySpinner:
-                    id: part_type_spinner
-                    text: 'NONE'
-                    values: [p.name for p in PartType]
-                MySpinner:
-                    id: parts_spinner
-                    text: 'Part'
-                    values: CreatableFactory.get_all_classes_by_part_type(PartType[part_type_spinner.text or 'NONE'])
-                    on_text:
-                        root.ids.part_builder.set_known_args(self.text)
-                Button:
-                    text: 'Part info'
-                    on_press: root.ids.part_builder.open_info_popup()
-
-            BoxLayout:
-                orientation: 'horizontal'
-                MySpinner:
-                    size_hint_x: 0.5
-                    id: args_spinner
-                    values: root.ids.part_builder.known_args
-                TextInput:
-                    id: add_arg
-                    multiline: False
-                    size_hint_x: 0.5
-                    text: 'Set argument'
-                    on_text_validate:
-                        root.ids.part_builder.args[args_spinner.text] = self.text
-                        status.text = 'Set argument ' + args_spinner.text + ' to: ' + self.text
-                        app.assembly_screen.ids.part_builder.add_arg(args_spinner.text, self.text)
-                        self.text = ''
-                        args_label.text = (', '.join(str(k) + ':' + str(v) for k, v in root.ids.part_builder.args.items()))
-                AutoLabel:
-                    id: args_label
-
-            BoxLayout:
-                orientation: 'horizontal'
-                Button:
-                    size_hint_x: 0.5
-                    text: 'Add input'
-                    on_press:
-                        app.assembly_screen.ids.part_builder.press_input()
-                MySpinner:
-                    size_hint_x: 0.5
-                    id: inputs_spinner
-                    values: root.variables
-                AutoLabel:
-                    id: inputs_label
-                    text: ', '.join(root.ids.part_builder.inputs)
-
-            BoxLayout:
-                orientation: 'horizontal'
-                Button:
-                    size_hint_x: 0.5
-                    text: 'Add output'
-                    on_press:
-                        app.assembly_screen.ids.part_builder.press_output()
-                MySpinner:
-                    size_hint_x: 0.5
-                    id: outputs_spinner
-                    values: root.variables
-                AutoLabel:
-                    id: outputs_label
-                    text: ', '.join(root.ids.part_builder.outputs)
-
-            BoxLayout:
-                orientation: 'horizontal'
-                Label:
-                    text: 'Set runcondition'
-                MySpinner:
-                    id: runcondition_spinner
-                    values: root.variables + ['']
-                    on_text:
-                        app.assembly_screen.ids.part_builder.run_condition = self.text
-                        status.text = 'Runcondition set to: ' + self.text
-                Label:
-                    text: 'Threaded'
-                CheckBox:
-                    id: threaded_checkbox
-                    on_active: root.threaded = True
-            BoxLayout:
-                AutoLabel:
-                    text: 'Clear input / output / runcondition fields?'
-                Button:
-                    text: 'Clear'
-                    on_press:
-                        app.assembly_screen.ids.part_builder.clear()
-                Label:
-                    text: 'Add ' + parts_spinner.text
-                Button:
-                    text: '+'
-                    on_press:
-                        app.assembly_screen.ids.part_builder.clear()
-                        if parts_spinner.text != 'Part': app.assembly_screen.ids.parts_list.add_part(parts_spinner.text, {})
+            variables: root.variables
         Label:
             height: layout_height
             size_hint_y: None

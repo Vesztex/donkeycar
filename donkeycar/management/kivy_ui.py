@@ -33,6 +33,7 @@ from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import SpinnerOption, Spinner
+from kivy.uix.togglebutton import ToggleButton
 
 from donkeycar import load_config
 from donkeycar.parts import CreatableFactory
@@ -1225,18 +1226,46 @@ class PartBuilder(BoxLayout):
         return
 
 
-class PartsList(ScrollView):
-    layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
-    selected_parts = ListProperty()
+class PartButton(ToggleButton):
 
-    def __init__(self, **kwargs):
+    def __init__(self, manager, **kwargs):
         super().__init__(**kwargs)
-        self.add_widget(self.layout)
+        self.manager = manager
+
+    def on_press(self):
+        # if now pressed, unselect / unpress current selected button
+        if self.state == 'down':
+            unselect = ''
+            if self.manager.selected_part:
+                self.manager.selected_part.state = 'normal'
+                unselect = f', unselected {self.manager.selected_part.text}'
+            self.manager.selected_part = self
+            assembly_screen().ids.status.text = f'Selected {self.text}{unselect}'
+        # else unselect self from selected state
+        else:
+            assembly_screen().ids.status.text \
+                = f'Unselected {self.manager.selected_part.text}'
+            self.manager.selected_part = None
+
+
+class PartsManager(BoxLayout):
+    selected_parts = ListProperty()
+    selected_part = ObjectProperty(allownone=True)
 
     def add_part(self, part_name, part_dict):
         self.selected_parts.append(part_dict)
-        btn = Button(text=part_name, size_hint_y=None, height=40)
-        self.layout.add_widget(btn)
+        btn = PartButton(manager=self, text=part_name,
+                         size_hint_y=None, height=50)
+        self.ids.grid.add_widget(btn)
+
+    def up(self):
+        pass
+
+    def down(self):
+        pass
+
+    def remove(self):
+        pass
 
 
 class AssemblyScreen(Screen):

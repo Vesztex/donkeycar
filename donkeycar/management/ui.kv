@@ -901,7 +901,29 @@
             text: '+'
             on_press:
                 root.clear()
-                if parts_spinner.text != 'Part': app.assembly_screen.ids.parts_list.add_part(parts_spinner.text, {})
+                if parts_spinner.text != 'Part': app.assembly_screen.ids.parts_manager.add_part(parts_spinner.text, {})
+
+<PartsManager>:
+    orientation: 'horizontal'
+    ScrollView:
+        id: parts_list
+        GridLayout:
+            id: grid
+            cols: 1
+            spacing: 5
+            size_hint_y: 1.1
+
+    BoxLayout:
+        orientation: 'vertical'
+        Button:
+            text: 'Move part up'
+            on_press: root.up()
+        Button:
+            text: 'Move part down'
+            on_press: root.down()
+        Button:
+            text: 'Remove part'
+            on_press: root.remove()
 
 
 <AssemblyScreen>:
@@ -946,12 +968,8 @@
             height: layout_height
             size_hint_y: None
             text: 'Selected parts'
-        BoxLayout:
-            orientation: 'horizontal'
-            PartsList
-                id: parts_list
-            Button:
-                text: 'Press for options'
+        PartsManager:
+            id: parts_manager
         StatusLabel:
             id: status
 

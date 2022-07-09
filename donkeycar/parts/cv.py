@@ -2,7 +2,7 @@ import time
 import cv2
 import numpy as np
 
-from donkeycar.parts.part import Creatable
+from donkeycar.parts.part import Creatable, PartType
 from donkeycar.utilities.deprecated import deprecated
 
 
@@ -169,6 +169,8 @@ class ArrowKeyboardControls:
 
 
 class CvCam(Creatable):
+    part_type = PartType.SENSE
+
     def __init__(self, image_w=160, image_h=120, image_d=3, iCam=0):
         super().__init__(image_w=image_w, image_h=image_h, iCam=iCam)
         self.frame = None

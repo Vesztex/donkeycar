@@ -39,7 +39,7 @@ class Builder:
                 if type(v) is str and v[:4].lower() == 'cfg.':
                     arguments[k] = getattr(self.cfg, v[4:])
 
-    def build_vehicle(self, kwargs):
+    def build_vehicle(self, kwargs={}):
         """
         This function creates the car from the yaml file. Allows overwriting of
         of constructor parameters in the yaml through kwargs dictionary.

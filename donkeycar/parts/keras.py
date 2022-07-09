@@ -68,7 +68,7 @@ class KerasPilot(ABC, Creatable, metaclass=KerasMeta):
         logger.info(f'Created {self} with interpreter: {interpreter}')
 
     @classmethod
-    def create(cls, cfg, model, model_type):
+    def create(cls, cfg, model=None, model_type='linear'):
         """
         Creation of Autopilot using a model_type, like 'linear' or
         'tflite_linear'. If no argument 'model' is given, then a new model

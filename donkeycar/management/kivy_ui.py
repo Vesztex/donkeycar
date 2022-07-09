@@ -43,6 +43,7 @@ from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.types import TubRecord
 from donkeycar.utils import get_model_by_type
 from donkeycar.pipeline.training import train
+from donkeycar.builder import Builder as DkBuilder
 
 Logger.propagate = False
 
@@ -1341,7 +1342,17 @@ class PartsManager(BoxLayout):
         pass
 
     def plot_car(self):
-        pass
+        path = getattr(self.config, 'ASSEMBLY_PATH', None)
+        car_name = self.ids.car_name.text
+        yml = os.path.join(path, f'{car_name}.yml')
+        b = DkBuilder(self.config, yml)
+        try:
+            v = b.build_vehicle()
+            b.plot_vehicle(v, 'app')
+            assembly_screen().ids.status.text = 'Showing vehicle flow'
+        except Exception as e:
+            assembly_screen().ids.status.text = f'Error in building vehicle: {e}'
+            Logger.error(e)
 
 
 class AssemblyScreen(Screen):

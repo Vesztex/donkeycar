@@ -44,43 +44,50 @@ class PiCamera(BaseCamera):
     """
     def __init__(self, image_w=160, image_h=120, image_d=3, framerate=20,
                  vflip=False, hflip=False):
-        from picamera.array import PiRGBArray
-        from picamera import PiCamera
+
         super().__init__(image_w=image_w, image_h=image_h, image_d=image_d,
                          framerate=framerate, vflip=vflip, hflip=hflip)
 
         # PiCamera gets resolution (height, width) initialize the camera and
         # stream
-        resolution = (image_w, image_h)
-        self.camera = PiCamera()
-        self.camera.resolution = resolution
-        self.camera.framerate = framerate
-        self.camera.vflip = vflip
-        self.camera.hflip = hflip
-        self.rawCapture = PiRGBArray(self.camera, size=resolution)
-        self.stream = self.camera.capture_continuous(
-            self.rawCapture, format="rgb", use_video_port=True)
+        try:
+            from picamera.array import PiRGBArray
+            from picamera import PiCamera
+            resolution = (image_w, image_h)
+            self.camera = PiCamera()
+            self.camera.resolution = resolution
+            self.camera.framerate = framerate
+            self.camera.vflip = vflip
+            self.camera.hflip = hflip
+            self.rawCapture = PiRGBArray(self.camera, size=resolution)
+            self.stream = self.camera.capture_continuous(
+                self.rawCapture, format="rgb", use_video_port=True)
 
-        # initialize the frame and the variable used to indicate
-        # if the thread should be stopped
-        self.on = True
-        self.image_d = image_d
+            # initialize the frame and the variable used to indicate
+            # if the thread should be stopped
+            self.on = True
+            self.image_d = image_d
 
-        # get the first frame or timeout
-        logger.info('PiCamera loaded...')
-        if self.stream is not None:
-            logger.info('PiCamera opened...')
-            warming_time = time.time() + 5  # quick after 5 seconds
-            while self.frame is None and time.time() < warming_time:
-                logger.info("...warming camera")
-                self.run()
-                time.sleep(0.2)
+            # get the first frame or timeout
+            logger.info('PiCamera loaded...')
+            if self.stream is not None:
+                logger.info('PiCamera opened...')
+                warming_time = time.time() + 5  # quick after 5 seconds
+                while self.frame is None and time.time() < warming_time:
+                    logger.info("...warming camera")
+                    self.run()
+                    time.sleep(0.2)
 
-            if self.frame is None:
-                raise CameraError("Unable to start PiCamera.")
-        else:
-            raise CameraError("Unable to open PiCamera.")
-        logger.info("PiCamera ready.")
+                if self.frame is None:
+                    raise CameraError("Unable to start PiCamera.")
+            else:
+                raise CameraError("Unable to open PiCamera.")
+            logger.info("PiCamera ready.")
+
+        except Exception as e:
+            logger.error(f'PiCamera could not be initialised because: {e} - '
+                         f'this is sufficient to analyse the vehicle loop, '
+                         f'but you cannot use that part.')
 
     def run(self):
         """

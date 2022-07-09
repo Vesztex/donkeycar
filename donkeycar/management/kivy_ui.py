@@ -1339,7 +1339,37 @@ class PartsManager(BoxLayout):
                 Logger.error(e)
 
     def load_yaml(self):
-        pass
+        path = getattr(self.config, 'ASSEMBLY_PATH', None)
+        if not path:
+            txt = 'You need to set ASSEMBLY_PATH in your config'
+            assembly_screen().ids.status.text = txt
+            Logger.error(txt)
+        else:
+            car_name = self.ids.car_name.text
+            file_name = os.path.join(path, f'{car_name}.yml')
+            variables = set()
+            try:
+                self.ids.grid.clear_widgets()
+                with open(file_name) as f:
+                    car_description = yaml.safe_load(f)
+                parts = car_description.get('parts')
+                for p in parts:
+                    assert(isinstance(p, dict))
+                    assert(len(p) == 1)
+                    part_name, part_dict = next(iter(p.items()))
+                    self.add_part_button(part_name, part_dict)
+                    if 'inputs' in part_dict:
+                        variables.update(part_dict['inputs'])
+                    if 'outputs' in part_dict:
+                        variables.update(part_dict['outputs'])
+                    if 'run_condition' in part_dict:
+                        variables.update(part_dict['run_condition'])
+                assembly_screen().variables = variables
+                assembly_screen().ids.status.text = f'Read {file_name}'
+            except yaml.YAMLError as e:
+                Logger.error(e)
+            except Exception as e:
+                Logger.error(e)
 
     def plot_car(self):
         path = getattr(self.config, 'ASSEMBLY_PATH', None)
@@ -1351,7 +1381,7 @@ class PartsManager(BoxLayout):
             b.plot_vehicle(v, 'app')
             assembly_screen().ids.status.text = 'Showing vehicle flow'
         except Exception as e:
-            assembly_screen().ids.status.text = f'Error in building vehicle: {e}'
+            assembly_screen().ids.status.text = f'Error in vehicle: {e}'
             Logger.error(e)
 
 

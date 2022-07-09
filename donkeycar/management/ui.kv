@@ -9,6 +9,7 @@
 #:set layout_height common_height + layout_pad_x
 #:set layout_height_double 2 * common_height + layout_pad_x
 #:set layout_pad_xy [layout_pad_x, layout_pad_x // 2]
+#:set layout_pad_xy2 [layout_pad_x // 2, layout_pad_x // 4]
 #:set pt_asym_factor 0.3
 #:set supported_models ['linear', 'categorical', 'inferred', 'memory', 'behavior', 'localizer', 'rnn', '3d']
 #:set drive_models [pre + t for pre in['', 'tflite_', 'tensorrt_'] for t in supported_models ]
@@ -806,7 +807,7 @@
     orientation: 'vertical'
     Label:
         text: 'Create part'
-    BoxLayout:
+    PaddedBoxLayout:
         orientation: 'horizontal'
         Label:
             text: 'Part family'
@@ -823,8 +824,7 @@
         Button:
             text: 'Part info'
             on_press: root.open_info_popup()
-
-    BoxLayout:
+    PaddedBoxLayout:
         orientation: 'horizontal'
         MySpinner:
             size_hint_x: 0.5
@@ -842,7 +842,7 @@
             id: args_label
             text: str(root.args)
 
-    BoxLayout:
+    PaddedBoxLayout:
         orientation: 'horizontal'
         Button:
             size_hint_x: 0.5
@@ -857,7 +857,7 @@
             id: inputs_label
             text: ', '.join(root.inputs)
 
-    BoxLayout:
+    PaddedBoxLayout:
         orientation: 'horizontal'
         Button:
             size_hint_x: 0.5
@@ -872,7 +872,7 @@
             id: outputs_label
             text: ', '.join(root.outputs)
 
-    BoxLayout:
+    PaddedBoxLayout:
         orientation: 'horizontal'
         Label:
             text: 'Set run_condition'
@@ -886,10 +886,11 @@
             text: 'Threaded'
         CheckBox:
             id: threaded_checkbox
-            on_active: root.threaded = True
-    BoxLayout:
+            on_active: root.threaded = self.active
+
+    PaddedBoxLayout:
         AutoLabel:
-            text: 'Clear input / output / run_condition fields?'
+            text: 'Clear fields?'
         Button:
             text: 'Clear'
             on_press:
@@ -903,6 +904,8 @@
                 root.add_part()
 
 <PartsManager>:
+    padding: layout_pad_xy
+    spacing: layout_pad_x
     config: app.tub_screen.ids.config_manager.config
     orientation: 'horizontal'
     ScrollView:
@@ -911,9 +914,11 @@
             id: grid
             cols: 1
             spacing: 5
-            size_hint_y: 1.1
+            size_hint_y: 1.5
 
     GridLayout:
+        padding: layout_pad_xy
+        spacing: layout_pad_x
         cols: 2
         # orientation: 'vertical'
         Button:
@@ -953,11 +958,8 @@
             size_hint_y: None
             height: layout_height
             text: 'Define variables'
-        BoxLayout:
+        PaddedBoxLayout:
             orientation: 'horizontal'
-            size_hint_y: None
-            height: layout_height
-
             AutoLabel:
                 text: 'Type variable name and hit return to add:'
             TextInput:
@@ -979,13 +981,15 @@
                     if var_spinner.text != var_box_text: root.variables.remove(var_spinner.text); status.text = 'Removed variable ' + var_spinner.text
                     var_spinner.text = var_box_text
         PartBuilder:
-            id:  part_builder
+            size_hint_y: 1.2
+            id: part_builder
             variables: root.variables
         Label:
             height: layout_height
             size_hint_y: None
-            text: 'Selected parts'
+            text: 'Arrange parts and create / save / load and analyse car'
         PartsManager:
+            size_hint_y: 0.8
             id: parts_manager
         StatusLabel:
             id: status

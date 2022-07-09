@@ -105,6 +105,9 @@ class Vehicle:
                  'run_condition': run_condition, 'name': part_name}
 
         if threaded:
+            assert hasattr(part, 'update'), \
+                f'{class_name} has no update method, hence cannot be added ' \
+                f'as threaded part'
             t = Thread(target=part.update, args=())
             t.daemon = True
             entry['thread'] = t

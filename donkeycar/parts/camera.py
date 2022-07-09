@@ -20,8 +20,11 @@ class BaseCamera(Creatable):
 
     def run_threaded(self):
         """
-        Threaded interface for donkey parts.
-        :return: image array if available from the camera, otherwise None
+        Threaded interface for donkey parts. Returns the last recorded frame
+        instantaneously.
+
+        :return np.array:   image array if available from the camera, otherwise
+                            None
         """
         return self.frame
 
@@ -81,7 +84,10 @@ class PiCamera(BaseCamera):
 
     def run(self):
         """
-        Donkey car parts interface for threaded parts
+        Donkey car parts interface for non-threaded parts. Method captures a
+        new frame from the stream and then returns it.
+
+        :return np.array: image array
         """
         # grab the frame from the stream and clear the stream in
         # preparation for the next frame
@@ -321,7 +327,7 @@ class CSICamera(BaseCamera):
         self.running = False
         logger.info('Stopping CSICamera')
         time.sleep(.5)
-        del(self.camera)
+        del self.camera
 
 
 class V4LCamera(BaseCamera):

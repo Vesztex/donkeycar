@@ -875,13 +875,13 @@
     BoxLayout:
         orientation: 'horizontal'
         Label:
-            text: 'Set runcondition'
+            text: 'Set run_condition'
         MySpinner:
-            id: runcondition_spinner
+            id: run_condition_spinner
             values: root.variables
             on_text:
                 root.run_condition = self.text
-                app.assembly_screen.ids.status.text = 'Runcondition set to: ' + self.text
+                app.assembly_screen.ids.status.text = 'Run_condition set to: ' + self.text
         Label:
             text: 'Threaded'
         CheckBox:
@@ -889,7 +889,7 @@
             on_active: root.threaded = True
     BoxLayout:
         AutoLabel:
-            text: 'Clear input / output / runcondition fields?'
+            text: 'Clear input / output / run_condition fields?'
         Button:
             text: 'Clear'
             on_press:
@@ -917,10 +917,10 @@
         orientation: 'vertical'
         Button:
             text: 'Move part up'
-            on_press: root.up()
+            on_press: root.move_part(up=True)
         Button:
             text: 'Move part down'
-            on_press: root.down()
+            on_press: root.move_part(up=False)
         Button:
             text: 'Remove part'
             on_press: root.remove()

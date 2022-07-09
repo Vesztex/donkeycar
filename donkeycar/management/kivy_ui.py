@@ -1183,7 +1183,7 @@ class PartBuilder(BoxLayout):
         self.run_condition = ''
         self.threaded = False
         self.ids.inputs_spinner.text = self.ids.outputs_spinner.text = ''
-        self.ids.runcondition_spinner.text = ''
+        self.ids.run_condition_spinner.text = ''
         self.ids.arg_input.text = 'Set argument'
         self.ids.threaded_checkbox.active = False
         assembly_screen().ids.status.text = 'Fields cleared.'
@@ -1228,9 +1228,10 @@ class PartBuilder(BoxLayout):
 
 class PartButton(ToggleButton):
 
-    def __init__(self, manager, **kwargs):
+    def __init__(self, manager, part_dict, **kwargs):
         super().__init__(**kwargs)
         self.manager = manager
+        self.part_dict = part_dict
 
     def on_press(self):
         # if now pressed, unselect / unpress current selected button
@@ -1249,23 +1250,40 @@ class PartButton(ToggleButton):
 
 
 class PartsManager(BoxLayout):
-    selected_parts = ListProperty()
     selected_part = ObjectProperty(allownone=True)
 
     def add_part(self, part_name, part_dict):
-        self.selected_parts.append(part_dict)
-        btn = PartButton(manager=self, text=part_name,
+        btn = PartButton(manager=self, part_dict=part_dict, text=part_name,
                          size_hint_y=None, height=50)
         self.ids.grid.add_widget(btn)
 
-    def up(self):
-        pass
-
-    def down(self):
-        pass
+    def move_part(self, up=True):
+        if self.selected_part is None:
+            return
+        part_list = list(self.ids.grid.walk(restrict=True))[1:]
+        i_part = part_list.index(self.selected_part)
+        shift = None
+        # only shift up if part is not already on top
+        if i_part > 0 and up:
+            shift = -1
+        # only shift down if part is not already on bottom
+        elif i_part < len(part_list) - 1 and not up:
+            shift = 1
+        # if no action needed return
+        if not shift:
+            return
+        # swap the two parts
+        part_list[i_part + shift], part_list[i_part] \
+            = part_list[i_part], part_list[i_part + shift]
+        # rebuild the grid layout in new order
+        self.ids.grid.clear_widgets()
+        for part in part_list:
+            self.ids.grid.add_widget(part)
 
     def remove(self):
-        pass
+        if self.selected_part:
+            self.ids.grid.remove_widget(self.selected_part)
+            self.selected_part = None
 
 
 class AssemblyScreen(Screen):

@@ -1225,6 +1225,22 @@ class PartBuilder(BoxLayout):
     def selected_part(self):
         return
 
+    def add_part(self):
+        if self.ids.parts_spinner.text != 'Part':
+            part_dict = dict(threaded=self.threaded)
+            if self.args:
+                part_dict['arguments'] = dict(self.args)
+            if self.inputs:
+                part_dict['inputs'] = list(self.inputs)
+            if self.outputs:
+                part_dict['outputs'] = list(self.outputs)
+            if self.run_condition:
+                part_dict['run_condition'] = self.run_condition
+
+            assembly_screen().ids.parts_manager.add_part_button(
+                self.ids.parts_spinner.text, part_dict)
+            self.clear()
+
 
 class PartButton(ToggleButton):
 
@@ -1251,31 +1267,44 @@ class PartButton(ToggleButton):
 
 class PartsManager(BoxLayout):
     selected_part = ObjectProperty(allownone=True)
+    config = ObjectProperty()
 
-    def add_part(self, part_name, part_dict):
+    def add_part_button(self, part_name, part_dict):
         btn = PartButton(manager=self, part_dict=part_dict, text=part_name,
                          size_hint_y=None, height=50)
         self.ids.grid.add_widget(btn)
 
     def move_part(self, up=True):
+        """
+        Moving the selected part in the assembly line up or down. Nothing
+        happens if we have selected the top part and want to move it or or
+        the bottom part and we want to move it down. In kivy we cannot easily
+        change the order of children widgets, without disrupting the integrity
+        of the parent layout. Therefore we have to find the position of the
+        selected part and then re-stack the layout according to the new
+        ordering.
+
+        :param bool up:     indicator if moving up or down
+        """
         if self.selected_part is None:
             return
+        # first result of walk is the GridLayout itself which we need to skip
         part_list = list(self.ids.grid.walk(restrict=True))[1:]
         i_part = part_list.index(self.selected_part)
         shift = None
-        # only shift up if part is not already on top
+        # only shift up if part is not already on top of list
         if i_part > 0 and up:
             shift = -1
-        # only shift down if part is not already on bottom
+        # only shift down if part is not already at bottom of list
         elif i_part < len(part_list) - 1 and not up:
             shift = 1
-        # if no action needed return
+        # if no action needed, return
         if not shift:
             return
         # swap the two parts
         part_list[i_part + shift], part_list[i_part] \
             = part_list[i_part], part_list[i_part + shift]
-        # rebuild the grid layout in new order
+        # rebuild the grid layout with new ordering
         self.ids.grid.clear_widgets()
         for part in part_list:
             self.ids.grid.add_widget(part)
@@ -1284,6 +1313,35 @@ class PartsManager(BoxLayout):
         if self.selected_part:
             self.ids.grid.remove_widget(self.selected_part)
             self.selected_part = None
+
+    def save_yaml(self):
+        it = iter(self.ids.grid.walk(restrict=True))
+        # first one is the GridLayout itself, this we need to skip
+        next(it)
+        # all others are the PartButtons
+        all_parts = [{i.text: i.part_dict} for i in it]
+        d = dict(parts=all_parts)
+        path = getattr(self.config, 'ASSEMBLY_PATH', None)
+        if not path:
+            txt = 'You need to set ASSEMBLY_PATH in your config'
+            assembly_screen().ids.status.text = txt
+            Logger.error(txt)
+        else:
+            car_name = self.ids.car_name.text
+            file_name = os.path.join(path, f'{car_name}.yml')
+            try:
+                with open(file_name, 'w', encoding="utf-8") as file:
+                    s = yaml.dump(d, file)
+                    Logger.info(f'Wrote {file_name}')
+                    assembly_screen().ids.status.text = f'Wrote {file_name}'
+            except Exception as e:
+                Logger.error(e)
+
+    def load_yaml(self):
+        pass
+
+    def plot_car(self):
+        pass
 
 
 class AssemblyScreen(Screen):

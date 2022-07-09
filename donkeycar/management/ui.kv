@@ -900,10 +900,10 @@
             id: addpart_button
             text: '+'
             on_press:
-                root.clear()
-                if parts_spinner.text != 'Part': app.assembly_screen.ids.parts_manager.add_part(parts_spinner.text, {})
+                root.add_part()
 
 <PartsManager>:
+    config: app.tub_screen.ids.config_manager.config
     orientation: 'horizontal'
     ScrollView:
         id: parts_list
@@ -913,18 +913,35 @@
             spacing: 5
             size_hint_y: 1.1
 
-    BoxLayout:
-        orientation: 'vertical'
+    GridLayout:
+        cols: 2
+        # orientation: 'vertical'
         Button:
             text: 'Move part up'
             on_press: root.move_part(up=True)
         Button:
+            text: 'Remove part'
+            on_press: root.remove()
+        Button:
             text: 'Move part down'
             on_press: root.move_part(up=False)
         Button:
-            text: 'Remove part'
-            on_press: root.remove()
-
+            text: 'Show part'
+            on_press:
+        Button:
+            text: 'Save car'
+            on_press: root.save_yaml()
+        Button:
+            text: 'Load car'
+            on_press: root.load_yaml()
+        TextInput:
+            id: car_name
+            multiline: False
+            text: 'car'
+        Button:
+            id: button_plot
+            text: 'Plot car'
+            on_press: root.plot_car()
 
 <AssemblyScreen>:
     BoxLayout:

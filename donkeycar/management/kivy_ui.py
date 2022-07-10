@@ -1193,7 +1193,8 @@ class PartBuilder(BoxLayout):
         part_l = part_name.lower()
         if part_l not in ['parts', '']:
             self.known_args \
-                = CreatableFactory.get_args_of_method(part_l, 'create')
+                = CreatableFactory.get_args_of_method(part_l, 'create') or \
+                    CreatableFactory.get_args_of_method(part_l, '__init__')
 
     def get_run_doc(self, part_name):
         part_l = part_name.lower()
@@ -1215,16 +1216,14 @@ class PartBuilder(BoxLayout):
 
     def get_construction_doc(self, part_name):
         part_l = part_name.lower()
-        s = CreatableFactory.get_docstring_of_method(part_l, 'create')
+        s = CreatableFactory.get_docstring_of_method(part_l, 'create') or \
+            CreatableFactory.get_docstring_of_method(part_l, '__init__')
         return s
 
     def open_info_popup(self):
         part = self.ids.parts_spinner.text
-        self.info_popup = PartInfoPopup(selected_part=part)
-        self.info_popup.open()
-
-    def selected_part(self):
-        return
+        popup = PartInfoPopup(selected_part=part)
+        popup.open()
 
     def add_part(self):
         if self.ids.parts_spinner.text != 'Part':
@@ -1264,6 +1263,10 @@ class PartButton(ToggleButton):
             assembly_screen().ids.status.text \
                 = f'Unselected {self.manager.selected_part.text}'
             self.manager.selected_part = None
+
+
+class PartPopup(Popup):
+    selected_part = ObjectProperty()
 
 
 class PartsManager(BoxLayout):
@@ -1383,6 +1386,12 @@ class PartsManager(BoxLayout):
         except Exception as e:
             assembly_screen().ids.status.text = f'Error in vehicle: {e}'
             Logger.error(e)
+
+    def show_part(self):
+        if not self.selected_part:
+            return
+        popup = PartPopup(selected_part=self.selected_part)
+        popup.open()
 
 
 class AssemblyScreen(Screen):

@@ -768,6 +768,8 @@
 
     BoxLayout:
         orientation: "vertical"
+        padding: layout_pad_xy
+        spacing: layout_pad_x
         GridLayout:
             cols: 2
             Label:
@@ -794,12 +796,53 @@
             ScrollableLabel:
                 DocLabel:
                     text: app.assembly_screen.ids.part_builder.get_run_threaded_doc(root.selected_part)
-        Label:
-            size_hint_y: 0.05
         Button:
             size_hint_y: 0.1
             text: 'Close'
             on_press: root.dismiss()
+
+<PartPopup>:
+    title: "Part: " + self.selected_part.text
+    size_hint: 1.0, 1.0
+    auto_dismiss: False
+    pos_hint: {'center_x': .5, 'center_y': .5}
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: layout_pad_xy
+        spacing: layout_pad_x
+        GridLayout:
+            cols: 2
+            Label:
+                size_hint_x: pt_asym_factor
+                text: 'Arguments'
+            Label:
+                text: str(root.selected_part.part_dict.get('arguments', ''))
+            Label:
+                size_hint_x: pt_asym_factor
+                text: 'Inputs'
+            Label:
+                text: str(root.selected_part.part_dict.get('inputs', ''))
+            Label:
+                size_hint_x: pt_asym_factor
+                text: 'Outputs'
+            Label:
+                text: str(root.selected_part.part_dict.get('outputs', ''))
+            Label:
+                size_hint_x: pt_asym_factor
+                text: 'Run condition'
+            Label:
+                text: str(root.selected_part.part_dict.get('run_condition', ''))
+            Label:
+                size_hint_x: pt_asym_factor
+                text: 'Threaded'
+            Label:
+                text: str(root.selected_part.part_dict.get('threaded', ''))
+        Button:
+            size_hint_y: 0.1
+            text: 'Close'
+            on_press: root.dismiss()
+
 
 #: set var_box_text 'Select variable to delete'
 
@@ -932,7 +975,7 @@
             on_press: root.move_part(up=False)
         Button:
             text: 'Show part'
-            on_press:
+            on_press: root.show_part()
         Button:
             text: 'Save car'
             on_press: root.save_yaml()

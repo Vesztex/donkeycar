@@ -21,7 +21,7 @@ class Pipeline:
 class Dispatcher(Creatable):
     """
     This part is a generic dispatcher that reads an index i and a tuple of
-    arguments and then returns the i'th argument. This is often used in the
+    arguments and then returns the i'th argument. This logic is used in the
     car app for example when we want to switch between user/throttle and
     pilot/throttle depending on another user input, for example the web
     controller button or a remote control button.
@@ -29,12 +29,18 @@ class Dispatcher(Creatable):
     part_type = PartType.PROCESS
 
     def __init__(self, num_args=2):
+        """
+        Creating part Dispatcher
+
+        :param int num_args: expected number of arguments, defaults to two.
+        """
         super().__init__(num_args=num_args)
         self.num_args = num_args
 
     def run(self, index=0, *args):
         """
         Donkeycar parts interface
+
         :param int index:   index of argument to return
         :param tuple args:  tuple of arguments
         :return:            chosen argument
@@ -49,17 +55,26 @@ class Dispatcher(Creatable):
 class Checker(Creatable):
     """
     This part is a generic variable checker that checks if an input variable
-    at runtime matches the value of the value given in the constructor or at
-    least one entry if a list is given to the constructor.
+    at runtime matches the value (or any value if it is a list) given in the
+    constructor
     """
     part_type = PartType.PROCESS
 
     def __init__(self, must_match=None):
+        """
+        Create part Checker
+
+        :param Any/list must_match: value or list of values which the input
+                                    will be compared against.
+        """
         super().__init__(must_match=must_match)
         self.must_match = must_match
 
     def run(self, input):
         """
+        This method return True if the input value matches the saved value (
+        or one of the saved values) given in the constructor.
+
         :param Any input:   An input value
         :return bool:       True if the value equals the saved value or is in
                             the iterable of the saved values

@@ -101,12 +101,18 @@ class RemoteWebServer:
 
 
 class LocalWebController(Application, Creatable):
+    """ Part that runs a local web server on the car (or wherever the donkey
+    car software is started on). Connecting to the web server through your
+    browser allows you to view the current camera image and to use a game
+    controller or the web page embedded track pad to drive the car. It also
+    allows to start/stop the recording.
+    """
 
     def __init__(self, port=8887, mode='user'):
-        '''
+        """
         Create and publish variables needed on many of
         the web handlers.
-        '''
+        """
         Creatable.__init__(self, port=port, mode=mode)
         logger.info('Starting Donkey Server...')
 
@@ -164,10 +170,14 @@ class LocalWebController(Application, Creatable):
 
     def run_threaded(self, img_arr=None, num_records=0, mode=None, recording=None):
         """
-        :param img_arr: current camera image or None
-        :param num_records: current number of data records
-        :param mode: default user/mode
-        :param recording: default recording mode
+        :param np.array img_arr:    Current camera image or None
+        :param int num_records:     Current number of data records
+        :param str mode:            Default mode, 'user' or 'local angle' or
+                                    'local pilot'
+        :param recording:           Default recording mode
+        :return tuple:              Returns a tuple of angle (float),
+                                    throttle (float), mode (str) and
+                                    recording (bool).
         """
         self.img_arr = img_arr
         self.num_records = num_records
@@ -213,14 +223,21 @@ class LocalWebController(Application, Creatable):
 
         return self.angle, self.throttle, self.mode, self.recording, buttons
 
-    def run(self, img_arr=None, num_records=0, mode=None, recording=None):
-        return self.run_threaded(img_arr, num_records, mode, recording)
-
     def shutdown(self):
         self.loop.stop()
 
     @classmethod
     def create(cls, cfg, port=None, mode=None):
+        """
+        Creation of the WebController using the config file.
+
+        :param Config cfg:  donkey config object
+        :param int port:    port number, defaults to config parameter
+                            WEB_CONTROL_PORT if not overwritten
+        :param str mode:    web controller start up mode, defaults to config
+                            parameter WEB_INIT_MODE if not overwritten
+        :return LocalWebController:
+        """
         port = port or cfg.WEB_CONTROL_PORT
         mode = mode or cfg.WEB_INIT_MODE
         return LocalWebController(port=port, mode=mode)

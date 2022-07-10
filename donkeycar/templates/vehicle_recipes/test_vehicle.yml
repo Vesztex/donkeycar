@@ -33,13 +33,13 @@ parts:
       inputs: [run_pilot, user/angle, pilot/angle]
       outputs: [angle]
   - checker:
-      # check if user/mode is user or locql_angle because then we use user/throttle
+      # check if user/mode is user or local_angle because then we use user/throttle
       arguments:
         must_match: [user, local_angle]
       inputs: [user/mode]
       outputs: [use_user/throttle]
   - dispatcher:
-    # if user_throttle is true return user/throttle else return pilot/throttle
+    # if use_user/throttle is true return user/throttle else return pilot/throttle
       inputs: [use_user/throttle, pilot/throttle, user/throttle]
       outputs: [throttle]
   - pwmsteering:

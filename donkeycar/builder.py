@@ -1,4 +1,4 @@
-
+import os
 from copy import copy
 
 import yaml
@@ -95,7 +95,7 @@ class Builder:
 
         return car
 
-    def plot_vehicle(self, car, filename, save=False):
+    def plot_vehicle(self, car, view=True):
         """
         Function to provide a graphviz (dot) plot of the vehicle
         architecture. This is meant to be an auxiliary helper to control the
@@ -104,7 +104,7 @@ class Builder:
         free-form text strings.
 
         :param Vehicle car: input car to be plotted
-        :param bool save:   if plot should be saved
+        :param bool view:   if plot should be saved
         """
         g = graphviz.Digraph('Vehicle', filename=filename)
         g.attr('node', shape='box', ordering='out')
@@ -146,7 +146,8 @@ class Builder:
             elif io == 'o':
                 g.edge(name, 'Not used', var, color='red')
 
-        g.render(view=True, cleanup=True)
+        filename = os.path.join(self.cfg.ASSEMBLY_PATH, 'car.pdf')
+        g.render(filename=filename, view=view, cleanup=True)
 
     @staticmethod
     def traverse_parts(car_parts, g, var_data):

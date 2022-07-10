@@ -108,13 +108,15 @@ class Tub(object):
 
 class TubWriter(Creatable):
     """
-    A Donkey part, which can write records to the datastore.
+    A Donkey part, which writes records to the datastore.
     """
     part_type = PartType.PROCESS
 
     def __init__(self, base_path, inputs=[], types=[], metadata=[],
                  max_catalog_len=1000):
         """
+        Creation of TubWriter part.
+
         :param str base_path:           path of tub
         :param list(str) inputs:        list of input variable names
         :param list(str) types:         list of input variable types

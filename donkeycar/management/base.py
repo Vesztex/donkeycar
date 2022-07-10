@@ -574,8 +574,8 @@ class CarPlot(BaseCommand):
         yml = args.app
         b = Builder(cfg, yml)
         v = b.build_vehicle(kwargs)
-        b.plot_vehicle(v, save=args.save,
-                       filename=os.path.splitext(os.path.basename(yml))[0])
+        b.plot_vehicle(v, filename=os.path.splitext(os.path.basename(yml))[0],
+                       view=args.save)
 
 
 class Drive(BaseCommand):

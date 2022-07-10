@@ -21,12 +21,12 @@ def format_func_doc(s):
     sp = parse(s)
     text = (sp.short_description or '') + ' ' + (sp.long_description or '')
     text += '\n\nInput and return parameters:'
-    pt = prettytable.PrettyTable(field_names=
-                                 ['Number', 'Parameter', 'Type', 'Description'])
+    pt = prettytable.PrettyTable(
+        field_names=['Number', 'Parameter', 'Type', 'Description'])
     for i, param in enumerate(sp.params):
         pt.add_row([i, param.arg_name, param.type_name, param.description])
-
-    pt.add_row(['', 'return', sp.returns.type_name, sp.returns.description])
+    if sp.returns:
+        pt.add_row(['', 'return', sp.returns.type_name, sp.returns.description])
     text += '\n' + pt.get_string()
     return text
 
@@ -89,8 +89,9 @@ class CreatableFactory(type):
         try:
             mem_func = getattr(cls.registry[creatable], method)
             s = inspect.getdoc(mem_func) or ''
-            s = format_func_doc(s)
-            return s
+            # only format the docstring if it is non-empty
+            s_format = format_func_doc(s) if s else s
+            return s_format
         except AttributeError:
             logger.warning(f'Part {creatable} has no {method} method')
             return ''

@@ -267,16 +267,17 @@ class TubLoader(BoxLayout, FileChooserBase):
             tub_screen().status(f'Failed loading tub: {str(e)}')
             return False
         # Check if filter is set in tub screen
-        expression = tub_screen().ids.tub_filter.filter_expression
+        # expression = tub_screen().ids.tub_filter.filter_expression
+        train_filter = getattr(cfg, 'TRAIN_FILTER', None)
 
         # Use filter, this defines the function
         def select(underlying):
-            if not expression:
+            if not train_filter:
                 return True
             else:
                 try:
                     record = TubRecord(cfg, self.tub.base_path, underlying)
-                    res = eval(expression)
+                    res = train_filter(record)
                     return res
                 except KeyError as err:
                     Logger.error(f'Filter: {err}')
@@ -291,8 +292,6 @@ class TubLoader(BoxLayout, FileChooserBase):
             msg = f'Loaded tub {self.file_path} with {self.len} records'
         else:
             msg = f'No records in tub {self.file_path}'
-        if expression:
-            msg += f' using filter {tub_screen().ids.tub_filter.record_filter}'
         tub_screen().status(msg)
         return True
 
@@ -543,22 +542,33 @@ class TubFilter(PaddedBoxLayout):
 
     def update_filter(self):
         filter_text = self.ids.record_filter.text
+        config = tub_screen().ids.config_manager.config
         # empty string resets the filter
         if filter_text == '':
             self.record_filter = ''
             self.filter_expression = ''
             rc_handler.data['record_filter'] = self.record_filter
+            if hasattr(config, 'TRAIN_FILTER'):
+                delattr(config, 'TRAIN_FILTER')
             tub_screen().status(f'Filter cleared')
             return
         filter_expression = self.create_filter_string(filter_text)
         try:
             record = tub_screen().current_record
-            res = eval(filter_expression)
+            filter_func_text = f"""def filter_func(record): 
+                                       return {filter_expression}       
+                                """
+            # creates the function 'filter_func'
+            ldict = {}
+            exec(filter_func_text, globals(), ldict)
+            filter_func = ldict['filter_func']
+            res = filter_func(record)
             status = f'Filter result on current record: {res}'
             if isinstance(res, bool):
                 self.record_filter = filter_text
                 self.filter_expression = filter_expression
                 rc_handler.data['record_filter'] = self.record_filter
+                setattr(config, 'TRAIN_FILTER', filter_func)
             else:
                 status += ' - non bool expression can\'t be applied'
             status += ' - press <Reload tub> to see effect'
@@ -757,7 +767,7 @@ class OverlayImage(FullImage):
 
         rgb = (0, 0, 255)
         MakeMovie.draw_line_into_image(output[0], output[1], True, img_arr, rgb)
-        out_record = deepcopy(record)
+        out_record = copy(record)
         out_record.underlying['pilot/angle'] = output[0]
         # rename and denormalise the throttle output
         pilot_throttle_field \
@@ -951,10 +961,9 @@ class TrainScreen(Screen):
         pilot_txt, tub_txt, pilot_names = self.database.pretty_print(group_tubs)
         self.ids.scroll_tubs.text = tub_txt
         self.ids.scroll_pilots.text = pilot_txt
-        self.ids.transfer_spinner.values \
-            = ['Choose transfer model'] + pilot_names
-        self.ids.delete_spinner.values \
-            = ['Pilot'] + pilot_names
+        values = ['Choose transfer model'] + pilot_names
+        self.ids.transfer_spinner.values = values
+        self.ids.delete_spinner.values = values
 
 
 class CarScreen(Screen):

@@ -168,7 +168,8 @@ class LocalWebController(Application, Creatable):
                     logger.warn("Error writing websocket message", exc_info=e)
                     pass
 
-    def run_threaded(self, img_arr=None, num_records=0, mode=None, recording=None):
+    def run_threaded(self, img_arr=None, num_records=0,
+                     mode=None, recording=None):
         """
         :param np.array img_arr:    Current camera image or None
         :param int num_records:     Current number of data records

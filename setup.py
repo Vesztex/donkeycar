@@ -78,7 +78,8 @@ setup(name='donkeycar',
               'pandas',
               'pyyaml',
               'plotly',
-              'imgaug'
+              'imgaug',
+              'graphviz'
           ],
           'dev': [
               'pytest',

@@ -38,6 +38,7 @@ dependencies:
   - psutil
   - fastai
   - docstring_parser
+  - graphviz
   - pip:
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid

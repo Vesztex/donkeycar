@@ -39,6 +39,7 @@ dependencies:
   - tensorflow=2.2.0
   - fastai
   - docstring_parser
+  - graphviz
   - pynmea2
   - pyserial
   - utm

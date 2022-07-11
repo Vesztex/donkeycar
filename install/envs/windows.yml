@@ -38,6 +38,7 @@ dependencies:
   - psutil
   - fastai
   - docstring_parser
+  - graphviz
   - pynmea2
   - pyserial
   - utm

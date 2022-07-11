@@ -13,7 +13,7 @@ def server():
 
 
 def test_json_output(server):
-    result = server.run()
+    result = server.run_threaded()
     json_result = json.dumps(result)
     d = json.loads(json_result)
     

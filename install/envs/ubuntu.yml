@@ -39,7 +39,7 @@ dependencies:
   - tensorflow=2.2.0
   - fastai
   - docstring_parser
-  - graphviz
+  - python-graphviz
   - pip:
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid

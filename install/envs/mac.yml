@@ -37,7 +37,7 @@ dependencies:
   - pyyaml
   - fastai
   - docstring_parser
-  - graphviz
+  - python-graphviz
   - pip:
     - tensorflow==2.2.0
     - git+https://github.com/autorope/keras-vis.git

@@ -75,19 +75,21 @@ class KerasPilot(ABC, Creatable, metaclass=KerasMeta):
         will be created. If 'model' is given, this is interpreted as a path
         and the corresponding model will be loaded. For example a path could
         be '~mycar/models/pilot_22-06-07_12.tflite'. Such a path would
-        indicate the model is of type 'tflite_linear' or 'tflite_categorical' or
-        similar.
+        indicate the model is of type 'tflite_linear' or 'tflite_categorical'
+        or similar.
 
         :param Config cfg:      Donkeycar config object
         :param str model:       Optional path to existing (trained) model. Will
                                 usually be a string like
                                 '~/mycar/models/pilot.h5'. If the string is
                                 passed, a model will be loaded from that
-                                path, if it is ommited, a new model will be
+                                path, if it is omitted, a new model will be
                                 created.
         :param str model_type:  Type of model like 'linear', 'categorical'.
                                 Can be pre-fixed with tflite or trt models,
                                 like 'tflite_linear', 'trt_categorical'.
+                                Defaults to the model type DEFAULT_MODEL_TYPE in
+                                the config.
         :return KerasPilot:     Returns a KerasPilot part
         """
         from donkeycar.utils import get_model_by_type

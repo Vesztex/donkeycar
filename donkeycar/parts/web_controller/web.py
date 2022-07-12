@@ -178,7 +178,7 @@ class LocalWebController(Application, Creatable):
         :param int num_records:     Current number of data records
         :param str mode:            Default mode, 'user' or 'local angle' or
                                     'local pilot'
-        :param recording:           Default recording mode
+        :param bool recording:      Default recording mode
         :return tuple:              Returns a tuple of angle (float),
                                     throttle (float), mode (str) and
                                     recording (bool).
@@ -240,7 +240,7 @@ class LocalWebController(Application, Creatable):
                             WEB_CONTROL_PORT if not overwritten
         :param str mode:    web controller start up mode, defaults to config
                             parameter WEB_INIT_MODE if not overwritten
-        :return LocalWebController:
+        :return LocalWebController: web controller instance
         """
         port = port or cfg.WEB_CONTROL_PORT
         mode = mode or cfg.WEB_INIT_MODE

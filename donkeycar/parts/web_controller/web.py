@@ -104,8 +104,11 @@ class LocalWebController(Application, Creatable):
     """ Part that runs a local web server on the car (or wherever the donkey
     car software is started on). Connecting to the web server through your
     browser allows you to view the current camera image and to use a game
-    controller or the web page embedded track pad to drive the car. It also
-    allows to start/stop the recording.
+    controller or the web page embedded track pad to drive the car. The web
+    controller allows to switch between different modes, like driving with
+    the controller, or with the autopilot or in mixed mode, with steering
+    from autopilot and user controlled throttle. It also allows to start/stop
+    the recording.
     """
 
     def __init__(self, port=8887, mode='user'):

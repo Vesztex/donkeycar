@@ -175,15 +175,14 @@ class LocalWebController(Application, Creatable):
         :param np.array img_arr:    Current camera image or None
         :param int num_records:     Current number of data records
         :param str mode:            Default mode, 'user' or 'local angle' or
-                                    'local pilot'
-        :param bool recording:      Default recording mode
+                                    'local pilot' - optional parameter
+        :param bool recording:      Default recording mode - optional parameter
         :return tuple:              Returns a tuple of angle (float),
                                     throttle (float), mode (str) and
                                     recording (bool).
         """
         self.img_arr = img_arr
         self.num_records = num_records
-
         #
         # enforce defaults if they are not none.
         #
@@ -388,6 +387,12 @@ class WebFpv(Application, Creatable):
     part_type = PartType.PROCESS
 
     def __init__(self, port=8890):
+        """
+        Creates the WebFpv part. This starts a webserver with a single page
+        containing the camera image of the car and nothing else.
+
+        :param int port: Optional port number, defaults to 8890 if not given.
+        """
         Creatable.__init__(self, port=port)
         self.port = port
         this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -403,22 +408,25 @@ class WebFpv(Application, Creatable):
 
         settings = {'debug': True}
         Application.__init__(self, handlers, **settings)
-        print("Started Web FPV server. You can now go to {}.local:{} to "
-              "view the car camera".format(gethostname(), self.port))
+        logger.info(f"Started Web FPV server. You can now go to "
+                    f"{gethostname()}.local:{self.port} to view the car camera")
         self.loop = None
         self.img_arr = None
 
     def update(self):
-        """ Start the tornado webserver. """
+        """ Thread interface for donkey car. Start the tornado webserver. """
         asyncio.set_event_loop(asyncio.new_event_loop())
         self.loop = tornado.ioloop.IOLoop.current()
         self.listen(self.port)
         self.loop.start()
 
     def run_threaded(self, img_arr=None):
-        self.img_arr = img_arr
+        """
+        Donkeycar interface for threaded parts. The parts reads an image
+        array and displays is on the webservers endpoint.
 
-    def run(self, img_arr=None):
+        :param np.array img_arr:    camera image to be displayed
+        """
         self.img_arr = img_arr
 
     def shutdown(self):

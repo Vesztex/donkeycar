@@ -24,6 +24,7 @@ class Builder:
         """
         self.cfg = cfg
         self.car_file = car_file
+        assert os.path.exists(self.car_file), f"file {car_file} does not exist"
 
     def insert_config(self, arguments):
         """
@@ -104,9 +105,9 @@ class Builder:
         free-form text strings.
 
         :param Vehicle car: input car to be plotted
-        :param bool view:   if plot should be saved
+        :param bool view:   if plot should be viewed instantaneously
         """
-        g = graphviz.Digraph('Vehicle', filename=filename)
+        g = graphviz.Digraph('Vehicle')
         g.attr('node', shape='box', ordering='out')
         car_parts = car.parts
 
@@ -146,7 +147,8 @@ class Builder:
             elif io == 'o':
                 g.edge(name, 'Not used', var, color='red')
 
-        filename = os.path.join(self.cfg.ASSEMBLY_PATH, 'car.pdf')
+        base_name = os.path.splitext(os.path.basename(self.car_file))[0]
+        filename = os.path.join(self.cfg.ASSEMBLY_PATH, base_name)
         g.render(filename=filename, view=view, cleanup=True)
 
     @staticmethod

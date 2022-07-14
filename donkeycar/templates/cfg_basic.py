@@ -1,14 +1,7 @@
 """ 
 CAR CONFIG 
 
-This file is read by your car application's manage.py script to change the car
-performance. 
-
-EXAMPLE
------------
-import dk
-cfg = dk.load_config(config_path='~/mycar/config.py')
-print(cfg.CAMERA_RESOLUTION)
+This file is read by the donkey commands for driving, training, etc.
 
 """
 
@@ -32,39 +25,27 @@ IMAGE_W = 160
 IMAGE_H = 120
 IMAGE_DEPTH = 3         # default RGB=3, make 1 for mono
 CAMERA_FRAMERATE = DRIVE_LOOP_HZ
-CAMERA_VFLIP = False
-CAMERA_HFLIP = False
-# For CSIC camera - If the camera is mounted in a rotated position, changing the below parameter will correct the output frame orientation
-CSIC_CAM_GSTREAMER_FLIP_PARM = 0 # (0 => none , 4 => Flip horizontally, 6 => Flip vertically)
 
-#9865, over rides only if needed, ie. TX2..
-PCA9685_I2C_ADDR = 0x40
-PCA9685_I2C_BUSNUM = None
-
-#STEERING
-STEERING_CHANNEL = 1
-STEERING_LEFT_PWM = 460
-STEERING_RIGHT_PWM = 290
-
-#THROTTLE
-THROTTLE_CHANNEL = 0
-THROTTLE_FORWARD_PWM = 500
-THROTTLE_STOPPED_PWM = 370
-THROTTLE_REVERSE_PWM = 220
-
-DRIVE_TRAIN_TYPE = "SERVO_ESC" # SERVO_ESC|DC_STEER_THROTTLE|DC_TWO_WHEEL|SERVO_HBRIDGE_PWM|PIGPIO_PWM|MM1|MOCK
-
-# #LIDAR
-USE_LIDAR = False
-LIDAR_TYPE = 'RP' #(RP|YD)
-LIDAR_LOWER_LIMIT = 44 # angles that will be recorded. Use this to block out obstructed areas on your car, or looking backwards. Note that for the RP A1M8 Lidar, "0" is in the direction of the motor
-LIDAR_UPPER_LIMIT = 136
-
-# #RC CONTROL
-USE_RC = False
-STEERING_RC_GPIO = 26
-THROTTLE_RC_GPIO = 20
-DATA_WIPER_RC_GPIO = 19
+#
+# PWM_STEERING_THROTTLE
+#
+# Drive train for RC car with a steering servo and ESC.
+# Uses a PwmPin for steering (servo) and a second PwmPin for throttle (ESC)
+# Base PWM Frequence is presumed to be 60hz; use PWM_xxxx_SCALE to adjust pulse with for non-standard PWM frequencies
+#
+PWM_STEERING_THROTTLE = {
+    "PWM_STEERING_PIN": "PCA9685.1:40.1",   # PWM output pin for steering servo
+    "PWM_STEERING_SCALE": 1.0,              # used to compensate for PWM frequency differents from 60hz; NOT for adjusting steering range
+    "PWM_STEERING_INVERTED": False,         # True if hardware requires an inverted PWM pulse
+    "PWM_THROTTLE_PIN": "PCA9685.1:40.0",   # PWM output pin for ESC
+    "PWM_THROTTLE_SCALE": 1.0,              # used to compensate for PWM frequence differences from 60hz; NOT for increasing/limiting speed
+    "PWM_THROTTLE_INVERTED": False,         # True if hardware requires an inverted PWM pulse
+    "STEERING_LEFT_PWM": 460,               #pwm value for full left steering
+    "STEERING_RIGHT_PWM": 290,              #pwm value for full right steering
+    "THROTTLE_FORWARD_PWM": 500,            #pwm value for max forward throttle
+    "THROTTLE_STOPPED_PWM": 370,            #pwm value for no movement
+    "THROTTLE_REVERSE_PWM": 220,            #pwm value for max reverse throttle
+}
 
 #LOGGING
 HAVE_CONSOLE_LOGGING = True
@@ -142,7 +123,7 @@ USE_JOYSTICK_AS_DEFAULT = False     #when starting the manage.py, when True, wil
 JOYSTICK_MAX_THROTTLE = 0.5         #this scalar is multiplied with the -1 to 1 throttle value to limit the maximum throttle. This can help if you drop the controller or just don't need the full speed available.
 JOYSTICK_STEERING_SCALE = 1.0       #some people want a steering that is less sensitve. This scalar is multiplied with the steering -1 to 1. It can be negative to reverse dir.
 AUTO_RECORD_ON_THROTTLE = True      #if true, we will record whenever throttle is not zero. if false, you must manually toggle recording with some other trigger. Usually circle button on joystick.
-CONTROLLER_TYPE='ps3'               #(ps3|ps4|xbox|nimbus|wiiu|F710|rc3|MM1|custom) custom will run the my_joystick.py controller written by the `donkey createjs` command
+CONTROLLER_TYPE = 'ps3'             #(# ps3|ps4|xbox|nimbus|wiiu|F710|rc3|MM1|custom) custom will run the my_joystick.py controller written by the `donkey createjs` command
 USE_NETWORKED_JS = False            #should we listen for remote joystick control over the network?
 NETWORK_JS_SERVER_IP = "192.168.0.1"#when listening for network joystick control, which ip is serving this information
 JOYSTICK_DEADZONE = 0.0             # when non zero, this is the smallest throttle before recording triggered.
@@ -157,20 +138,3 @@ WEB_INIT_MODE = "user"              # which control mode to start in. one of use
 #DRIVING
 AI_THROTTLE_MULT = 1.0              # this multiplier will scale every throttle value for all output from NN models
 
-
-#DonkeyGym
-#Only on Ubuntu linux, you can use the simulator as a virtual donkey and
-#issue the same python manage.py drive command as usual, but have them control a virtual car.
-#This enables that, and sets the path to the simualator and the environment.
-#You will want to download the simulator binary from: https://github.com/tawnkramer/donkey_gym/releases/download/v18.9/DonkeySimLinux.zip
-#then extract that and modify DONKEY_SIM_PATH.
-DONKEY_GYM = False
-DONKEY_SIM_PATH = "path to sim" #"/home/tkramer/projects/sdsandbox/sdsim/build/DonkeySimLinux/donkey_sim.x86_64" when racing on virtual-race-league use "remote", or user "remote" when you want to start the sim manually first.
-DONKEY_GYM_ENV_NAME = "donkey-generated-track-v0" # ("donkey-generated-track-v0"|"donkey-generated-roads-v0"|"donkey-warehouse-v0"|"donkey-avc-sparkfun-v0")
-GYM_CONF = { "body_style" : "donkey", "body_rgb" : (128, 128, 128), "car_name" : "car", "font_size" : 100} # body style(donkey|bare|car01) body rgb 0-255
-GYM_CONF["racer_name"] = "Your Name"
-GYM_CONF["country"] = "Place"
-GYM_CONF["bio"] = "I race robots."
-
-SIM_HOST = "127.0.0.1"              # when racing on virtual-race-league use host "trainmydonkey.com"
-SIM_ARTIFICIAL_LATENCY = 0          # this is the millisecond latency in controls. Can use useful in emulating the delay when useing a remote server. values of 100 to 400 probably reasonable.

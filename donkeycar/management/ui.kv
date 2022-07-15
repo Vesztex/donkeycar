@@ -873,17 +873,18 @@
             size_hint_x: 0.5
             id: args_spinner
             values: root.known_args
+            on_text:
+                app.assembly_screen.ids.status.text = 'Use json syntax like "abc" for strings and true/false for bool'
         TextInput:
             id: arg_input
             multiline: False
             size_hint_x: 0.5
             text: 'Set argument'
             on_text_validate:
-                root.args[args_spinner.text] = self.text
-                app.assembly_screen.ids.status.text = 'Set argument ' + args_spinner.text + ' to: ' + self.text
+                root.fill_arguments()
         AutoLabel:
             id: args_label
-            text: str(root.args)
+            text: root.pretty_print(root.args)
 
     PaddedBoxLayout:
         orientation: 'horizontal'

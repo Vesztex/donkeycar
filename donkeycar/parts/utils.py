@@ -52,6 +52,76 @@ class Dispatcher(Creatable):
         return args[int(index)]
 
 
+class MultiDispatcher(Creatable):
+    """
+    This part is a generic dispatcher that is constructed with a list of
+    keys. In the vehicle loop it compares the first input to the elements of
+    the key list and finds its index n. Then it returns the n'th input of the
+    remaining arguments.
+
+    For example:
+
+    m = MultiDispatcher(keys=['cat', 'dog', 'bird'])
+    output = m.run('dog', input_0, input_1, input_2)
+
+    will return input_1 as output, because 'dog' is the second element of the
+    key list, i.e. it has index 1. Note, the key needs to match one list
+    element, otherwise an error is thrown.
+
+    Alternatively the Dispatcher can be initialised without any keys and the
+    index can be passed directly to the run function:
+
+    m = Dispatcher()
+    output = m.run(2, input_0, input_1, input_2)
+
+    will return input_2 as output. Note the index needs to be smaller than
+    the number of following arguments.
+
+    This dispatcher logic is used in the car app for switching between
+    user/throttle and pilot/throttle depending on another user input,
+    like the web controller mode or a remote control button.
+    """
+    part_type = PartType.PROCESS
+
+    def __init__(self, keys=None):
+        """
+        Creating part MultiDispatcher
+
+        :param int num_args: expected number of arguments, defaults to two.
+        """
+        super().__init__(keys=keys)
+        self.keys = keys
+
+    def run(self, key, *args):
+        """
+        The method returns a single argument of the *args tuple that is
+        passed in. The selection depends on the key argument passed in first.
+        If the Dispatcher part has been initialised with a list, then the key
+        will be found in the list and the argument of the matching index is
+        returned. If key is an integer, the corresponding argument will be
+        returned. Note, counting starts at zero.
+
+        :param int/any key:     Either index of argument to return, or key to
+                                compare against key list passed in construction.
+        :param tuple args:      Tuple of arguments
+        :return:                Chosen argument
+        """
+        # multiple asserts first
+        if isinstance(key, (int, bool)):
+            assert self.keys == None, \
+                "Cannot call run() method with an integer or bool index, " \
+                "because Dispatcher has been created with a key list."
+            # cast to int, in case it is a bool
+            index = int(key)
+            assert index < len(args)
+
+        assert len(args) == self.num_args, \
+            f"Expected {self.num_args} arguments, but got {len(args)}"
+        assert int(index) < self.num_args, \
+            f"Can only use index < {self.num_args}"
+        return args[int(index)]
+
+
 class Checker(Creatable):
     """
     This part is a generic variable checker that checks if an input variable

@@ -1234,6 +1234,23 @@ class PartBuilder(BoxLayout):
         popup = PartInfoPopup(selected_part=part)
         popup.open()
 
+    def fill_arguments(self):
+        arg_text = self.ids.arg_input.text
+        try:
+            val = json.loads(arg_text)
+        except Exception as e:
+            Logger.error(f'Error parsing {arg_text}: {e}')
+            val = arg_text
+
+        arg_name = self.ids.args_spinner.text
+        self.args[arg_name] = val
+        assembly_screen().ids.status.text \
+            = f'Setting argument {arg_name} to: {val} of type' \
+              f' {type(val).__name__}'
+
+    def pretty_print(self, args):
+        return ', '.join(f'{k}:{v}' for k, v in args.items())
+
     def add_part(self):
         if self.ids.parts_spinner.text != 'Part':
             part_dict = dict(threaded=self.threaded)

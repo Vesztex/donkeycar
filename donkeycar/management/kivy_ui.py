@@ -1375,7 +1375,9 @@ class PartsManager(BoxLayout):
                     if 'outputs' in part_dict:
                         variables.update(part_dict['outputs'])
                     if 'run_condition' in part_dict:
-                        variables.update(part_dict['run_condition'])
+                        # because run_condition is a string and not a list we
+                        # need to wrap it into a list for update to work
+                        variables.update([part_dict['run_condition']])
                 assembly_screen().variables = variables
                 assembly_screen().ids.status.text = f'Read {file_name}'
             except yaml.YAMLError as e:

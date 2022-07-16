@@ -843,7 +843,12 @@
         AutoLabel:
             id: args_label
             text: root.pretty_print(root.args)
-
+        Button:
+            size_hint_x: None
+            size: (self.size[1], self.size[1])
+            id: button_clear_args
+            text: '[X]'
+            on_press: root.args.clear()
     PaddedBoxLayout:
         orientation: 'horizontal'
         Button:
@@ -858,7 +863,12 @@
         AutoLabel:
             id: inputs_label
             text: ', '.join(root.inputs)
-
+        Button:
+            size_hint_x: None
+            size: (self.size[1], self.size[1])
+            id: button_clear_inputs
+            text: '[X]'
+            on_press: root.inputs = []
     PaddedBoxLayout:
         orientation: 'horizontal'
         Button:
@@ -873,7 +883,12 @@
         AutoLabel:
             id: outputs_label
             text: ', '.join(root.outputs)
-
+        Button:
+            size_hint_x: None
+            size: (self.size[1], self.size[1])
+            id: button_clear_outputs
+            text: '[X]'
+            on_press: root.outputs = []
     PaddedBoxLayout:
         orientation: 'horizontal'
         Label:

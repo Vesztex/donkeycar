@@ -1200,7 +1200,7 @@ class PartBuilder(BoxLayout):
 
     def set_known_args(self, part_name):
         part_l = part_name.lower()
-        if part_l not in ['parts', '']:
+        if part_l not in ['part', '']:
             self.known_args \
                 = CreatableFactory.get_args_of_method(part_l, 'create') or \
                     CreatableFactory.get_args_of_method(part_l, '__init__')
@@ -1279,30 +1279,47 @@ class PartButton(ToggleButton):
         # if now pressed, unselect / unpress current selected button
         if self.state == 'down':
             unselect = ''
-            if self.manager.selected_part:
-                self.manager.selected_part.state = 'normal'
-                unselect = f', unselected {self.manager.selected_part.text}'
-            self.manager.selected_part = self
+            if self.manager.selected_button:
+                self.manager.selected_button.state = 'normal'
+                unselect = f', unselected {self.manager.selected_button.text}'
+            self.manager.selected_button = self
             assembly_screen().ids.status.text = f'Selected {self.text}{unselect}'
         # else unselect self from selected state
         else:
             assembly_screen().ids.status.text \
-                = f'Unselected {self.manager.selected_part.text}'
-            self.manager.selected_part = None
-
-
-class PartPopup(Popup):
-    selected_part = ObjectProperty()
+                = f'Unselected {self.manager.selected_button.text}'
+            self.manager.selected_button = None
 
 
 class PartsManager(BoxLayout):
-    selected_part = ObjectProperty(allownone=True)
+    selected_button = ObjectProperty(allownone=True)
     config = ObjectProperty()
+    part_builder = ObjectProperty()
 
     def add_part_button(self, part_name, part_dict):
         btn = PartButton(manager=self, part_dict=part_dict, text=part_name,
                          size_hint_y=None, height=50)
         self.ids.grid.add_widget(btn)
+
+    def on_selected_button(self, manager, button):
+        # button = self.selected_button, update all fields in part builder
+        # with content from selected button, so they can be displayed and
+        # edited.
+        if button:
+            threaded = button.part_dict.get('threaded')
+            arguments = button.part_dict.get('arguments', {})
+            inputs = button.part_dict.get('inputs', [])
+            outputs = button.part_dict.get('outputs', [])
+            run_condition = button.part_dict.get('run_condition', '')
+            self.part_builder.ids.parts_spinner.text = button.text
+            self.part_builder.args = arguments
+            self.part_builder.inputs = inputs
+            self.part_builder.outputs = outputs
+            self.part_builder.threaded = threaded
+            self.part_builder.run_condition = run_condition
+        else:
+            self.part_builder.clear()
+            self.part_builder.ids.parts_spinner.text = 'Part'
 
     def move_part(self, up=True):
         """
@@ -1316,11 +1333,11 @@ class PartsManager(BoxLayout):
 
         :param bool up:     indicator if moving up or down
         """
-        if self.selected_part is None:
+        if self.selected_button is None:
             return
         # first result of walk is the GridLayout itself which we need to skip
         part_list = list(self.ids.grid.walk(restrict=True))[1:]
-        i_part = part_list.index(self.selected_part)
+        i_part = part_list.index(self.selected_button)
         shift = None
         # only shift up if part is not already on top of list
         if i_part > 0 and up:
@@ -1340,9 +1357,9 @@ class PartsManager(BoxLayout):
             self.ids.grid.add_widget(part)
 
     def remove(self):
-        if self.selected_part:
-            self.ids.grid.remove_widget(self.selected_part)
-            self.selected_part = None
+        if self.selected_button:
+            self.ids.grid.remove_widget(self.selected_button)
+            self.selected_button = None
 
     def save_yaml(self):
         it = iter(self.ids.grid.walk(restrict=True))
@@ -1414,12 +1431,6 @@ class PartsManager(BoxLayout):
         except Exception as e:
             assembly_screen().ids.status.text = f'Error in vehicle: {e}'
             Logger.error(e)
-
-    def show_part(self):
-        if not self.selected_part:
-            return
-        popup = PartPopup(selected_part=self.selected_part)
-        popup.open()
 
 
 class AssemblyScreen(Screen):

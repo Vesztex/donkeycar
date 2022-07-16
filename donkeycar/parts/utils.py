@@ -62,7 +62,7 @@ class Dispatcher(Creatable):
         if keys is not None:
             assert isinstance(keys, list), f"Input keys can only be None or " \
                                            f"list but it was {keys}"
-            assert len(list) > 1, \
+            assert len(keys) > 1, \
                 f'Input list needs more than one entries, but has {len(list)}'
         super().__init__(keys=keys)
         self.keys = keys

@@ -574,6 +574,7 @@ class PCA9685:
     produce a duty cycle at the given frequency.
     """
     def __init__(self, busnum: int, address: int, frequency: int):
+        self.pwm = None
         try:
             import Adafruit_PCA9685
             if busnum is not None:
@@ -598,10 +599,12 @@ class PCA9685:
         return self._frequency
 
     def set_high(self, channel: int):
-        self.pwm.set_pwm(channel, 4096, 0)
+        if self.pwm:
+            self.pwm.set_pwm(channel, 4096, 0)
 
     def set_low(self, channel: int):
-        self.pwm.set_pwm(channel, 0, 4096)
+        if self.pwm:
+            self.pwm.set_pwm(channel, 0, 4096)
 
     def set_duty_cycle(self, channel: int, duty_cycle: float):
         if duty_cycle < 0 or duty_cycle > 1:

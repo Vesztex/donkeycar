@@ -1248,10 +1248,10 @@ class PartBuilder(BoxLayout):
             = f'Setting argument {arg_name} to: {val} of type' \
               f' {type(val).__name__}'
 
-    def pretty_print(self, args):
+    def pretty_print_dict(self, args):
         return ', '.join(f'{k}:{v}' for k, v in args.items())
 
-    def add_part(self):
+    def add_update_part(self, add=True):
         if self.ids.parts_spinner.text != 'Part':
             part_dict = dict(threaded=self.threaded)
             if self.args:
@@ -1263,9 +1263,12 @@ class PartBuilder(BoxLayout):
             if self.run_condition:
                 part_dict['run_condition'] = self.run_condition
 
-            assembly_screen().ids.parts_manager.add_part_button(
-                self.ids.parts_spinner.text, part_dict)
-            self.clear()
+            if add:
+                assembly_screen().ids.parts_manager.add_part_button(
+                    self.ids.parts_spinner.text, part_dict)
+                self.clear()
+            else:
+                assembly_screen().ids.parts_manager.selected_button.part_dict.update(part_dict)
 
 
 class PartButton(ToggleButton):
@@ -1317,9 +1320,11 @@ class PartsManager(BoxLayout):
             self.part_builder.outputs = outputs
             self.part_builder.threaded = threaded
             self.part_builder.run_condition = run_condition
+            self.part_builder.ids.update_part_button.disabled = False
         else:
             self.part_builder.clear()
             self.part_builder.ids.parts_spinner.text = 'Part'
+            self.part_builder.ids.update_part_button.disabled = True
 
     def move_part(self, up=True):
         """

@@ -1,12 +1,9 @@
-import atexit
 import os
 import time
-from datetime import datetime
-import json
-
 import numpy as np
 from PIL import Image
 
+from donkeycar.parts.datastore import TubHandler
 from donkeycar.parts.datastore_v2 import Manifest, ManifestIterator
 from donkeycar.parts.part import Creatable, PartType
 
@@ -132,9 +129,10 @@ class TubWriter(Creatable):
         Run method of donkey car interface
 
         :param tuple args:  List of data to be written into the tub. The
-                            order and type need to match the inputs / types
-                            parameters given in the constructor
-        :return int:        current (last) index in tub
+                            order and type of the arguments need to match the
+                            inputs / types parameters given in the
+                            constructor, otherwise an error is thrown.
+        :return int:        Current (=last) index in tub
         """
         assert len(self.tub.inputs) == len(args), \
             f'Expected {len(self.tub.inputs)} inputs but received {len(args)}'
@@ -152,8 +150,30 @@ class TubWriter(Creatable):
         self.close()
 
     @classmethod
-    def create(cls, cfg, **kwargs):
-        return TubWriter(base_path=cfg.DATA_PATH, **kwargs)
+    def create(cls, cfg, inputs=[], types=[], metadata=[]):
+        """
+        Construction of TubWriter part.
+
+        This uses the donkey config parameters DATA_PATH for the path of the
+        new tub. If the parameter AUTO_CREATE_NEW_TUB is set, then a new tub
+        with path tub_N_YY-MM-DD is created in the data folder, with N being
+        incremented automatically. Otherwise, the tub data is directly
+        written to the data path.
+
+        :param Config cfg:              Donkey car config
+        :param list[str] inputs:        List of input parameters that will be
+                                        accepted in the run method.
+        :param list[str] types:         List of types of the input parameters
+        :param list[tuple] metadata:    Optional list of key/value pairs of
+                                        metadata that can be stored in the tub.
+                                        Will erase previous metadata, if given.
+        :return TubWriter:              TubWriter part
+        """
+        tub_path = TubHandler(path=cfg.DATA_PATH).create_tub_path() if \
+            cfg.AUTO_CREATE_NEW_TUB else cfg.DATA_PATH
+        tub_writer = TubWriter(tub_path, inputs=inputs, types=types,
+                               metadata=metadata)
+        return tub_writer
 
 
 class TubWiper:

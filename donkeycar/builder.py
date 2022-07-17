@@ -149,7 +149,8 @@ class Builder:
 
         base_name = os.path.splitext(os.path.basename(self.car_file))[0]
         filename = os.path.join(self.cfg.ASSEMBLY_PATH, base_name)
-        g.render(filename=filename, view=view, cleanup=True)
+        rendered_file = g.render(filename=filename, view=view, cleanup=True)
+        logger.info(f'Wrote file {rendered_file}')
 
     @staticmethod
     def traverse_parts(car_parts, g, var_data):

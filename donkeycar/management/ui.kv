@@ -832,6 +832,7 @@
             id: args_spinner
             values: root.known_args
             on_text:
+                arg_input.text = ''
                 app.assembly_screen.ids.status.text = 'Use json syntax like "abc" for strings and true/false for bool'
         TextInput:
             id: arg_input
@@ -921,6 +922,7 @@
         Button:
             id: update_part_button
             text: 'Update ' + parts_spinner.text
+            disabled: True
             on_press:
                 root.add_update_part(add=False)
 

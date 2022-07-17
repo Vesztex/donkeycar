@@ -1388,6 +1388,8 @@ class PartsManager(BoxLayout):
                     assembly_screen().ids.status.text = f'Wrote {file_name}'
             except Exception as e:
                 Logger.error(e)
+                assembly_screen().ids.status.text \
+                    = f'Writing {file_name} failed, please check console output'
 
     def load_yaml(self):
         path = getattr(self.config, 'ASSEMBLY_PATH', None)
@@ -1421,8 +1423,14 @@ class PartsManager(BoxLayout):
                 assembly_screen().ids.status.text = f'Read {file_name}'
             except yaml.YAMLError as e:
                 Logger.error(e)
+                assembly_screen().ids.status.text \
+                    = f'Error in yaml parsing of {file_name}, please ' \
+                      f'check console output'
             except Exception as e:
                 Logger.error(e)
+                assembly_screen().ids.status.text \
+                    = f'Error in loading {file_name}, please check console ' \
+                      f'output'
 
     def plot_car(self):
         path = getattr(self.config, 'ASSEMBLY_PATH', None)
@@ -1496,6 +1504,8 @@ class DonkeyApp(App):
 
 
 def main():
+    import logging
+    logging.basicConfig(level=logging.INFO)
     tub_app = DonkeyApp()
     tub_app.run()
 

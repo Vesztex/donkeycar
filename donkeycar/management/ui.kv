@@ -842,7 +842,7 @@
                 root.fill_arguments()
         AutoLabel:
             id: args_label
-            text: root.pretty_print(root.args)
+            text: root.pretty_print_dict(root.args)
         Button:
             size_hint_x: None
             size: (self.size[1], self.size[1])
@@ -913,13 +913,16 @@
             text: 'Clear'
             on_press:
                 root.clear()
-        Label:
-            text: 'Add ' + parts_spinner.text
         Button:
-            id: addpart_button
-            text: '+'
+            id: add_part_button
+            text: 'Add ' + parts_spinner.text
             on_press:
-                root.add_part()
+                root.add_update_part(add=True)
+        Button:
+            id: update_part_button
+            text: 'Update ' + parts_spinner.text
+            on_press:
+                root.add_update_part(add=False)
 
 <PartsManager>:
     padding: layout_pad_xy
@@ -930,9 +933,9 @@
         id: parts_list
         GridLayout:
             id: grid
+            row_default_height: common_height
             cols: 1
-            spacing: 5
-            size_hint_y: 1.5
+            size_hint_y: 3.0
 
     GridLayout:
         padding: layout_pad_xy

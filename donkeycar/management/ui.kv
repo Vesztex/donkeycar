@@ -805,6 +805,7 @@
 #: set var_box_text 'Select variable to delete'
 
 <PartBuilder>:
+    config: app.tub_screen.ids.config_manager.config
     orientation: 'vertical'
     Label:
         text: 'Create part'
@@ -830,6 +831,7 @@
         MySpinner:
             size_hint_x: 0.5
             id: args_spinner
+            text_autoupdate: True
             values: root.known_args
             on_text:
                 arg_input.text = ''

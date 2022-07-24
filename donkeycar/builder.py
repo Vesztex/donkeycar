@@ -85,7 +85,8 @@ class Builder:
                     extract_kwargs = extract(kwargs, part_name)
                     part_args.update(extract_kwargs)
                     # create part
-                    part = CreatableFactory.make(part_name, self.cfg, part_args)
+                    part = CreatableFactory.make(part_name, self.cfg,
+                                                 **part_args)
                     # adding part to vehicle
                     inputs = part_params.get('inputs', [])
                     outputs = part_params.get('outputs', [])

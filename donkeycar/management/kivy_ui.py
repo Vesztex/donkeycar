@@ -36,7 +36,7 @@ from kivy.uix.spinner import SpinnerOption, Spinner
 from kivy.uix.togglebutton import ToggleButton
 
 from donkeycar import load_config
-from donkeycar.parts import CreatableFactory
+from donkeycar.parts import CreatableFactory, PartType
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.augmentations import ImageAugmentation
 from donkeycar.pipeline.database import PilotDatabase
@@ -1177,6 +1177,7 @@ class PartInfoPopup(Popup):
 
 
 class PartBuilder(BoxLayout):
+    config = ObjectProperty()
     known_args = ListProperty()
     args = DictProperty()
     inputs = ListProperty()
@@ -1197,6 +1198,12 @@ class PartBuilder(BoxLayout):
         self.ids.arg_input.text = 'Set argument'
         self.ids.threaded_checkbox.active = False
         assembly_screen().ids.status.text = 'Fields cleared.'
+
+    def on_config(self, builder, cfg):
+        # builder == self here
+        part_type = PartType[self.ids.part_type_spinner.text or 'NONE']
+        self.ids.parts_spinner.values \
+            = CreatableFactory.get_all_classes_by_part_type(part_type)
 
     def set_known_args(self, part_name):
         part_l = part_name.lower()
@@ -1315,6 +1322,7 @@ class PartsManager(BoxLayout):
             outputs = button.part_dict.get('outputs', [])
             run_condition = button.part_dict.get('run_condition', '')
             self.part_builder.ids.parts_spinner.text = button.text
+            self.part_builder.ids.parts_spinner.disabled = True
             self.part_builder.args = arguments
             self.part_builder.inputs = inputs
             self.part_builder.outputs = outputs
@@ -1325,6 +1333,7 @@ class PartsManager(BoxLayout):
             self.part_builder.clear()
             self.part_builder.ids.parts_spinner.text = 'Part'
             self.part_builder.ids.update_part_button.disabled = True
+            self.part_builder.ids.parts_spinner.disabled = False
 
     def move_part(self, up=True):
         """

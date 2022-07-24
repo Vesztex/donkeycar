@@ -50,7 +50,7 @@ class CreatableFactory(type):
             cls.arg_registry[l_name] = all_params
 
     @classmethod
-    def make(mcs, creatable, cfg, kwargs):
+    def make(mcs, creatable, cfg, **kwargs):
         return mcs.registry[creatable.lower()].create(cfg, **kwargs)
 
     @classmethod
@@ -160,4 +160,4 @@ if __name__ == '__main__':
             args = {}
             if type(v) is dict and 'arguments' in v:
                 args = v['arguments']
-            part = CreatableFactory.make(k, cfg, args)
+            part = CreatableFactory.make(k, cfg, **args)

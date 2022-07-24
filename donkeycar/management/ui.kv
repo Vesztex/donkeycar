@@ -955,8 +955,11 @@
         Button:
             text: 'Move part down'
             on_press: root.move_part(up=False)
-        Label:
-            text: ''
+        Button:
+            text: 'Unload car'
+            on_press:
+                grid.clear_widgets()
+                car_name.text = 'car'
         Button:
             text: 'Save car'
             on_press: root.save_yaml()

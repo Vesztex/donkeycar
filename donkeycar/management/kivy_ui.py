@@ -1323,6 +1323,9 @@ class PartsManager(BoxLayout):
             run_condition = button.part_dict.get('run_condition', '')
             self.part_builder.ids.parts_spinner.text = button.text
             self.part_builder.ids.parts_spinner.disabled = True
+            cls = CreatableFactory.registry[self.selected_button.text.lower()]
+            self.part_builder.ids.part_type_spinner.text = cls.part_type.name
+            self.part_builder.ids.part_type_spinner.disabled = True
             self.part_builder.args = arguments
             self.part_builder.inputs = inputs
             self.part_builder.outputs = outputs
@@ -1332,8 +1335,10 @@ class PartsManager(BoxLayout):
         else:
             self.part_builder.clear()
             self.part_builder.ids.parts_spinner.text = 'Part'
-            self.part_builder.ids.update_part_button.disabled = True
             self.part_builder.ids.parts_spinner.disabled = False
+            self.part_builder.ids.part_type_spinner.text = 'NONE'
+            self.part_builder.ids.part_type_spinner.disabled = False
+            self.part_builder.ids.update_part_button.disabled = True
 
     def move_part(self, up=True):
         """

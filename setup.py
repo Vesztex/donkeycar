@@ -50,7 +50,8 @@ setup(name='donkeycar',
           'typing_extensions',
           'pyfiglet',
           'psutil',
-          'docstring_parser'
+          'docstring_parser',
+          'pyyaml'
       ],
       extras_require={
           'pi': [

@@ -290,27 +290,21 @@ class Manifest(object):
         # Automatically save config when program ends
         atexit.register(exit_hook)
 
-    def write_record(self, record, index=None):
-        if index is None:
-            new_catalog = self.current_index > 0 \
-                          and (self.current_index % self.max_len) == 0
-            if new_catalog:
-                self._add_catalog()
+    def write_record(self, record):
+        new_catalog = self.current_index > 0 \
+                      and (self.current_index % self.max_len) == 0
+        if new_catalog:
+            self._add_catalog()
 
-            self.current_catalog.write_record(record)
-            self.current_index += 1
-            # Update metadata to keep track of the last index
-            self._update_catalog_metadata(update=True)
-            # Set session_id update status to True if this method is called at
-            # least once. Then session id metadata  will be updated when the
-            # session gets closed
-            if not self._updated_session:
-                self._updated_session = True
-        else:
-            self._set_catalog(index)
-            relative_index = index % self.max_len
-            self.current_catalog.write_record(record, relative_index)
-            self._reset_catalog()
+        self.current_catalog.write_record(record)
+        self.current_index += 1
+        # Update metadata to keep track of the last index
+        self._update_catalog_metadata(update=True)
+        # Set session_id update status to True if this method is called at
+        # least once. Then session id metadata  will be updated when the
+        # session gets closed
+        if not self._updated_session:
+            self._updated_session = True
 
     def delete_records(self, record_indexes):
         # Does not actually delete the record, but marks it as deleted.

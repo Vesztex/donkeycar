@@ -51,7 +51,8 @@ setup(name='donkeycar',
           'pyfiglet',
           'psutil',
           'docstring_parser',
-          'pyyaml'
+          'pyyaml',
+          'python-graphviz'
       ],
       extras_require={
           'pi': [

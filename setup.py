@@ -52,7 +52,7 @@ setup(name='donkeycar',
           'psutil',
           'docstring_parser',
           'pyyaml',
-          'python-graphviz'
+          'graphviz'
           "pynmea2",
           'pyserial',
           "utm",

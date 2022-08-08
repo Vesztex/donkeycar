@@ -143,7 +143,7 @@ class TestCreatable(Creatable):
     Test Part that shows the creation of new parts
     """
     def __init__(self, value=2):
-        super().__init__(value)
+        super().__init__(value=value)
         self.value = value
         print('Created TestCreatable with value', self.value)
 

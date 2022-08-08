@@ -65,7 +65,7 @@ class Tub(object):
         # Private properties
         contents['_timestamp_ms'] = int(round(time.time() * 1000))
         contents['_index'] = self.manifest.current_index
-        contents['_session_id'] = self.manifest.session_id
+        contents['_session_id'] = self.manifest.session_id[1]
 
         self.manifest.write_record(contents)
 

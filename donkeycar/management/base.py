@@ -75,7 +75,6 @@ class CreateCar(BaseCommand):
 
         # these are neeeded incase None is passed as path
         path = path or '~/mycar'
-        template = template or 'complete'
         print(f"Creating car folder: {path}")
         path = make_dir(path)
 
@@ -86,18 +85,28 @@ class CreateCar(BaseCommand):
             make_dir(fp)
 
         # add car application and config files if they don't exist
-        app_template_path = os.path.join(TEMPLATES_PATH, template+'.py')
-        config_template_path = os.path.join(TEMPLATES_PATH, 'cfg_' + template + '.py')
+        # default to building the car directory with assembly files and with
+        # templates
+        app_template_path = None
+        config_template_path = 'cfg_basic.py'
+        if template:
+            app_template_path = os.path.join(TEMPLATES_PATH, template+'.py')
+            config_template_path = 'cfg_' + template + '.py'
+
+        config_template_path = os.path.join(TEMPLATES_PATH, config_template_path)
         myconfig_template_path = os.path.join(TEMPLATES_PATH, 'myconfig.py')
         calibrate_template_path = os.path.join(TEMPLATES_PATH, 'calibrate.py')
+        assembly_template_path = os.path.join(TEMPLATES_PATH, 'assembly')
         car_app_path = os.path.join(path, 'manage.py')
         car_config_path = os.path.join(path, 'config.py')
         mycar_config_path = os.path.join(path, 'myconfig.py')
         calibrate_app_path = os.path.join(path, 'calibrate.py')
+        car_assembly_path = os.path.join(path, 'assembly')
 
         if os.path.exists(car_app_path) and not overwrite:
             print('Car app already exists. Delete it and rerun createcar to replace.')
-        else:
+        # only copy old school template if explicitly requested
+        elif template:
             print(f"Copying car application template: {template}")
             shutil.copyfile(app_template_path, car_app_path)
             os.chmod(car_app_path, stat.S_IRWXU)
@@ -108,12 +117,21 @@ class CreateCar(BaseCommand):
             print("Copying car config defaults. Adjust these before starting your car.")
             shutil.copyfile(config_template_path, car_config_path)
 
+        # TODO this needs to be replaced by 'donkey calibrate'
         if os.path.exists(calibrate_app_path) and not overwrite:
             print('Calibrate already exists. Delete it and rerun createcar to replace.')
         else:
             print("Copying calibrate script. Adjust these before starting your car.")
             shutil.copyfile(calibrate_template_path, calibrate_app_path)
             os.chmod(calibrate_app_path, stat.S_IRWXU)
+
+        if os.path.exists(car_assembly_path) and not overwrite:
+            print('Assembly dir already exists. Delete it and rerun createcar '
+                  'to replace.')
+        else:
+            print("Copying assembly files.")
+            shutil.copytree(assembly_template_path, car_assembly_path)
+            os.chmod(car_assembly_path, stat.S_IRWXU)
 
         if not os.path.exists(mycar_config_path):
             print("Copying my car config overrides")

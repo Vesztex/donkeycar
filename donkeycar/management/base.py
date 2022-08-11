@@ -584,7 +584,7 @@ class Drive(BaseCommand):
         parser = argparse.ArgumentParser(prog='drive',
                                          usage='%(prog)s [options]')
         parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
-        parser.add_argument('--app', default='./apps/basic.yml',
+        parser.add_argument('--assembly', default='./assembly/basic.yml',
                             help='car application yaml file')
         for part_name, part_arg_list in CreatableFactory.arg_registry.items():
             for arg_name in part_arg_list:
@@ -594,10 +594,10 @@ class Drive(BaseCommand):
 
     def run(self, args):
         args = self.parse_args(args)
-        kwargs = vars(args)
         cfg = load_config(args.config)
-        yml = args.app
+        yml = args.assembly
         b = Builder(cfg, yml)
+        kwargs = vars(args)
         v = b.build_vehicle(kwargs)
         v.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS)
 

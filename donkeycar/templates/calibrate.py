@@ -113,7 +113,6 @@ def drive(cfg ):
         drive_train = RoboHATDriver(cfg)
         V.add(drive_train, inputs=['angle', 'throttle'])
 
-
     ctr.drive_train = drive_train
     ctr.drive_train_type = cfg.DRIVE_TRAIN_TYPE
     

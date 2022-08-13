@@ -129,8 +129,8 @@ class LocalWebController(Application, Creatable):
         self.recording_latch = None
         self.buttons = {}  # latched button values for processing
 
+        self.controller_config = None
         self.port = port
-
         self.num_records = 0
         self.wsclients = []
         self.loop = None
@@ -180,8 +180,10 @@ class LocalWebController(Application, Creatable):
                                     'local pilot' - optional parameter
         :param bool recording:      Default recording mode - optional parameter
         :return tuple:              Returns a tuple of angle (float),
-                                    throttle (float), mode (str) and
-                                    recording (bool).
+                                    throttle (float), mode (str),
+                                    recording (bool) and controller_config (
+                                    dict). The last one is only non-None if we
+                                    are running the calibration.
         """
         self.img_arr = img_arr
         self.num_records = num_records
@@ -224,7 +226,8 @@ class LocalWebController(Application, Creatable):
             logger.debug(str(changes))
             self.loop.add_callback(lambda: self.update_wsclients(changes))
 
-        return self.angle, self.throttle, self.mode, self.recording, buttons
+        return self.angle, self.throttle, self.mode, \
+            self.recording, buttons, self.controller_config
 
     def shutdown(self):
         self.loop.stop()
@@ -347,6 +350,8 @@ class WebSocketCalibrateAPI(tornado.websocket.WebSocketHandler):
 
         if 'config' in data:
             config = data['config']
+            self.application.controller_config = config
+            '''
             if self.application.drive_train_type == "PWM_STEERING_THROTTLE" \
                 or self.application.drive_train_type == "I2C_SERVO":
                 if 'STEERING_LEFT_PWM' in config:
@@ -371,6 +376,7 @@ class WebSocketCalibrateAPI(tornado.websocket.WebSocketHandler):
                         self.application.drive_train.MAX_FORWARD = config['MM1_MAX_FORWARD']
                 if ('MM1_MAX_REVERSE' in config) and (config['MM1_MAX_REVERSE'] != 0):
                     self.application.drive_train.MAX_REVERSE = config['MM1_MAX_REVERSE']
+            '''
 
     def on_close(self):
         print("Client disconnected")

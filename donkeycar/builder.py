@@ -42,14 +42,43 @@ class Builder:
 
     def build_vehicle(self, kwargs={}):
         """
-        This function creates the car from the yaml file. Allows overwriting of
-        of constructor parameters in the yaml through kwargs dictionary.
-        For example, the yaml entry:
-          - keraspilot:
+        This function creates the car from the yaml file. Allows overwriting
+        of constructor parameters in the yaml through kwargs dictionary. For
+        example, the yaml entry:
+            - keraspilot:
                 arguments:
                     model_type: linear
-        can be alternatively passed or overwritten by passing
-        {'keraspilot': 'linear'} in the kwargs argument.
+
+        can be alternatively passed by just having
+            - keraspilot
+        in the yaml file and passing {'keraspilot': 'linear'} in the kwargs
+        argument. Data passed in the kwargs argument will overwrite data in the
+        yaml file.
+
+        Additionally, the builder supports passing parts as arguments for other
+        parts. Hence, in a yaml file like
+            - part_1
+            - part_2:
+                arguments:
+                    part: part_1.0
+        the builder will replace the string argument 'part_1.0' of the part_2
+        arguments dictionary with the object that was created by the previous
+        entry part_1. Note, that an increasing number '.0', '.1', '.2', etc is
+        added to the part in order to identify different parts of the same type.
+        Therefore, the above yaml corresponds to the following python code:
+            p1 = Part_1()
+            p2 = Part_2(part=p1)
+        And if we have multiple versions of a part we can uniquely reference
+        each of them like:
+            - part_1
+            - part_1
+            - part_2:
+                arguments:
+                    part: part_1.0
+        which translate into python code like:
+            p1_0 = Part_1()
+            p1_1 = Part_1()
+            p2 = Part_2(part=p1_0)
 
         :param dict kwargs:     keyword arguments which will extend or
                                 overwrite parameters in the yaml file
@@ -62,6 +91,25 @@ class Builder:
                     d[k.replace(f'{part_name}.', '')] = v
             return d
 
+        def update_with_previous_parts(part_args, car):
+            """ Utility function to replace argument strings that refer to
+                parts with the parts themselves. """
+            for k, v in part_args:
+                if type(v) is str:
+                    prev_part = car.get_part_by_name(v)
+                    if prev_part:
+                        part_args[k] = prev_part
+
+        def add_part(enable):
+            # add part if either enable is missing or if it is present
+            # and True or if it is a config parameter that is True,
+            # passed like cfg.USE_PART for example
+            if enable is None or enable is True:
+                return True
+            assert type(enable) is str, "Enable can only be None, bool or str"
+            assert enable[:4].lower() == 'cfg.', "Enable must start with 'cfg.'"
+            return getattr(self.cfg, enable[4:]) is True
+
         with open(self.car_file) as f:
             try:
                 car_description = yaml.safe_load(f)
@@ -72,21 +120,20 @@ class Builder:
 
         for part in parts:
             for part_name, part_params in part.items():
-                # check if add_only_if is present
-                add_only_if = part_params.get('add_only_if')
-                if add_only_if is None or add_only_if is True:
-                    # We are not using .get on part parameters here because the
-                    # part might not have it. Rather return an empty dict
-                    # because ** needs to work later on this return value
-                    part_args = part_params.get('arguments', {})
+                enable = part_params.get('enable')
+                if add_part(enable):
+                    # We return an empty dict for missing arguments because **
+                    # needs to work on this return value further down
+                    args = part_params.get('arguments', {})
                     # update part parameters with config values
-                    self.insert_config(part_args)
+                    self.insert_config(args)
                     # update part parameters with kwargs
                     extract_kwargs = extract(kwargs, part_name)
-                    part_args.update(extract_kwargs)
+                    args.update(extract_kwargs)
+                    # update part parameters with already created parts
+                    update_with_previous_parts(args, car)
                     # create part
-                    part = CreatableFactory.make(part_name, self.cfg,
-                                                 **part_args)
+                    part = CreatableFactory.make(part_name, self.cfg, **args)
                     # adding part to vehicle
                     inputs = part_params.get('inputs', [])
                     outputs = part_params.get('outputs', [])

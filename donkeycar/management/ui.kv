@@ -895,19 +895,32 @@
     PaddedBoxLayout:
         orientation: 'horizontal'
         Label:
+            size_hint_x: 1.2
             text: 'Set run_condition'
         MySpinner:
             id: run_condition_spinner
+            size_hint_x: 1.2
             values: root.variables
             on_text:
                 root.run_condition = self.text
                 app.assembly_screen.ids.status.text = 'Run_condition set to: ' + self.text
         Label:
+            size_hint_x: 0.45
             text: 'Threaded'
         CheckBox:
+            size_hint_x: 0.1
             id: threaded_checkbox
             active: root.threaded
             on_active: root.threaded = self.active
+        Label:
+            size_hint_x: 0.5
+            text: 'Enable'
+        TextInput:
+            id: enable_input
+            size_hint_x: 1.25
+            multiline: False
+            on_text_validate:
+                root.set_enable()
 
     PaddedBoxLayout:
         AutoLabel:

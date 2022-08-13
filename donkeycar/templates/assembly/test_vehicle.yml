@@ -9,7 +9,7 @@ parts:
         path_mask: "/home/dirk/car_test/data/images/*.jpg"
       outputs: [cam/image_array]
       threaded: false
-      add_only_if: false
+      enable: false
   - localwebcontroller:
       inputs: [cam/image_array, tub/current_index]
       outputs: [user/angle, user/throttle, user/mode, recording]

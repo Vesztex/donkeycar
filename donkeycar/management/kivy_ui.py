@@ -1186,6 +1186,7 @@ class PartBuilder(BoxLayout):
     threaded = BooleanProperty(False)
     info_popup = ObjectProperty()
     variables = ListProperty()
+    enable = ObjectProperty()
 
     def clear(self):
         self.args = {}
@@ -1197,6 +1198,7 @@ class PartBuilder(BoxLayout):
         self.ids.run_condition_spinner.text = ''
         self.ids.arg_input.text = 'Set argument'
         self.ids.threaded_checkbox.active = False
+        self.ids.enable_input.text = ''
         assembly_screen().ids.status.text = 'Fields cleared.'
 
     def on_config(self, builder, cfg):
@@ -1255,6 +1257,15 @@ class PartBuilder(BoxLayout):
             = f'Setting argument {arg_name} to: {val} of type' \
               f' {type(val).__name__}'
 
+    def set_enable(self):
+        enable_text = self.ids.enable_input.text
+        try:
+            val = json.loads(enable_text)
+            self.enable = val
+            assembly_screen().ids.status.text = f'Setting enable to: {val}'
+        except Exception as e:
+            Logger.error(f'Error parsing {enable_text}: {e}')
+
     def pretty_print_dict(self, args):
         return ', '.join(f'{k}:{v}' for k, v in args.items())
 
@@ -1269,6 +1280,8 @@ class PartBuilder(BoxLayout):
                 part_dict['outputs'] = list(self.outputs)
             if self.run_condition:
                 part_dict['run_condition'] = self.run_condition
+            if self.enable:
+                part_dict['enable'] = self.enable
 
             if add:
                 assembly_screen().ids.parts_manager.add_part_button(

@@ -115,6 +115,19 @@ class Vehicle:
         self.parts.append(entry)
         self.profiler.profile_part(part)
 
+    def get_part_by_name(self, part_name):
+        """ Returns part by name, case insensitive. Note, parts have counters
+            .0, .1, etc, hence webcontroller.1 will return the second
+            webcontroller in the parts list
+
+            :param str part_name:  name of the part with counter like .0, .1.
+            :return:               part if found, None otherwise
+        """
+        for entry in self.parts:
+            if entry['name'].lower() == part_name.lower():
+                return entry['part']
+        return None
+
     def remove(self, part):
         """
         remove part form list

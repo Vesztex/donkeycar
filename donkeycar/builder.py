@@ -94,7 +94,7 @@ class Builder:
         def update_with_previous_parts(part_args, car):
             """ Utility function to replace argument strings that refer to
                 parts with the parts themselves. """
-            for k, v in part_args:
+            for k, v in part_args.items():
                 if type(v) is str:
                     prev_part = car.get_part_by_name(v)
                     if prev_part:

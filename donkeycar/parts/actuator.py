@@ -338,6 +338,33 @@ class PWMSteering(Creatable):
                            right_pulse=dt["STEERING_RIGHT_PWM"])
 
 
+class PWMSteeringCalibrator(Creatable):
+    """
+    This part allows to set the left and right pulse values of the assigned
+    PWMSteering part to be set through the donkey run method.
+    """
+    def __int__(self, pwm_steering):
+        """
+        Creating the PWMSteeringCalibrator part. Operates on a PWMSteering part.
+        :param PWMSteering pwm_steering:    PWMSteering part
+        """
+        assert isinstance(pwm_steering, PWMSteering), \
+            f"Can only accept a PWMSteering object but not " \
+            f"{pwm_steering.__class__.__name__}"
+        self.pwm_steering = pwm_steering
+
+    def run(self, left_pulse=None, right_pulse=None):
+        """ Donkey car run method. Sets the left and right pulse of the
+        PWMSteering part if they are not None.
+        :param float left_pulse:    pwm pulse for maximal left steering
+        :param float right_pulse:   pwm pulse for maximal right steering
+        """
+        if left_pulse is not None:
+            self.pwm_steering.left_pulse = left_pulse
+        if right_pulse is not None:
+            self.pwm_steering.right_pulse = right_pulse
+
+
 class PWMThrottle(Creatable):
     """
     Wrapper over a PWM pulse controller to convert -1 to 1 throttle
@@ -420,6 +447,36 @@ class PWMThrottle(Creatable):
                            max_pulse=dt['THROTTLE_FORWARD_PWM'],
                            zero_pulse=dt['THROTTLE_STOPPED_PWM'],
                            min_pulse=dt['THROTTLE_REVERSE_PWM'])
+
+
+class PWMThrottleCalibrator(Creatable):
+    """
+    This part allows to set the min, max and zero pulse values of the assigned
+    PWMThrottle part to be set through the donkey run method.
+    """
+    def __int__(self, pwm_throttle):
+        """
+        Creating the PWMThrottleCalibrator part. Operates on a PWMThrottle part.
+        :param PWMThrottle pwm_throttle:    PWMThrottle part
+        """
+        assert isinstance(pwm_throttle, PWMThrottle), \
+            f"Can only accept a PWMThrottle object but not " \
+            f"{pwm_throttle.__class__.__name__}"
+        self.pwm_throttle = pwm_throttle
+
+    def run(self, min_pulse=None, max_pulse=None, zero_pulse=None):
+        """ Donkey car run method. Sets the left and right pulse of the
+        PWMSteering part if they are not None.
+        :param float min_pulse:    pwm pulse for maximal reverse throttle
+        :param float max_pulse:    pwm pulse for maximal forward throttle
+        :param float zero_pulse:   pwm pulse for zero throttle
+        """
+        if min_pulse is not None:
+            self.pwm_throttle.min_pulse = min_pulse
+        if max_pulse is not None:
+            self.pwm_throttle.max_pulse = max_pulse
+        if zero_pulse is not None:
+            self.pwm_throttle.zero_pulse = zero_pulse
 
 #
 # This seems redundant.  If it's really emulating and PCA9685, then

@@ -1186,7 +1186,7 @@ class PartBuilder(BoxLayout):
     threaded = BooleanProperty(False)
     info_popup = ObjectProperty()
     variables = ListProperty()
-    enable = ObjectProperty()
+    enable = ObjectProperty(allownone=True)
 
     def clear(self):
         self.args = {}
@@ -1282,13 +1282,12 @@ class PartBuilder(BoxLayout):
                 part_dict['run_condition'] = self.run_condition
             if self.enable:
                 part_dict['enable'] = self.enable
-
+            manager = assembly_screen().ids.parts_manager
             if add:
-                assembly_screen().ids.parts_manager.add_part_button(
-                    self.ids.parts_spinner.text, part_dict)
+                manager.add_part_button(self.ids.parts_spinner.text, part_dict)
                 self.clear()
             else:
-                assembly_screen().ids.parts_manager.selected_button.part_dict.update(part_dict)
+                manager.selected_button.part_dict.update(part_dict)
 
 
 class PartButton(ToggleButton):
@@ -1325,15 +1324,18 @@ class PartsManager(BoxLayout):
         self.ids.grid.add_widget(btn)
 
     def on_selected_button(self, manager, button):
-        # button = self.selected_button, update all fields in part builder
-        # with content from selected button, so they can be displayed and
-        # edited.
+        """ Function that is called when the member self.selected_button
+        changes. The argument manager equals self and the argument button equals
+        self.selected_button. Here w update all fields in the part builder
+        with the content from the selected button, so they can be displayed and
+        edited."""
         if button:
             threaded = button.part_dict.get('threaded')
             arguments = button.part_dict.get('arguments', {})
             inputs = button.part_dict.get('inputs', [])
             outputs = button.part_dict.get('outputs', [])
             run_condition = button.part_dict.get('run_condition', '')
+            enable = button.part_dict.get('enable')
             self.part_builder.ids.parts_spinner.text = button.text
             self.part_builder.ids.parts_spinner.disabled = True
             cls = CreatableFactory.registry[self.selected_button.text.lower()]
@@ -1344,6 +1346,7 @@ class PartsManager(BoxLayout):
             self.part_builder.outputs = outputs
             self.part_builder.threaded = threaded
             self.part_builder.run_condition = run_condition
+            self.part_builder.ids.enable_input.text = json.dumps(enable)
             self.part_builder.ids.update_part_button.disabled = False
         else:
             self.part_builder.clear()

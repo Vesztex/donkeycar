@@ -293,14 +293,16 @@ class PWMSteeringCalibrator(Creatable):
             f"{pwm_steering.__class__.__name__}"
         self.pwm_steering = pwm_steering
 
-    def run(self, left_pulse=None, right_pulse=None):
+    def run(self, config={}):
         """ Donkey car run method. Sets the left and right pulse of the
         PWMSteering part if they are not None.
-        :param float left_pulse:    pwm pulse for maximal left steering
-        :param float right_pulse:   pwm pulse for maximal right steering
+        :param dict config:    dictionary which is expected to contain
+                               STEERING_LEFT_PWM, STEERING_RIGHT_PWM
         """
+        left_pulse = config.get('STEERING_LEFT_PWM')
         if left_pulse is not None:
             self.pwm_steering.left_pulse = left_pulse
+        right_pulse = config.get('STEERING_right_PWM')
         if right_pulse is not None:
             self.pwm_steering.right_pulse = right_pulse
 
@@ -403,17 +405,20 @@ class PWMThrottleCalibrator(Creatable):
             f"{pwm_throttle.__class__.__name__}"
         self.pwm_throttle = pwm_throttle
 
-    def run(self, min_pulse=None, max_pulse=None, zero_pulse=None):
-        """ Donkey car run method. Sets the left and right pulse of the
-        PWMSteering part if they are not None.
-        :param float min_pulse:    pwm pulse for maximal reverse throttle
-        :param float max_pulse:    pwm pulse for maximal forward throttle
-        :param float zero_pulse:   pwm pulse for zero throttle
+    def run(self, config={}):
+        """ Donkey car run method. Sets the min, max and zero pulse of the
+        PWMThrottle part if they are found in the config dict.
+        :param dict config:    dictionary which is expected to contain
+                               THROTTLE_FORWARD_PWM, THROTTLE_REVERSE_PWM and
+                               THROTTLE_STOPPED_PWM
         """
+        min_pulse = config.get('THROTTLE_REVERSE_PWM')
         if min_pulse is not None:
             self.pwm_throttle.min_pulse = min_pulse
+        max_pulse = config.get('THROTTLE_FORWARD_PWM')
         if max_pulse is not None:
             self.pwm_throttle.max_pulse = max_pulse
+        zero_pulse = config.get('THROTTLE_STOPPED_PWM')
         if zero_pulse is not None:
             self.pwm_throttle.zero_pulse = zero_pulse
 

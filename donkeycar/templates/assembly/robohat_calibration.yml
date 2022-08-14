@@ -1,0 +1,16 @@
+
+parts:
+  - localwebcontroller:
+      outputs: [angle, throttle, mode, recording, config]
+      threaded: true
+  - throttlefilter:
+      inputs: [throttle]
+      outputs: [throttle_filtered]
+  - robohatdriver:
+      inputs: [angle, throttle_filtered]
+  - robohatdrivercalibrator:
+      arguments:
+        robohat_driver: robohatdriver.0
+      inputs: [config]
+
+

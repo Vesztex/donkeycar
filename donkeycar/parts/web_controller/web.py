@@ -311,7 +311,7 @@ class WebSocketCalibrateAPI(tornado.websocket.WebSocketHandler):
 
         if 'config' in data:
             config = data['config']
-            self.application.controller_config = config
+            self.application.config = config
             '''
             if self.application.drive_train_type == "PWM_STEERING_THROTTLE" \
                 or self.application.drive_train_type == "I2C_SERVO":

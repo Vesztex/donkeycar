@@ -6,6 +6,7 @@ Created on Sun Jun 25 11:07:48 2017
 @author: wroscoe
 """
 
+
 class Memory:
     """
     A convenience class to save key/value pairs.
@@ -17,7 +18,7 @@ class Memory:
         if type(key) is not tuple:
             print('tuples')
             key = (key,)
-            value=(value,)
+            value = (value,)
         
         for i, k in enumerate(key):
             self.d[k] = value[i]
@@ -42,8 +43,6 @@ class Memory:
         
         else:
             self.d[keys[0]] = inputs
-
-            
             
     def get(self, keys):
         result = [self.d.get(k) for k in keys]

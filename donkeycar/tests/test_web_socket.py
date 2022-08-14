@@ -26,7 +26,7 @@ class WebSocketCalibrateTest(testing.AsyncHTTPTestCase):
         data = {"config": {"STEERING_LEFT_PWM": 444}}
         yield ws_client.write_message(json.dumps(data))
         yield ws_client.close()
-        pwm = self.app.controller_config.get("STEERING_LEFT_PWM")
+        pwm = self.app.config.get("STEERING_LEFT_PWM")
         assert pwm == 444
 
     @tornado.testing.gen_test
@@ -35,7 +35,7 @@ class WebSocketCalibrateTest(testing.AsyncHTTPTestCase):
         data = {"config": {"STEERING_RIGHT_PWM": 555}}
         yield ws_client.write_message(json.dumps(data))
         yield ws_client.close()
-        pwm = self.app.controller_config.get("STEERING_RIGHT_PWM")
+        pwm = self.app.config.get("STEERING_RIGHT_PWM")
         assert pwm == 555
 
     @tornado.testing.gen_test
@@ -44,7 +44,7 @@ class WebSocketCalibrateTest(testing.AsyncHTTPTestCase):
         data = {"config": {"THROTTLE_FORWARD_PWM": 666}}
         yield ws_client.write_message(json.dumps(data))
         yield ws_client.close()
-        pwm = self.app.controller_config.get("THROTTLE_FORWARD_PWM")
+        pwm = self.app.config.get("THROTTLE_FORWARD_PWM")
         assert pwm == 666
 
     @tornado.testing.gen_test
@@ -53,6 +53,6 @@ class WebSocketCalibrateTest(testing.AsyncHTTPTestCase):
         data = {"config": {"MM1_STEERING_MID": 1234}}
         yield ws_client.write_message(json.dumps(data))
         yield ws_client.close()
-        pwm = self.app.controller_config.get("MM1_STEERING_MID")
+        pwm = self.app.config.get("MM1_STEERING_MID")
         assert pwm == 1234
 

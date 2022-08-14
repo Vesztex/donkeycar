@@ -11,6 +11,7 @@ Note: To be used with code.py bundled in this repo. See donkeycar/contrib/roboha
 
 import time
 import donkeycar as dk
+from donkeycar.parts import Creatable
 
 try:
     import serial
@@ -160,7 +161,7 @@ class RoboHATController:
         return self.angle, self.throttle, self.mode, self.recording
 
 
-class RoboHATDriver:
+class RoboHATDriver(Creatable):
     """
     PWM motor controller using Robo HAT MM1 boards.
     This is developed by Robotics Masters
@@ -168,19 +169,29 @@ class RoboHATDriver:
 
     def __init__(self, cfg, debug=False):
         # Initialise the Robo HAT using the serial port
-        self.pwm = serial.Serial(cfg.MM1_SERIAL_PORT, 115200, timeout=1)
+        try:
+            self.pwm = serial.Serial(cfg.MM1_SERIAL_PORT, 115200, timeout=1)
+        except Exception as e:
+            print("RoboHATDriver can only be used for validating the car flow "
+                  "but will not run as serial is not working")
+
         self.MAX_FORWARD = cfg.MM1_MAX_FORWARD
         self.MAX_REVERSE = cfg.MM1_MAX_REVERSE
         self.STOPPED_PWM = cfg.MM1_STOPPED_PWM
         self.STEERING_MID = cfg.MM1_STEERING_MID
         self.debug = debug
 
-    """
-    Steering and throttle should range between -1.0 to 1.0. This function will
-    trim value great than 1.0 or less than 1.0
-    """
+    @classmethod
+    def create(cls, cfg, **kwargs):
+        """ Creation of the RobohatDriver part. Reads the config variables
+            MM1_MAX_FORWARD, MM1_MAX_REVERSE, MM1_STOPPED_PWM, MM1_STEERING_MID
+            :param Config cfg:  Donkey Car Config
+        """
+        return cls(cfg)
 
     def trim_out_of_bound_value(self, value):
+        """ Steering and throttle should range between -1.0 to 1.0. This
+            function will trim value great than 1.0 or less than 1.0 """
         if value > 1:
             print("MM1: Warning, value out of bound. Value = {}".format(value))
             return 1.0
@@ -213,18 +224,24 @@ class RoboHATDriver:
                                                      -1, 0,
                                                      2000, self.STEERING_MID)
 
-            if self.is_valid_pwm_value(output_steering) and self.is_valid_pwm_value(output_throttle):
+            if self.is_valid_pwm_value(output_steering) and \
+                    self.is_valid_pwm_value(output_throttle):
                 if self.debug:
-                    print("output_steering=%d, output_throttle=%d" % (output_steering, output_throttle))
+                    print("output_steering=%d, output_throttle=%d"
+                          % (output_steering, output_throttle))
                 self.write_pwm(output_steering, output_throttle)
             else:
-                print(f"Warning: steering = {output_steering}, STEERING_MID = {self.STEERING_MID}")
-                print(f"Warning: throttle = {output_throttle}, MAX_FORWARD = {self.MAX_FORWARD}, STOPPED_PWM = {self.STOPPED_PWM}, MAX_REVERSE = {self.MAX_REVERSE}")
+                print(f"Warning: steering = {output_steering}, "
+                      f"STEERING_MID = {self.STEERING_MID}")
+                print(f"Warning: throttle = {output_throttle}, "
+                      f"MAX_FORWARD = {self.MAX_FORWARD}, "
+                      f"STOPPED_PWM = {self.STOPPED_PWM}, "
+                      f"MAX_REVERSE = {self.MAX_REVERSE}")
                 print("Not sending PWM value to MM1")
 
         except OSError as err:
-            print(
-                "Unexpected issue setting PWM (check wires to motor board): {0}".format(err))
+            print("Unexpected issue setting PWM (check wires to motor board): "
+                  "{0}".format(err))
 
     def is_valid_pwm_value(self, value):
         if 1000 <= value <= 2000:
@@ -243,3 +260,38 @@ class RoboHATDriver:
             self.serial.close()
         except:
             pass
+
+
+class RoboHATDriverCalibrator(Creatable):
+    """
+    This part allows to set the mid steering and max forward and max reverse
+    pwm values of the assigned RoboHATDriver part to be set through the
+    donkey run method.
+    """
+    def __int__(self, robohat_driver):
+        """
+        Creating the RoboHATDriverCalibrator part. Operates on a
+        RoboHATDriver part.
+        :param RoboHATDriver robohat_driver:    RoboHATDriver part
+        """
+        assert isinstance(robohat_driver, RoboHATDriver), \
+            f"Can only accept a RoboHATDriver object but not " \
+            f"{robohat_driver.__class__.__name__}"
+        self.robohat_driver = robohat_driver
+
+    def run(self, config={}):
+        """ Donkey car run method. Sets the mid steering and max forward and
+        max reverse pwm values of the RobohatDriver part if they are not None.
+
+        :param dict config: dictionary which is expected to contain
+                            MM1_STEERING_MID, MM1_MAX_FORWARD, MM1_MAX_REVERSE
+        """
+        steering_mid = config.get('MM1_STEERING_MID')
+        if steering_mid is not None:
+            self.robohat_driver.STEERING_MID = steering_mid
+        max_fwd = config.get('MM1_MAX_FORWARD')
+        if max_fwd is not None:
+            self.robohat_driver.MAX_FORWARD = max_fwd
+        max_rev = config.get('MM1_MAX_REVERSE')
+        if max_rev is not None:
+            self.robohat_driver.MAX_REVERSE = max_rev

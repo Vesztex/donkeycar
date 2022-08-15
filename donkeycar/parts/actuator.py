@@ -283,7 +283,7 @@ class PWMSteeringCalibrator(Creatable):
     This part allows to set the left and right pulse values of the assigned
     PWMSteering part to be set through the donkey run method.
     """
-    def __int__(self, pwm_steering):
+    def __init__(self, pwm_steering):
         """
         Creating the PWMSteeringCalibrator part. Operates on a PWMSteering part.
         :param PWMSteering pwm_steering:    PWMSteering part
@@ -291,8 +291,9 @@ class PWMSteeringCalibrator(Creatable):
         assert isinstance(pwm_steering, PWMSteering), \
             f"Can only accept a PWMSteering object but not " \
             f"{pwm_steering.__class__.__name__}"
+        super().__init__(pwm_steering=pwm_steering)
         self.pwm_steering = pwm_steering
-        logger.info(f'Creating part PWMSteeringCalibrator with {self.pwm_steering}')
+        logger.info(f'Creating part PWMSteeringCalibrator')
 
     def run(self, config={}):
         """ Donkey car run method. Sets the left and right pulse of the
@@ -396,7 +397,7 @@ class PWMThrottleCalibrator(Creatable):
     This part allows to set the min, max and zero pulse values of the assigned
     PWMThrottle part to be set through the donkey run method.
     """
-    def __int__(self, pwm_throttle):
+    def __init__(self, pwm_throttle):
         """
         Creating the PWMThrottleCalibrator part. Operates on a PWMThrottle part.
         :param PWMThrottle pwm_throttle:    PWMThrottle part
@@ -404,7 +405,9 @@ class PWMThrottleCalibrator(Creatable):
         assert isinstance(pwm_throttle, PWMThrottle), \
             f"Can only accept a PWMThrottle object but not " \
             f"{pwm_throttle.__class__.__name__}"
+        super().__init__(pwm_throttle=pwm_throttle)
         self.pwm_throttle = pwm_throttle
+        logger.info(f'Creating part PWMThrottleCalibrator')
 
     def run(self, config={}):
         """ Donkey car run method. Sets the min, max and zero pulse of the

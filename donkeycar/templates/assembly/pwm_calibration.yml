@@ -8,8 +8,10 @@ parts:
       outputs: [throttle_filtered]
   - pwmsteering:
       inputs: [angle]
+      threaded: true
   - pwmthrottle:
       inputs: [throttle_filtered]
+      threaded: true
   - pwmsteeringcalibrator:
       arguments:
         pwm_steering: pwmsteering.0

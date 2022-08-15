@@ -1,67 +1,56 @@
 #!/usr/bin/env python3
 """
-Scripts to drive a donkey 2 car
+Calibrate steering / throttle using the webserver
 
 Usage:
-    manage.py (drive)
-
+    calibrate.py
 
 Options:
     -h --help          Show this screen.
 """
-import os
-import time
 
 from docopt import docopt
 
 import donkeycar as dk
-
-#import parts
-from donkeycar.parts.controller import LocalWebController, \
-    JoystickController, WebFpv
+from donkeycar.parts.controller import LocalWebController
 from donkeycar.parts.throttle_filter import ThrottleFilter
-from donkeycar.parts import pins
-from donkeycar.utils import *
-
+from donkeycar.parts import pins, PWMSteeringCalibrator, PWMThrottleCalibrator
 from socket import gethostname
 
-def drive(cfg ):
-    '''
-    Construct a working robotic vehicle from many parts.
-    Each part runs as a job in the Vehicle loop, calling either
-    it's run or run_threaded method depending on the constructor flag `threaded`.
-    All parts are updated one after another at the framerate given in
-    cfg.DRIVE_LOOP_HZ assuming each part finishes processing in a timely manner.
-    Parts may have named outputs and inputs. The framework handles passing named outputs
-    to parts requesting the same named input.
-    '''
 
-    #Initialize car
+def main(cfg):
+    """
+    Construct a working robotic vehicle from many parts. Each part runs as a
+    job in the Vehicle loop, calling either it's run or run_threaded method
+    depending on the constructor flag `threaded`. All parts are updated one
+    after another at the frame rate given in cfg.DRIVE_LOOP_HZ assuming each
+    part finishes processing in a timely manner. Parts may have named outputs
+    and inputs. The framework handles passing named outputs to parts
+    requesting the same named input.
+    """
+
+    # Initialize car
     V = dk.vehicle.Vehicle()
 
     ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT)
     V.add(ctr,
           inputs=['cam/image_array', 'tub/num_records'],
-          outputs=['angle', 'throttle', 'user/mode', 'recording'],
+          outputs=['angle', 'throttle', 'user/mode', 'recording', 'config'],
           threaded=True)
 
-    #this throttle filter will allow one tap back for esc reverse
+    # this throttle filter will allow one tap back for esc reverse
     th_filter = ThrottleFilter()
     V.add(th_filter, inputs=['throttle'], outputs=['throttle'])
 
-    drive_train = None
-
-    #Drive train setup
-    if cfg.DONKEY_GYM or cfg.DRIVE_TRAIN_TYPE == "MOCK":
-        pass
-
-    elif cfg.DRIVE_TRAIN_TYPE == "PWM_STEERING_THROTTLE":
+    # Drive train setup
+    if cfg.DRIVE_TRAIN_TYPE == "PWM_STEERING_THROTTLE":
         #
         # drivetrain for RC car with servo and ESC.
         # using a PwmPin for steering (servo)
         # and as second PwmPin for throttle (ESC)
         #
-        from donkeycar.parts.actuator import PWMSteering, PWMThrottle, PulseController
+        from donkeycar.parts.actuator \
+            import PWMSteering, PWMThrottle, PulseController
         dt = cfg.PWM_STEERING_THROTTLE
         steering_controller = PulseController(
             pwm_pin=pins.pwm_pin_by_id(dt["PWM_STEERING_PIN"]),
@@ -80,12 +69,13 @@ def drive(cfg ):
                                zero_pulse=dt['THROTTLE_STOPPED_PWM'],
                                min_pulse=dt['THROTTLE_REVERSE_PWM'])
 
-        drive_train = dict()
-        drive_train['steering'] = steering
-        drive_train['throttle'] = throttle
+        steering_calib = PWMSteeringCalibrator(pwm_steering=steering)
+        throttle_calib = PWMThrottleCalibrator(pwm_throttle=throttle)
 
         V.add(steering, inputs=['angle'], threaded=True)
         V.add(throttle, inputs=['throttle'], threaded=True)
+        V.add(steering_calib, inputs=['config'])
+        V.add(throttle_calib, inputs=['config'])
 
     elif cfg.DRIVE_TRAIN_TYPE == "I2C_SERVO":
         from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
@@ -104,23 +94,23 @@ def drive(cfg ):
                                zero_pulse=cfg.THROTTLE_STOPPED_PWM,
                                min_pulse=cfg.THROTTLE_REVERSE_PWM)
 
-        drive_train = dict()
-        drive_train['steering'] = steering
-        drive_train['throttle'] = throttle
+        steering_calib = PWMSteeringCalibrator(pwm_steering=steering)
+        throttle_calib = PWMThrottleCalibrator(pwm_throttle=throttle)
+
         V.add(steering, inputs=['angle'], threaded=True)
         V.add(throttle, inputs=['throttle'], threaded=True)
+        V.add(steering_calib, inputs=['config'])
+        V.add(throttle_calib, inputs=['config'])
 
     elif cfg.DRIVE_TRAIN_TYPE == "MM1":
-        from donkeycar.parts.robohat import RoboHATDriver
+        from donkeycar.parts.robohat import RoboHATDriver, RoboHATDriverCalibrator
         drive_train = RoboHATDriver(cfg)
+        calibrator = RoboHATDriverCalibrator(drive_train)
         V.add(drive_train, inputs=['angle', 'throttle'])
-
-    # TODO: monkeypatching is bad!!!
-    ctr.drive_train = drive_train
-    ctr.drive_train_type = cfg.DRIVE_TRAIN_TYPE
+        V.add(calibrator, inputs=['config'])
 
     print(f"Go to http://{gethostname()}.local:{ctr.port}/calibrate to "
-          f"calibrate ")
+          f"calibrate steering and throttle")
 
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS)
 
@@ -128,6 +118,4 @@ def drive(cfg ):
 if __name__ == '__main__':
     args = docopt(__doc__)
     cfg = dk.load_config()
-
-    if args['drive']:
-        drive(cfg)
+    main(cfg)

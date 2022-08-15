@@ -268,7 +268,7 @@ class RoboHATDriverCalibrator(Creatable):
     pwm values of the assigned RoboHATDriver part to be set through the
     donkey run method.
     """
-    def __int__(self, robohat_driver):
+    def __init__(self, robohat_driver):
         """
         Creating the RoboHATDriverCalibrator part. Operates on a
         RoboHATDriver part.
@@ -277,6 +277,7 @@ class RoboHATDriverCalibrator(Creatable):
         assert isinstance(robohat_driver, RoboHATDriver), \
             f"Can only accept a RoboHATDriver object but not " \
             f"{robohat_driver.__class__.__name__}"
+        super().__init__()
         self.robohat_driver = robohat_driver
 
     def run(self, config={}):

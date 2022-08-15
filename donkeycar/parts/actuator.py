@@ -299,12 +299,13 @@ class PWMSteeringCalibrator(Creatable):
         :param dict config:    dictionary which is expected to contain
                                STEERING_LEFT_PWM, STEERING_RIGHT_PWM
         """
-        left_pulse = config.get('STEERING_LEFT_PWM')
-        if left_pulse is not None:
-            self.pwm_steering.left_pulse = left_pulse
-        right_pulse = config.get('STEERING_right_PWM')
-        if right_pulse is not None:
-            self.pwm_steering.right_pulse = right_pulse
+        if config:
+            left_pulse = config.get('STEERING_LEFT_PWM')
+            if left_pulse is not None:
+                self.pwm_steering.left_pulse = left_pulse
+            right_pulse = config.get('STEERING_right_PWM')
+            if right_pulse is not None:
+                self.pwm_steering.right_pulse = right_pulse
 
 
 class PWMThrottle(Creatable):
@@ -412,15 +413,16 @@ class PWMThrottleCalibrator(Creatable):
                                THROTTLE_FORWARD_PWM, THROTTLE_REVERSE_PWM and
                                THROTTLE_STOPPED_PWM
         """
-        min_pulse = config.get('THROTTLE_REVERSE_PWM')
-        if min_pulse is not None:
-            self.pwm_throttle.min_pulse = min_pulse
-        max_pulse = config.get('THROTTLE_FORWARD_PWM')
-        if max_pulse is not None:
-            self.pwm_throttle.max_pulse = max_pulse
-        zero_pulse = config.get('THROTTLE_STOPPED_PWM')
-        if zero_pulse is not None:
-            self.pwm_throttle.zero_pulse = zero_pulse
+        if config:
+            min_pulse = config.get('THROTTLE_REVERSE_PWM')
+            if min_pulse is not None:
+                self.pwm_throttle.min_pulse = min_pulse
+            max_pulse = config.get('THROTTLE_FORWARD_PWM')
+            if max_pulse is not None:
+                self.pwm_throttle.max_pulse = max_pulse
+            zero_pulse = config.get('THROTTLE_STOPPED_PWM')
+            if zero_pulse is not None:
+                self.pwm_throttle.zero_pulse = zero_pulse
 
 #
 # This seems redundant.  If it's really emulating and PCA9685, then

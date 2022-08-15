@@ -125,7 +125,8 @@ class CreateCar(BaseCommand):
             shutil.copyfile(calibrate_template_path, calibrate_app_path)
             os.chmod(calibrate_app_path, stat.S_IRWXU)
 
-        if os.path.exists(car_assembly_path) and not overwrite:
+        if os.path.exists(car_assembly_path) and not overwrite and \
+            len(os.listdir(car_assembly_path)) > 0:
             print('Assembly dir already exists. Delete it and rerun createcar '
                   'to replace.')
         else:

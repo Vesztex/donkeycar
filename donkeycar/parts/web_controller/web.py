@@ -127,9 +127,8 @@ class LocalWebController(Application, Creatable):
         self.mode_latch = None
         self.recording = False
         self.recording_latch = None
+        self.config = {}
         self.buttons = {}  # latched button values for processing
-
-        self.controller_config = None
         self.port = port
         self.num_records = 0
         self.wsclients = []
@@ -227,7 +226,7 @@ class LocalWebController(Application, Creatable):
             self.loop.add_callback(lambda: self.update_wsclients(changes))
 
         return self.angle, self.throttle, self.mode, \
-            self.recording, buttons, self.controller_config
+            self.recording, buttons, self.config
 
     def shutdown(self):
         self.loop.stop()
@@ -351,32 +350,6 @@ class WebSocketCalibrateAPI(tornado.websocket.WebSocketHandler):
         if 'config' in data:
             config = data['config']
             self.application.config = config
-            '''
-            if self.application.drive_train_type == "PWM_STEERING_THROTTLE" \
-                or self.application.drive_train_type == "I2C_SERVO":
-                if 'STEERING_LEFT_PWM' in config:
-                    self.application.drive_train['steering'].left_pulse = config['STEERING_LEFT_PWM']
-
-                if 'STEERING_RIGHT_PWM' in config:
-                    self.application.drive_train['steering'].right_pulse = config['STEERING_RIGHT_PWM']
-
-                if 'THROTTLE_FORWARD_PWM' in config:
-                    self.application.drive_train['throttle'].max_pulse = config['THROTTLE_FORWARD_PWM']
-
-                if 'THROTTLE_STOPPED_PWM' in config:
-                    self.application.drive_train['throttle'].zero_pulse = config['THROTTLE_STOPPED_PWM']
-
-                if 'THROTTLE_REVERSE_PWM' in config:
-                    self.application.drive_train['throttle'].min_pulse = config['THROTTLE_REVERSE_PWM']
-
-            elif self.application.drive_train_type == "MM1":
-                if ('MM1_STEERING_MID' in config) and (config['MM1_STEERING_MID'] != 0):
-                        self.application.drive_train.STEERING_MID = config['MM1_STEERING_MID']
-                if ('MM1_MAX_FORWARD' in config) and (config['MM1_MAX_FORWARD'] != 0):
-                        self.application.drive_train.MAX_FORWARD = config['MM1_MAX_FORWARD']
-                if ('MM1_MAX_REVERSE' in config) and (config['MM1_MAX_REVERSE'] != 0):
-                    self.application.drive_train.MAX_REVERSE = config['MM1_MAX_REVERSE']
-            '''
 
     def on_close(self):
         print("Client disconnected")

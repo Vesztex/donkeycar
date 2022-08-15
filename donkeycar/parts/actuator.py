@@ -352,6 +352,7 @@ class PWMSteeringCalibrator(Creatable):
             f"Can only accept a PWMSteering object but not " \
             f"{pwm_steering.__class__.__name__}"
         self.pwm_steering = pwm_steering
+        logger.info(f'Creating part PWMSteeringCalibrator with {self.pwm_steering}')
 
     def run(self, config={}):
         """ Donkey car run method. Sets the left and right pulse of the

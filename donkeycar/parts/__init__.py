@@ -6,3 +6,4 @@ from .actuator import *
 from .web_controller.web import LocalWebController, WebFpv
 from .keras import KerasPilot
 from .utils import *
+from .throttle_filter import ThrottleFilter

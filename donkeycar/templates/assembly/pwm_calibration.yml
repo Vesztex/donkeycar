@@ -16,6 +16,6 @@ parts:
       inputs: [config]
   - pwmthrottlecalibrator:
       arguments:
-        pwm_steering: pwmsteering.0
+        pwm_throttle: pwmthrottle.0
       inputs: [config]
 

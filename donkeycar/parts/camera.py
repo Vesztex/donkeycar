@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 import glob
 from donkeycar.utils import rgb2gray
-from donkeycar.parts.part import Creatable, PartType
+from donkeycar.parts.part import Part, PartType
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +15,7 @@ class CameraError(Exception):
     pass
 
 
-class BaseCamera(Creatable):
+class BaseCamera(Part):
     part_type = PartType.SENSE
 
     def run_threaded(self):

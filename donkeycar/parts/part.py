@@ -125,10 +125,9 @@ class CreatableFactory(type):
 
 class Creatable(object, metaclass=CreatableFactory):
     """
-    Base class for factory creatable parts, implementing create() by calling
+    Base class for factory creatable objects, implementing create() by calling
     constructor without any config
     """
-    part_type = PartType.NONE
 
     @classmethod
     def create(cls, cfg, **kwargs):
@@ -138,21 +137,31 @@ class Creatable(object, metaclass=CreatableFactory):
         self.kwargs = kwargs
 
 
-class TestCreatable(Creatable):
+class Part(Creatable):
+    """
+    Base class for creatable parts with additional class member part_type
+    """
+    part_type = PartType.NONE
+
+    def __int__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class TestPart(Part):
     """
     Test Part that shows the creation of new parts
     """
     def __init__(self, value=2):
         super().__init__(value=value)
         self.value = value
-        print('Created TestCreatable with value', self.value)
+        print('Created TestPart with value', self.value)
 
 
 if __name__ == '__main__':
     # we allow any case for the part in the dictionary, as python classes are
     # expected to be camel case
-    data = [{'testcreatable': None},
-            {'TestCreatable': {'arguments': {'value': 4}}}]
+    data = [{'testpart': None},
+            {'TestPart': {'arguments': {'value': 4}}}]
     cfg = Config()
 
     for d in data:

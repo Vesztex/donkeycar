@@ -23,7 +23,7 @@ import tornado.gen
 import tornado.websocket
 from socket import gethostname
 
-from .. import Creatable, PartType
+from .. import Part, PartType
 from ... import utils
 
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ class RemoteWebServer:
         pass
 
 
-class LocalWebController(Application, Creatable):
+class LocalWebController(Application, Part):
     """ Part that runs a local web server on the car (or wherever the donkey
     car software is started on). Connecting to the web server through your
     browser allows you to view the current camera image and to use a game
@@ -116,7 +116,7 @@ class LocalWebController(Application, Creatable):
         Create and publish variables needed on many of
         the web handlers.
         """
-        Creatable.__init__(self, port=port, mode=mode)
+        Part.__init__(self, port=port, mode=mode)
         logger.info('Starting Donkey Server...')
 
         this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -394,7 +394,7 @@ class BaseHandler(RequestHandler):
         await self.render("templates/base_fpv.html", **data)
 
 
-class WebFpv(Application, Creatable):
+class WebFpv(Application, Part):
     """
     Class for running an FPV web server that only shows the camera in real-time.
     The web page contains the camera view and auto-adjusts to the web browser
@@ -411,7 +411,7 @@ class WebFpv(Application, Creatable):
 
         :param int port: Optional port number, defaults to 8890 if not given.
         """
-        Creatable.__init__(self, port=port)
+        Part.__init__(self, port=port)
         self.port = port
         this_dir = os.path.dirname(os.path.realpath(__file__))
         self.static_file_path = os.path.join(this_dir, 'templates', 'static')

@@ -11,7 +11,7 @@ Note: To be used with code.py bundled in this repo. See donkeycar/contrib/roboha
 
 import time
 import donkeycar as dk
-from donkeycar.parts import Creatable
+from donkeycar.parts import Part
 
 try:
     import serial
@@ -161,7 +161,7 @@ class RoboHATController:
         return self.angle, self.throttle, self.mode, self.recording
 
 
-class RoboHATDriver(Creatable):
+class RoboHATDriver(Part):
     """
     PWM motor controller using Robo HAT MM1 boards.
     This is developed by Robotics Masters
@@ -262,7 +262,7 @@ class RoboHATDriver(Creatable):
             pass
 
 
-class RoboHATDriverCalibrator(Creatable):
+class RoboHATDriverCalibrator(Part):
     """
     This part allows to set the mid steering and max forward and max reverse
     pwm values of the assigned RoboHATDriver part to be set through the

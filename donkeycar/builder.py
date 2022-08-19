@@ -104,11 +104,14 @@ class Builder:
             # add part if either enable is missing or if it is present
             # and True or if it is a config parameter that is True,
             # passed like cfg.USE_PART for example
-            if enable is None or enable is True:
+            if enable is None:
                 return True
+            if type(enable) is bool:
+                return enable
             assert type(enable) is str, "Enable can only be None, bool or str"
-            assert enable[:4].lower() == 'cfg.', "Enable must start with 'cfg.'"
-            return getattr(self.cfg, enable[4:]) is True
+            assert 'cfg.' in enable, "Enable must contain 'cfg.'"
+            cfg = self.cfg
+            return eval(enable)
 
         with open(self.car_file) as f:
             try:
@@ -283,12 +286,13 @@ def main(args):
             parser.add_argument(f'--{part_name}.{arg_name}')
     kwargs = vars(parser.parse_args(args))
     yml = os.path.join(os.path.dirname(dk.__file__), 'templates',
-                       'vehicle_recipes', 'test_vehicle.yml')
+                       'assembly', 'test_vehicle.yml')
     cfg = donkeycar.load_config(os.path.join(os.getcwd(), 'config.py'))
     b = Builder(cfg, yml)
     v = b.build_vehicle(kwargs)
     b.plot_vehicle(v, 'app')
     #v.start()
+    v.stop()
 
 
 if __name__ == "__main__":

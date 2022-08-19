@@ -1471,6 +1471,7 @@ class PartsManager(BoxLayout):
             v = b.build_vehicle()
             b.plot_vehicle(v, 'app')
             assembly_screen().ids.status.text = 'Showing vehicle flow'
+            v.stop()
         except Exception as e:
             assembly_screen().ids.status.text = f'Error in vehicle: {e}'
             Logger.error(e)

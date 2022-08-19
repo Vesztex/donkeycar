@@ -9,7 +9,7 @@ import logging
 from typing import Tuple
 
 import donkeycar as dk
-from donkeycar.parts.part import Creatable, CreatableFactory, PartType
+from donkeycar.parts.part import Part, CreatableFactory, PartType
 from donkeycar.parts.pins import OutputPin, PwmPin, PinState, output_pin_by_id, \
     pwm_pin_by_id
 from donkeycar.utilities.deprecated import deprecated
@@ -215,7 +215,7 @@ class PiGPIO_PWM():
         self.set_pulse(pulse)
 
 
-class PWMSteering(Creatable):
+class PWMSteering(Part):
     """
     Wrapper over a PWM pulse controller to convert angles to PWM pulses.
     """
@@ -278,7 +278,7 @@ class PWMSteering(Creatable):
                            right_pulse=dt["STEERING_RIGHT_PWM"])
 
 
-class PWMSteeringCalibrator(Creatable):
+class PWMSteeringCalibrator(Part):
     """
     This part allows to set the left and right pulse values of the assigned
     PWMSteering part to be set through the donkey run method.
@@ -309,7 +309,7 @@ class PWMSteeringCalibrator(Creatable):
             self.pwm_steering.right_pulse = right_pulse
 
 
-class PWMThrottle(Creatable):
+class PWMThrottle(Part):
     """
     Wrapper over a PWM pulse controller to convert -1 to 1 throttle
     values to PWM pulses.
@@ -392,7 +392,7 @@ class PWMThrottle(Creatable):
                            min_pulse=dt['THROTTLE_REVERSE_PWM'])
 
 
-class PWMThrottleCalibrator(Creatable):
+class PWMThrottleCalibrator(Part):
     """
     This part allows to set the min, max and zero pulse values of the assigned
     PWMThrottle part to be set through the donkey run method.

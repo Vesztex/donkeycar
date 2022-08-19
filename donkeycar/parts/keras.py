@@ -20,7 +20,7 @@ from tensorflow.python.data.ops.dataset_ops import DatasetV1, DatasetV2
 import donkeycar as dk
 from donkeycar.utils import normalize_image, linear_bin
 from donkeycar.pipeline.types import TubRecord
-from donkeycar.parts.part import Creatable, PartType
+from donkeycar.parts.part import Part, PartType
 from donkeycar.parts.interpreter import Interpreter, KerasInterpreter
 
 import tensorflow as tf
@@ -45,11 +45,11 @@ XY = Union[float, np.ndarray, Tuple[Union[float, np.ndarray], ...]]
 logger = getLogger(__name__)
 
 
-class KerasMeta(type(ABC), type(Creatable)):
+class KerasMeta(type(ABC), type(Part)):
     pass
 
 
-class KerasPilot(ABC, Creatable, metaclass=KerasMeta):
+class KerasPilot(ABC, Part, metaclass=KerasMeta):
     """
     Base class for Keras models that will provide steering and throttle to
     guide a car.
@@ -59,7 +59,7 @@ class KerasPilot(ABC, Creatable, metaclass=KerasMeta):
     def __init__(self,
                  interpreter: Interpreter = KerasInterpreter(),
                  input_shape: Tuple[int, ...] = (120, 160, 3)) -> None:
-        Creatable.__init__(self, interpreter=interpreter,
+        Part.__init__(self, interpreter=interpreter,
                            input_shape=input_shape)
         self.input_shape = input_shape
         self.optimizer = "adam"

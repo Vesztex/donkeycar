@@ -1,7 +1,7 @@
-from donkeycar.parts import Creatable
+from donkeycar.parts import Part
 
 
-class ThrottleFilter(Creatable):
+class ThrottleFilter(Part):
     """
     This part modifies the raw input throttle value to allow reverse to
     trigger automatic reverse throttle. Reverse throttle on a car ESC usually

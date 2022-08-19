@@ -11,10 +11,12 @@ parts:
       threaded: false
       enable: false
   - localwebcontroller:
+      enable: not cfg.USE_JOYSTICK_AS_DEFAULT
       inputs: [cam/image_array, tub/current_index]
       outputs: [user/angle, user/throttle, user/mode, recording]
       threaded: true
   - webfpv:
+      enable: False
       inputs: [cam/image_array]
       threaded: true
   - checker:

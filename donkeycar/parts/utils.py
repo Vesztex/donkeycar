@@ -1,4 +1,4 @@
-from donkeycar.parts.part import Creatable, PartType
+from donkeycar.parts.part import Part, PartType
 from donkeycar.utilities.deprecated import deprecated
 
 
@@ -18,7 +18,7 @@ class Pipeline:
         return val
 
 
-class Dispatcher(Creatable):
+class Dispatcher(Part):
     """
     This part is a generic dispatcher that is constructed with a list of
     keys. In the vehicle loop's run method, it compares the first input to
@@ -95,7 +95,7 @@ class Dispatcher(Creatable):
         return args[index]
 
 
-class Checker(Creatable):
+class Checker(Part):
     """
     This part is a generic variable checker that checks if an input variable
     at runtime matches the value (or any value if it is a list) given in the

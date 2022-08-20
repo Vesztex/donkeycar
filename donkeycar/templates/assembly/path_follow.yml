@@ -1,0 +1,39 @@
+parts:
+  - joystick:
+      inputs: [cam/image_array]
+      outputs: [user/angle, user/throttle, user/mode, recording]
+      threaded: true
+  - pigpioencoder:
+      enable: cfg.HAVE_ODOM
+      arguments:
+        pin: cfg.ODOM_PIN
+      outputs: [enc/ticks]
+  - odomdist:
+      enable: cfg.HAVE_ODOM
+      arguments:
+        mm_per_tick: cfg.MM_PER_TICK
+        debug: cfg.ODOM_DEBUG
+      inputs: [enc/ticks, user/throttle]
+      outputs: [enc/dist_m, enc/vel_m_s, enc/delta_vel_m_s]
+  - rs_t265:
+      enable: cfg.HAVE_ODOM
+      arguments:
+        image_output: false
+        calib_filename: cfg.WHEEL_ODOM_CALIB
+      inputs: [enc/vel_m_s]
+      outputs: [rs/pos, rs/vel, rs/acc, rs/camera/left/img_array]
+      threaded: true
+  - rs_t265:
+      enable: not cfg.HAVE_ODOM
+      arguments:
+        image_output: false
+        calib_filename: null
+      outputs: [rs/pos, rs/vel, rs/acc, rs/camera/left/img_array]
+      threaded: true
+  - posstream:
+      inputs: [rs/pos]
+      outputs: [pos/x, pos/y]                
+  - originoffset:
+      inputs: [pos/x, pos/y]
+      outputs: [pos/x, pos/y]
+

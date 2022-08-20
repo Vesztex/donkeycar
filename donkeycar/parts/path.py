@@ -5,6 +5,7 @@ import logging
 import numpy
 from PIL import Image, ImageDraw
 
+from donkeycar.parts import PartType, Part
 from donkeycar.utils import norm_deg, dist, deg2rad, arr_to_img
 
 
@@ -34,6 +35,7 @@ class Path(object):
         self.path = pickle.load(infile)
         self.recording = False
 
+
 class PImage(object):
     def __init__(self, resolution=(500, 500), color="white", clear_each_frame=False):
         self.resolution = resolution
@@ -48,18 +50,31 @@ class PImage(object):
         return self.img
 
 
-class OriginOffset(object):
-    '''
-    Use this to set the car back to the origin without restarting it.
-    '''
+class OriginOffset(Part):
+    """
+    Use this part to set the car back to the origin without restarting it.
+    """
+    part_type = PartType.PLAN
 
     def __init__(self):
+        """
+        Creating the OriginOffset part.
+        """
+        super().__init__()
         self.ox = 0.0
         self.oy = 0.0
         self.last_x = 0.
         self.last_y = 0.
 
     def run(self, x, y):
+        """
+        Donkey Car parts interface. Saves x, y position values and returns x,
+        y shifted bye the origin values.
+
+        :param float x:     input x coordinate
+        :param float y:     input y coordinate
+        :return tuple:      output x,y coordinates
+        """
         self.last_x = x
         self.last_y = y
 

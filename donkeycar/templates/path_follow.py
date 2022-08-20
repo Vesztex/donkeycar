@@ -22,14 +22,13 @@ import shlex
 
 from docopt import docopt
 import numpy as np
-import pigpio
 
 import donkeycar as dk
 from donkeycar.parts.controller import WebFpv, get_js_controller, LocalWebController
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.path import Path, PathPlot, CTE, PID_Pilot, PlotCircle, PImage, OriginOffset
 from donkeycar.parts.transform import PIDController
-from donkeycar.parts.pigpio_enc import PiPGIOEncoder, OdomDist
+from donkeycar.parts.pigpio_enc import PiGPIOEncoder, OdomDist
 from donkeycar.parts.realsense2 import RS_T265
         
 
@@ -59,8 +58,7 @@ def drive(cfg):
             threaded=True)
 
     if cfg.HAVE_ODOM:
-        pi = pigpio.pi()
-        enc = PiPGIOEncoder(cfg.ODOM_PIN, pi)
+        enc = PiGPIOEncoder(cfg.ODOM_PIN)
         V.add(enc, outputs=['enc/ticks'])
 
         odom = OdomDist(mm_per_tick=cfg.MM_PER_TICK, debug=cfg.ODOM_DEBUG)

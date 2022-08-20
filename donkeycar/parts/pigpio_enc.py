@@ -1,5 +1,9 @@
-import pigpio
+import logging
 import time
+from donkeycar.parts import Part, PartType
+
+logger = logging.getLogger(__name__)
+
 
 class OdomDist(object):
     """
@@ -23,24 +27,24 @@ class OdomDist(object):
         new_ticks = ticks - self.prev_ticks
         self.prev_ticks = ticks
 
-        #save off the last time interval and reset the timer
+        # save off the last time interval and reset the timer
         start_time = self.last_time
         end_time = time.time()
         self.last_time = end_time
         
-        #calculate elapsed time and distance traveled
+        # calculate elapsed time and distance traveled
         seconds = end_time - start_time
         distance = new_ticks * self.m_per_tick
         if throttle < 0.0:
             distance = distance * -1.0
         velocity = distance / seconds
         
-        #update the odometer values
+        # update the odometer values
         self.meters += distance
         self.meters_per_second = velocity
 
-        #console output for debugging
-        if(self.debug):
+        # console output for debugging
+        if self.debug:
             print('seconds:', seconds)
             print('delta:', distance)
             print('velocity:', velocity)
@@ -51,32 +55,55 @@ class OdomDist(object):
         return self.meters, self.meters_per_second, distance
 
 
-class PiPGIOEncoder():
-    def __init__(self, pin, pi):
-        self.pin = pin
-        self.pi = pi
-        self.pi.set_mode(pin, pigpio.INPUT)
-        self.pi.set_pull_up_down(pin, pigpio.PUD_UP)
-        self.cb = pi.callback(self.pin, pigpio.FALLING_EDGE, self._cb)
-        self.count = 0
+class PiGPIOEncoder(Part):
+    """
+    Encoder part for odometry. This part will only work on RPi because it
+    requires the pigpio library. The part simply counts the number of encoder
+    ticks since part creation.
+    """
+    part_type = PartType.SENSE
+
+    def __init__(self, pin):
+        """
+        Creation of PiGPIOEncoder.
+
+        :param int pin:     Input pin to which the encoder is connected
+        """
+        super().__init__(pin=pin)
+        import pigpio
+        try:
+            self.pin = pin
+            self.pi = pigpio.pi()
+            self.pi.set_mode(pin, pigpio.INPUT)
+            self.pi.set_pull_up_down(pin, pigpio.PUD_UP)
+            self.cb = pi.callback(self.pin, pigpio.FALLING_EDGE, self._cb)
+            self.count = 0
+        except ImportError as e:
+            logging.error('PiGPIOEncoder part could not be instantiated as the '
+                          'pigpio python package is not installed. You can '
+                          'only use this instance for checking the car app '
+                          'but not for running it.')
 
     def _cb(self, pin, level, tick):
         self.count += 1
 
     def run(self):
+        """
+        Donkey car interface.
+
+        :return int:    Returns the number of encoder counts
+        """
         return self.count
 
     def shutdown(self):
-        if self.cb != None:
+        if self.cb is not None:
             self.cb.cancel()
             self.cb = None
-
         self.pi.stop()
 
 
 if __name__ == "__main__":
-    pi = pigpio.pi()
-    e = PiPGIOEncoder(4, pi)
+    e = PiGPIOEncoder(4)
     while True:
         time.sleep(0.1)
         e.run()

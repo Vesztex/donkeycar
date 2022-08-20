@@ -53,9 +53,9 @@ def drive(cfg):
     ctr = get_js_controller(cfg)
 
     V.add(ctr,
-            inputs=['cam/image_array'],
-            outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
-            threaded=True)
+          inputs=['cam/image_array'],
+          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
+          threaded=True)
 
     if cfg.HAVE_ODOM:
         enc = PiGPIOEncoder(cfg.ODOM_PIN)

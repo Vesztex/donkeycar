@@ -2,15 +2,11 @@ import os
 import array
 import time
 import struct
-import random
-from threading import Thread
 import logging
-
 from prettytable import PrettyTable
 
-# import for syntactical ease
-from donkeycar.parts.web_controller.web import LocalWebController
-from donkeycar.parts.web_controller.web import WebFpv
+from donkeycar.parts import Part, PartType
+from donkeycar.utils import EqMemorizedString
 
 
 class Joystick(object):
@@ -20,8 +16,8 @@ class Joystick(object):
     and axis; both their names and values
     and can be polled to state changes.
     """
-
     def __init__(self, dev_fn='/dev/input/js0'):
+        super().__init__(dev_fn=dev_fn)
         self.axis_states = {}
         self.button_states = {}
         self.axis_names = {}
@@ -55,10 +51,10 @@ class Joystick(object):
         print('Opening %s...' % self.dev_fn)
         self.jsdev = open(self.dev_fn, 'rb')
 
-        # Get the device name.
+        # Get the device name
         buf = array.array('B', [0] * 64)
-        ioctl(self.jsdev, 0x80006a13 + (0x10000 * len(buf)),
-              buf)  # JSIOCGNAME(len)
+        # JSIOCGNAME(len)
+        ioctl(self.jsdev, 0x80006a13 + (0x10000 * len(buf)), buf)
         self.js_name = buf.tobytes().decode('utf-8')
         print('Device name: %s' % self.js_name)
 
@@ -830,7 +826,7 @@ class RC3ChanJoystick(Joystick):
         }
 
 
-class JoystickController(object):
+class JoystickController(Part):
     """
     Class to map joystick buttons and axes to functions.
     JoystickController is a base class. You will not use this class directly,
@@ -840,6 +836,7 @@ class JoystickController(object):
     presses into actions and takes action. Interacts with the Donkey part
     framework.
     """
+    part_type = PartType.SENSE
 
     ES_IDLE = -1
     ES_START = 0
@@ -853,7 +850,10 @@ class JoystickController(object):
                  throttle_dir=-1.0,
                  dev_fn='/dev/input/js0',
                  auto_record_on_throttle=True):
-
+        super().__init__(poll_delay=poll_delay, throttle_scale=throttle_scale,
+                         steering_scale=steering_scale,
+                         throttle_dir=throttle_dir, dev_fn=dev_fn,
+                         auto_record_on_throttle=auto_record_on_throttle)
         self.img_arr = None
         self.angle = 0.0
         self.throttle = 0.0
@@ -880,6 +880,25 @@ class JoystickController(object):
         self.button_up_trigger_map = {}
         self.axis_trigger_map = {}
         self.init_trigger_maps()
+
+    @classmethod
+    def create(cls, cfg, **kwargs):
+        """
+        Creation of Joystick part. Supports following joystick types in the
+        configuration parameter JOYSTICK_TYPE: ps3, ps3sixad, ps4, nimbus,
+        xbox, xboxswapped, wiiu, F710, rc3, pygame. Additionally, the
+        following configuration parameters need to be set:
+        JOYSTICK_THROTTLE_DIR,
+        JOYSTICK_MAX_THROTTLE,
+        JOYSTICK_STEERING_SCALE,
+        AUTO_RECORD_ON_THROTTLE,
+        JOYSTICK_DEVICE_FILE,
+        JOYSTICK_DEADZONE
+
+        :param Config cfg:  Donkey car config object
+        :return Joystick:   Joystick part
+        """
+        return get_js_controller(cfg)
 
     def init_js(self):
         """
@@ -1665,28 +1684,30 @@ class JoyStickSub(object):
 
 def get_js_controller(cfg):
     cont_class = None
-    if cfg.CONTROLLER_TYPE == "ps3":
+    ctr_type = EqMemorizedString(cfg.CONTROLLER_TYPE)
+    if ctr_type == "ps3":
         cont_class = PS3JoystickController
-    elif cfg.CONTROLLER_TYPE == "ps3sixad":
+    elif ctr_type == "ps3sixad":
         cont_class = PS3JoystickSixAdController
-    elif cfg.CONTROLLER_TYPE == "ps4":
+    elif ctr_type == "ps4":
         cont_class = PS4JoystickController
-    elif cfg.CONTROLLER_TYPE == "nimbus":
+    elif ctr_type == "nimbus":
         cont_class = NimbusController
-    elif cfg.CONTROLLER_TYPE == "xbox":
+    elif ctr_type == "xbox":
         cont_class = XboxOneJoystickController
-    elif cfg.CONTROLLER_TYPE == "xboxswapped":
+    elif ctr_type == "xboxswapped":
         cont_class = XboxOneSwappedJoystickController
-    elif cfg.CONTROLLER_TYPE == "wiiu":
+    elif ctr_type == "wiiu":
         cont_class = WiiUController
-    elif cfg.CONTROLLER_TYPE == "F710":
+    elif ctr_type == "F710":
         cont_class = LogitechJoystickController
-    elif cfg.CONTROLLER_TYPE == "rc3":
+    elif ctr_type == "rc3":
         cont_class = RC3ChanJoystickController
-    elif cfg.CONTROLLER_TYPE == "pygame":
+    elif ctr_type == "pygame":
         cont_class = PyGamePS4JoystickController
     else:
-        raise Exception("Unknown controller type: " + cfg.CONTROLLER_TYPE)
+        raise RuntimeError(f"Unknown controller type: {ctr_type}, "
+                           f"known types are: {ctr_type.mem_as_str()}.")
 
     ctr = cont_class(throttle_dir=cfg.JOYSTICK_THROTTLE_DIR,
                      throttle_scale=cfg.JOYSTICK_MAX_THROTTLE,

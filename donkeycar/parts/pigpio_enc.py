@@ -5,11 +5,22 @@ from donkeycar.parts import Part, PartType
 logger = logging.getLogger(__name__)
 
 
-class OdomDist(object):
+class OdomDist(Part):
     """
     Take a tick input from odometry and compute the distance travelled
     """
+    part_type = PartType.PERCEIVE
+
     def __init__(self, mm_per_tick, debug=False):
+        """
+        Creation of OdomDist part. This part converts the sensor's ticks into
+        speed and distance.
+
+        :param float mm_per_tick:   Number of mm / tick, depends on your car,
+                                    sensor, etc.
+        :param bool debug:          If debug information should be printed.
+        """
+        super().__init__(mm_per_tick=mm_per_tick, debug=debug)
         self.mm_per_tick = mm_per_tick
         self.m_per_tick = mm_per_tick / 1000.0
         self.meters = 0
@@ -20,9 +31,14 @@ class OdomDist(object):
 
     def run(self, ticks, throttle):
         """
-        inputs => total ticks since start
-        inputs => throttle, used to determine positive or negative vel
-        return => total dist (m), current vel (m/s), delta dist (m)
+        Donkey Car parts interface. The method calculates current speed and
+        relative distance w.r.t to the previous call and also updates the
+        total distance driven.
+
+        :param int inputs:      total ticks since start
+        :param float throttle:  used to determine positive or negative vel
+        :return tuple:          total dist (m), current vel (m/s),
+                                delta dist (m)
         """
         new_ticks = ticks - self.prev_ticks
         self.prev_ticks = ticks

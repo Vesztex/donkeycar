@@ -90,7 +90,8 @@ class KerasPilot(ABC, Part, metaclass=KerasMeta):
                                 like 'tflite_linear', 'trt_categorical'.
                                 Defaults to the model type DEFAULT_MODEL_TYPE in
                                 the config.
-        :return KerasPilot:     Returns a KerasPilot part
+        :return:                Returns a KerasPilot part
+        :rtype:                 KerasPilot
         """
         from donkeycar.utils import get_model_by_type
         kl = get_model_by_type(model_type, cfg)

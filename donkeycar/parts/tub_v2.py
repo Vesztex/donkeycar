@@ -167,7 +167,7 @@ class TubWriter(Part):
         :param list[tuple] metadata:    Optional list of key/value pairs of
                                         metadata that can be stored in the tub.
                                         Will erase previous metadata, if given.
-        :return TubWriter:              TubWriter part
+        :return:                        TubWriter part
         """
         tub_path = TubHandler(path=cfg.DATA_PATH).create_tub_path() if \
             cfg.AUTO_CREATE_NEW_TUB else cfg.DATA_PATH

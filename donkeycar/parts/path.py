@@ -1,6 +1,7 @@
 import pickle
 import math
 import logging
+import os
 
 import numpy
 from PIL import Image, ImageDraw
@@ -8,32 +9,57 @@ from PIL import Image, ImageDraw
 from donkeycar.parts import PartType, Part
 from donkeycar.utils import norm_deg, dist, deg2rad, arr_to_img
 
+logger = logging.getLogger(__name__)
+
 
 class Path(object):
-    def __init__(self, min_dist = 1.):
+    def __init__(self, min_dist=1., file_name="donkey_path.pkl",
+                 save_path_btn="circle", erase_path_btn="triangle"):
         self.path = []
         self.min_dist = min_dist
         self.x = math.inf
         self.y = math.inf
         self.recording = True
+        self.file_name = file_name
+        self.save_path_btn = save_path_btn
+        self.erase_path_btn = erase_path_btn
+        if os.path.exists(self.file_name):
+            self.load()
 
-    def run(self, x, y):
+    def run(self, x, y, button_down=[]):
         d = dist(x, y, self.x, self.y)
         if self.recording and d > self.min_dist:
             self.path.append((x, y))
             logging.info("path point (%f, %f)" % ( x, y))
             self.x = x
             self.y = y
-        return self.path
+        result = self.path
+        # save or erase path if corresponding button is pressed.
+        if self.save_path_btn in button_down:
+            self.save()
+        if self.erase_path_btn in button_down:
+            self.erase()
+        return result
 
-    def save(self, filename):
-        outfile = open(filename, 'wb')
+    def save(self):
+        logger.info(f"Saving path {self.file_name}")
+        outfile = open(self.file_name, 'wb')
         pickle.dump(self.path, outfile)
     
-    def load(self, filename):
-        infile = open(filename, 'rb')
+    def load(self):
+        logger.info(f"Loading path {self.file_name}")
+        infile = open(self.file_name, 'rb')
         self.path = pickle.load(infile)
         self.recording = False
+
+    def erase(self):
+        if os.path.exists(self.file_name):
+            logger.info(f"Removing path {self.file_name}")
+            os.remove(self.file_name)
+            mode = 'user'
+            path_loaded = False
+        else:
+            logger.warning("No path found to erase")
 
 
 class PImage(object):
@@ -56,29 +82,40 @@ class OriginOffset(Part):
     """
     part_type = PartType.PLAN
 
-    def __init__(self):
+    def __init__(self, init_button="square"):
         """
-        Creating the OriginOffset part.
+        Creation of the OriginOffset part. Requires the joystick button name
+        to trigger a reset of the origin.
+
+        :param str init_button: Name of the joystick controller button that
+                                will trigger the part to reset the origin.
         """
-        super().__init__()
+        super().__init__(init_button=init_button)
         self.ox = 0.0
         self.oy = 0.0
         self.last_x = 0.
         self.last_y = 0.
+        self.init_button = init_button
 
-    def run(self, x, y):
+    def run(self, x, y, button_down=[]):
         """
         Donkey Car parts interface. Saves x, y position values and returns x,
-        y shifted bye the origin values.
+        y shifted bye the origin values. If the button_down list contains the
+        init_button from the constructor, the origin is reset to the latest
+        coordinates.
 
-        :param float x:     input x coordinate
-        :param float y:     input y coordinate
-        :return tuple:      output x,y coordinates
+        :param float x:                 Input x coordinate
+        :param float y:                 Input y coordinate
+        :param list(str) button_down:   List of controller buttons in down
+                                        state.
+        :return:                        Output x,y coordinates
         """
         self.last_x = x
         self.last_y = y
-
-        return x + self.ox, y + self.oy
+        pos = x + self.ox, y + self.oy
+        if self.init_button in button_down:
+            self.init_to_last()
+        return pos
 
     def init_to_last(self):
         self.ox = -self.last_x

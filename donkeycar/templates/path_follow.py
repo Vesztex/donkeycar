@@ -54,7 +54,8 @@ def drive(cfg):
 
     V.add(ctr,
           inputs=['cam/image_array'],
-          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
+          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording',
+                   'button_down', 'button_up'],
           threaded=True)
 
     if cfg.HAVE_ODOM:
@@ -82,7 +83,10 @@ def drive(cfg):
    
     # This requires use of the Intel Realsense T265
     rs = RS_T265(image_output=False, calib_filename=cfg.WHEEL_ODOM_CALIB)
-    V.add(rs, inputs=['enc/vel_m_s'], outputs=['rs/pos', 'rs/vel', 'rs/acc', 'rs/camera/left/img_array'], threaded=True)
+    V.add(rs,
+          inputs=['enc/vel_m_s'],
+          outputs=['rs/pos', 'rs/vel', 'rs/acc', 'rs/camera/left/img_array'],
+          threaded=True)
 
     # Pull out the realsense T265 position stream, output 2d coordinates we can use to map.
     class PosStream:
@@ -95,75 +99,45 @@ def drive(cfg):
     # This part will reset the car back to the origin. You must put the car in the known origin
     # and push the cfg.RESET_ORIGIN_BTN on your controller. This will allow you to induce an offset
     # in the mapping.
-
-
-    origin_reset = OriginOffset()
-    V.add(origin_reset, inputs=['pos/x', 'pos/y'], outputs=['pos/x', 'pos/y'] )
-
+    origin_reset = OriginOffset(init_button=cfg.RESET_ORIGIN_BTN)
+    V.add(origin_reset, inputs=['pos/x', 'pos/y', 'button_down'],
+          outputs=['pos/x', 'pos/y'])
 
     class UserCondition:
         def run(self, mode):
-            if mode == 'user':
-                return True
-            else:
-                return False
+            return mode == 'user'
 
     V.add(UserCondition(), inputs=['user/mode'], outputs=['run_user'])
 
-    #See if we should even run the pilot module. 
-    #This is only needed because the part run_condition only accepts boolean
+    # See if we should even run the pilot module.
+    # This is only needed because the part run_condition only accepts boolean
     class PilotCondition:
         def run(self, mode):
-            if mode == 'user':
-                return False
-            else:
-                return True
+            return mode == 'user'
 
     V.add(PilotCondition(), inputs=['user/mode'], outputs=['run_pilot'])
 
-    # This is the path object. It will record a path when distance changes and it travels
-    # at least cfg.PATH_MIN_DIST meters. Except when we are in follow mode, see below...
-    path = Path(min_dist=cfg.PATH_MIN_DIST)
-    V.add(path, inputs=['pos/x', 'pos/y'], outputs=['path'], run_condition='run_user')
+    # This is the path object. It will record a path when distance changes
+    # and it travels at least cfg.PATH_MIN_DIST meters. Except when we are in
+    # follow mode, see below...
+    path = Path(min_dist=cfg.PATH_MIN_DIST, file_name=cfg.PATH_FILENAME,
+                save_path_btn=cfg.SAVE_PATH_BTN,
+                erase_path_btn=cfg.ERASE_PATH_BTN)
+    V.add(path,
+          inputs=['pos/x', 'pos/y', 'button_down'],
+          outputs=['path'],
+          run_condition='run_user')
 
-    # When a path is loaded, we will be in follow mode. We will not record.
-    path_loaded = False
-    if os.path.exists(cfg.PATH_FILENAME):
-        path.load(cfg.PATH_FILENAME)
-        path_loaded = True
+    # Here's a trigger to save the path. Complete one circuit of your course,
+    # when you have exactly looped, or just shy of the loop, then save the
+    # path and shutdown this process. Restart and the path will be loaded.
+    ctr.set_button_down_trigger(cfg.SAVE_PATH_BTN)
 
-    def save_path():
-        path.save(cfg.PATH_FILENAME)
-        print("saved path:", cfg.PATH_FILENAME)
+    # Here's a trigger to erase a previously saved path.
+    ctr.set_button_down_trigger(cfg.ERASE_PATH_BTN)
 
-    def erase_path():
-        global mode, path_loaded
-        if os.path.exists(cfg.PATH_FILENAME):
-            os.remove(cfg.PATH_FILENAME)
-            mode = 'user'
-            path_loaded = False
-            print("erased path", cfg.PATH_FILENAME)
-        else:
-            print("no path found to erase")
-    
-    def reset_origin():
-        print("Resetting origin")
-        origin_reset.init_to_last
-
-
-    
-    # Here's a trigger to save the path. Complete one circuit of your course, when you
-    # have exactly looped, or just shy of the loop, then save the path and shutdown
-    # this process. Restart and the path will be loaded.
-    ctr.set_button_down_trigger(cfg.SAVE_PATH_BTN, save_path)
-
-    # Here's a trigger to erase a previously saved path. 
-
-    ctr.set_button_down_trigger(cfg.ERASE_PATH_BTN, erase_path)
-
-    # Here's a trigger to reset the origin. 
-
-    ctr.set_button_down_trigger(cfg.RESET_ORIGIN_BTN, reset_origin)
+    # Here's a trigger to reset the origin.
+    ctr.set_button_down_trigger(cfg.RESET_ORIGIN_BTN)
 
     # Here's an image we can map to.
     img = PImage(clear_each_frame=True)
@@ -176,12 +150,15 @@ def drive(cfg):
 
     # This will use path and current position to output cross track error
     cte = CTE()
-    V.add(cte, inputs=['path', 'pos/x', 'pos/y'], outputs=['cte/error'], run_condition='run_pilot')
+    V.add(cte, inputs=['path', 'pos/x', 'pos/y'], outputs=['cte/error'],
+          run_condition='run_pilot')
 
-    # This will use the cross track error and PID constants to try to steer back towards the path.
+    # This will use the cross track error and PID constants to try to steer
+    # back towards the path.
     pid = PIDController(p=cfg.PID_P, i=cfg.PID_I, d=cfg.PID_D)
     pilot = PID_Pilot(pid, cfg.PID_THROTTLE)
-    V.add(pilot, inputs=['cte/error'], outputs=['pilot/angle', 'pilot/throttle'], run_condition="run_pilot")
+    V.add(pilot, inputs=['cte/error'],
+          outputs=['pilot/angle', 'pilot/throttle'], run_condition="run_pilot")
 
     def dec_pid_d():
         pid.Kd -= 0.5
@@ -195,30 +172,30 @@ def drive(cfg):
     ctr.set_button_down_trigger("L2", dec_pid_d)
     ctr.set_button_down_trigger("R2", inc_pid_d)
 
-    # #This web controller will create a web server. We aren't using any controls, just for visualization.
+    # #This web controller will create a web server. We aren't using any
+    # controls, just for visualization.
 
     web_ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT,
                                  mode=cfg.WEB_INIT_MODE)
 
     V.add(web_ctr,
-        inputs=['map/image'],
-        outputs=['web/angle', 'web/throttle', 'web/mode', 'web/recording'],
-        threaded=True)
-    
+          inputs=['map/image'],
+          outputs=['web/angle', 'web/throttle', 'web/mode', 'web/recording'],
+          threaded=True)
 
-    #Choose what inputs should change the car.
+    # Choose what inputs should change the car.
     class DriveMode:
-        def run(self, mode, 
-                    user_angle, user_throttle,
-                    pilot_angle, pilot_throttle):
+        def run(self, mode,
+                user_angle, user_throttle,
+                pilot_angle, pilot_throttle):
             if mode == 'user':
-                #print(user_angle, user_throttle)
+                # print(user_angle, user_throttle)
                 return user_angle, user_throttle
-            
+
             elif mode == 'local_angle':
                 return pilot_angle, user_throttle
-            
-            else: 
+
+            else:
                 return pilot_angle, pilot_throttle
         
     V.add(DriveMode(), 
@@ -227,20 +204,19 @@ def drive(cfg):
           outputs=['angle', 'throttle'])
     
 
-    if not cfg.DONKEY_GYM:
-        steering_controller = PCA9685(cfg.STEERING_CHANNEL, cfg.PCA9685_I2C_ADDR, busnum=cfg.PCA9685_I2C_BUSNUM)
-        steering = PWMSteering(controller=steering_controller,
-                                        left_pulse=cfg.STEERING_LEFT_PWM, 
-                                        right_pulse=cfg.STEERING_RIGHT_PWM)
-        
-        throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL, cfg.PCA9685_I2C_ADDR, busnum=cfg.PCA9685_I2C_BUSNUM)
-        throttle = PWMThrottle(controller=throttle_controller,
-                                        max_pulse=cfg.THROTTLE_FORWARD_PWM,
-                                        zero_pulse=cfg.THROTTLE_STOPPED_PWM, 
-                                        min_pulse=cfg.THROTTLE_REVERSE_PWM)
+    steering_controller = PCA9685(cfg.STEERING_CHANNEL, cfg.PCA9685_I2C_ADDR, busnum=cfg.PCA9685_I2C_BUSNUM)
+    steering = PWMSteering(controller=steering_controller,
+                                    left_pulse=cfg.STEERING_LEFT_PWM,
+                                    right_pulse=cfg.STEERING_RIGHT_PWM)
 
-        V.add(steering, inputs=['angle'])
-        V.add(throttle, inputs=['throttle'])
+    throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL, cfg.PCA9685_I2C_ADDR, busnum=cfg.PCA9685_I2C_BUSNUM)
+    throttle = PWMThrottle(controller=throttle_controller,
+                                    max_pulse=cfg.THROTTLE_FORWARD_PWM,
+                                    zero_pulse=cfg.THROTTLE_STOPPED_PWM,
+                                    min_pulse=cfg.THROTTLE_REVERSE_PWM)
+
+    V.add(steering, inputs=['angle'])
+    V.add(throttle, inputs=['throttle'])
 
     # Print Joystick controls
     ctr.print_controls()
@@ -278,8 +254,7 @@ def drive(cfg):
         loc_plot = PlotCircle(scale=cfg.PATH_SCALE, offset=cfg.PATH_OFFSET, color = carcolor)
         V.add(loc_plot, inputs=['map/image', 'pos/x', 'pos/y'], outputs=['map/image'])
 
-    V.start(rate_hz=cfg.DRIVE_LOOP_HZ, 
-        max_loop_count=cfg.MAX_LOOPS)
+    V.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS)
 
 
 if __name__ == '__main__':
@@ -291,7 +266,6 @@ if __name__ == '__main__':
     if not isinstance(numeric_level, int):
         raise ValueError('Invalid log level: %s' % log_level)
     logging.basicConfig(level=numeric_level)
-
     
     if args['drive']:
         drive(cfg)

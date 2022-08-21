@@ -884,7 +884,7 @@ class JoystickController(Part):
         self.init_trigger_maps()
 
     @classmethod
-    def create(cls, cfg, **kwargs):
+    def create(cls, cfg, button_down=[], button_up=[]):
         """
         Creation of Joystick part. Supports following joystick types in the
         configuration parameter JOYSTICK_TYPE: ps3, ps3sixad, ps4, nimbus,
@@ -895,10 +895,22 @@ class JoystickController(Part):
         JOYSTICK_STEERING_SCALE,
         AUTO_RECORD_ON_THROTTLE,
         JOYSTICK_DEVICE_FILE,
-        JOYSTICK_DEADZONE
+        JOYSTICK_DEADZONE.
 
-        :param Config cfg:  Donkey car config object
-        :return Joystick:   Joystick part
+        Passing a list of button names in the down or up button lists will
+        add or replace the button functions that are linked to the controller
+        by default, and return the down or up states of those buttons in the
+        run_threaded method. This allows other parts to process this
+        controller information.
+
+        :param Config cfg:              Donkey car config object
+        :param list(str) button_down:   List of button names for which the
+                                        down state will be returned in
+                                        run_threaded.
+        :param list(str) button_up:     List of button names for which the
+                                        up state will be returned in
+                                        run_threaded.
+        :return:                        Joystick part
         """
         return get_js_controller(cfg)
 
@@ -935,27 +947,19 @@ class JoystickController(Part):
         print("Joystick Controls:")
         print(pt)
 
-        # print("Joystick Controls:")
-        # print("On Button Down:")
-        # print(self.button_down_trigger_map)
-        # print("On Button Up:")
-        # print(self.button_up_trigger_map)
-        # print("On Axis Move:")
-        # print(self.axis_trigger_map)
-
-    def set_button_down_trigger(self, button, func):
+    def set_button_down_trigger(self, button):
         """
         assign a string button descriptor to a given function call
         """
-        self.button_down_trigger_map[button] = func
+        self.button_down_trigger_map[button] = False
 
-    def set_button_up_trigger(self, button, func):
+    def set_button_up_trigger(self, button):
         """
         assign a string button descriptor to a given function call
         """
-        self.button_up_trigger_map[button] = func
+        self.button_up_trigger_map[button] = False
 
-    def set_axis_trigger(self, axis, func):
+    def _set_axis_trigger(self, axis, func):
         """
         assign a string axis descriptor to a given function call
         """
@@ -1008,22 +1012,28 @@ class JoystickController(Part):
             button, button_state, axis, axis_val = self.js.poll()
 
             if axis is not None and axis in self.axis_trigger_map:
-                '''
-                then invoke the function attached to that axis
-                '''
+                # then invoke the function attached to that axis
                 self.axis_trigger_map[axis](axis_val)
 
-            if button and button_state >= 1 and button in self.button_down_trigger_map:
-                '''
-                then invoke the function attached to that button
-                '''
-                self.button_down_trigger_map[button]()
+            if button in self.button_down_trigger_map:
+                # if button in map, set it's trigger state if it has been
+                # user assigned, i.e. its a bool, or call its function assigned
+                # at construction.
+                target = self.button_down_trigger_map[button]
+                if type(target) is bool:
+                    self.button_down_trigger_map[button] = button_state >= 1
+                else:
+                    target()
 
-            if button and button_state == 0 and button in self.button_up_trigger_map:
-                '''
-                then invoke the function attached to that button
-                '''
-                self.button_up_trigger_map[button]()
+            if button in self.button_up_trigger_map:
+                # if button in map, set it's trigger state if it has been
+                # user assigned, , i.e. its a bool, or call its function
+                # assigned at construction.
+                target = self.button_up_trigger_map[button]
+                if type(target) is bool:
+                    self.button_up_trigger_map[button] = button_state == 0
+                else:
+                    target()
 
             time.sleep(self.poll_delay)
 
@@ -1035,13 +1045,11 @@ class JoystickController(Part):
 
     def set_steering(self, axis_val):
         self.angle = self.steering_scale * axis_val
-        # print("angle", self.angle)
 
     def set_throttle(self, axis_val):
         # this value is often reversed, with positive value when pulling down
         self.last_throttle_axis_val = axis_val
         self.throttle = (self.throttle_dir * axis_val * self.throttle_scale)
-        # print("throttle", self.throttle)
         self.on_throttle_changes()
 
     def toggle_manual_recording(self):
@@ -1130,12 +1138,16 @@ class JoystickController(Part):
 
     def run_threaded(self, img_arr=None, mode=None, recording=None):
         """
-        :param img_arr: current camera image or None
-        :param mode: default user/mode
-        :param recording: default recording mode
+        Donkey Car parts interface. Allows to overwrite the default mode and
+        default recording flag when passed in.
+
+        :param np.array img_arr:    Current camera image or None
+        :param str mode:            Default user/mode
+        :param bool recording:      Default recording mode
+        :return tuple:              Tuple of (angle, throttle, mode, recording,
+                                    down_button list, up_button list).
         """
         self.img_arr = img_arr
-
         #
         # enforce defaults if they are not none.
         #
@@ -1173,10 +1185,15 @@ class JoystickController(Part):
                     self.estop_state = self.ES_IDLE
                 return 0.0, self.throttle, self.mode, False
 
-        if self.chaos_monkey_steering is not None:
-            return self.chaos_monkey_steering, self.throttle, self.mode, False
+        down_buttons = self._pressed_buttons(True)
+        up_buttons = self._pressed_buttons(False)
 
-        return self.angle, self.throttle, self.mode, self.recording
+        if self.chaos_monkey_steering is not None:
+            return self.chaos_monkey_steering, self.throttle, self.mode, \
+                   False, down_buttons, up_buttons
+
+        return self.angle, self.throttle, self.mode, self.recording, \
+            down_buttons, up_buttons
 
     def run(self, img_arr=None, mode=None, recording=None):
         return self.run_threaded(img_arr, mode, recording)
@@ -1185,6 +1202,11 @@ class JoystickController(Part):
         # set flag to exit polling thread, then wait a sec for it to leave
         self.running = False
         time.sleep(0.5)
+
+    def _pressed_buttons(self, is_down):
+        d = self.button_down_trigger_map if is_down else \
+            self.button_up_trigger_map
+        return [k for k, v in d.items() if type(v) is bool and v]
 
 
 class JoystickCreatorController(JoystickController):
@@ -1434,12 +1456,12 @@ class XboxOneSwappedJoystickController(XboxOneJoystickController):
         super(XboxOneSwappedJoystickController, self).init_trigger_maps()
 
         # make the actual swap of the sticks
-        self.set_axis_trigger('right_stick_horz', self.set_steering)
-        self.set_axis_trigger('left_stick_vert', self.set_throttle)
+        self._set_axis_trigger('right_stick_horz', self.set_steering)
+        self._set_axis_trigger('left_stick_vert', self.set_throttle)
 
         # unmap default assinments to the axes
-        self.set_axis_trigger('left_stick_horz', self.do_nothing)
-        self.set_axis_trigger('right_stick_vert', self.do_nothing)
+        self._set_axis_trigger('left_stick_horz', self.do_nothing)
+        self._set_axis_trigger('right_stick_vert', self.do_nothing)
 
 
 class LogitechJoystickController(JoystickController):

@@ -241,7 +241,7 @@ class LocalWebController(Application, Part):
                             WEB_CONTROL_PORT if not overwritten
         :param str mode:    web controller start up mode, defaults to config
                             parameter WEB_INIT_MODE if not overwritten
-        :return LocalWebController: web controller instance
+        :return:            web controller instance
         """
         port = port or cfg.WEB_CONTROL_PORT
         mode = mode or cfg.WEB_INIT_MODE

@@ -219,7 +219,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
         def show_record_acount_status():
             rec_tracker_part.last_num_rec_print = 0
             rec_tracker_part.force_alert = 1
-        ctr.set_button_down_trigger('circle', show_record_acount_status)
+        ctr.set_button_down_register('circle', show_record_acount_status)
 
     # Use the FPV preview, which will show the cropped image output, or the full frame.
     if cfg.USE_FPV:
@@ -230,7 +230,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
         bh = BehaviorPart(cfg.BEHAVIOR_LIST)
         V.add(bh, outputs=['behavior/state', 'behavior/label', "behavior/one_hot_state_array"])
         try:
-            ctr.set_button_down_trigger('L1', bh.increment_state)
+            ctr.set_button_down_register('L1', bh.increment_state)
         except:
             pass
 
@@ -350,7 +350,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
         outputs=['throttle'])
 
     if isinstance(ctr, JoystickController):
-        ctr.set_button_down_trigger(cfg.AI_LAUNCH_ENABLE_BUTTON, aiLauncher.enable_ai_launch)
+        ctr.set_button_down_register(cfg.AI_LAUNCH_ENABLE_BUTTON, aiLauncher.enable_ai_launch)
 
 
     class AiRunCondition:

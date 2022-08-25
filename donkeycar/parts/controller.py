@@ -879,6 +879,8 @@ class JoystickController(Part):
         self.button_down_trigger_map = {}
         self.button_up_trigger_map = {}
         self.axis_trigger_map = {}
+        self.button_down_register_map = {}
+        self.button_up_register_map = {}
         self.init_trigger_maps()
 
     @classmethod
@@ -945,17 +947,23 @@ class JoystickController(Part):
         print("Joystick Controls:")
         print(pt)
 
-    def set_button_down_trigger(self, button):
+    def set_button_down_register(self, button):
         """
-        assign a string button descriptor to a given function call
+        Assign or reassign a button to the register so it can be used in the
+        run_threaded method to communicate w/ other parts
         """
-        self.button_down_trigger_map[button] = False
+        # remove functionality from button first, if already assigned
+        self.button_down_trigger_map.pop(button, None)
+        self.button_down_register_map[button] = False
 
     def set_button_up_trigger(self, button):
         """
-        assign a string button descriptor to a given function call
+        Assign or reassign a button to the register so it can be used in the
+        run_threaded method to communicate w/ other parts
         """
-        self.button_up_trigger_map[button] = False
+        # remove functionality from button first, if already assigned
+        self.button_up_trigger_map.pop(button, None)
+        self.button_up_register_map[button] = False
 
     def _set_axis_trigger(self, axis, func):
         """
@@ -1010,24 +1018,20 @@ class JoystickController(Part):
                 self.axis_trigger_map[axis](axis_val)
 
             if button in self.button_down_trigger_map:
-                # if button in map, set it's trigger state if it has been
-                # user assigned, i.e. its a bool, or call its function assigned
-                # at construction.
-                target = self.button_down_trigger_map[button]
-                if type(target) is bool:
-                    self.button_down_trigger_map[button] = button_state >= 1
-                else:
-                    target()
+                # invoke function if button down
+                if button_state >= 1:
+                    self.button_down_trigger_map[button]()
+            elif button in self.button_down_register_map:
+                # assign True/False if button is in down state or not
+                self.button_up_register_map[button] = button_state >= 1
 
             if button in self.button_up_trigger_map:
-                # if button in map, set it's trigger state if it has been
-                # user assigned, , i.e. its a bool, or call its function
-                # assigned at construction.
-                target = self.button_up_trigger_map[button]
-                if type(target) is bool:
-                    self.button_up_trigger_map[button] = button_state == 0
-                else:
-                    target()
+                # invoke function if button down
+                if button_state == 0:
+                    self.button_up_trigger_map[button]()
+            elif button in self.button_up_register_map:
+                # assign True/False if button is in down state or not
+                self.button_up_register_map[button] = button_state == 0
 
             time.sleep(self.poll_delay)
 
@@ -1170,15 +1174,13 @@ class JoystickController(Part):
                     self.estop_state = self.ES_IDLE
                 return 0.0, self.throttle, self.mode, False
 
-        down_buttons = self._pressed_buttons(True)
-        up_buttons = self._pressed_buttons(False)
-
         if self.chaos_monkey_steering is not None:
             return self.chaos_monkey_steering, self.throttle, self.mode, \
-                   False, down_buttons, up_buttons
+                False, self.button_down_register_map, \
+                self.button_up_register_map
 
         return self.angle, self.throttle, self.mode, self.recording, \
-            down_buttons, up_buttons
+            self.button_down_register_map, self.button_up_register_map
 
     def run(self, img_arr=None, mode=None, recording=None):
         return self.run_threaded(img_arr, mode, recording)
@@ -1187,11 +1189,6 @@ class JoystickController(Part):
         # set flag to exit polling thread, then wait a sec for it to leave
         self.running = False
         time.sleep(0.5)
-
-    def _pressed_buttons(self, is_down):
-        d = self.button_down_trigger_map if is_down else \
-            self.button_up_trigger_map
-        return [k for k, v in d.items() if type(v) is bool and v]
 
 
 class JoystickCreatorController(JoystickController):
@@ -1739,6 +1736,38 @@ def get_js_controller(cfg):
 
     ctr.set_deadzone(cfg.JOYSTICK_DEADZONE)
     return ctr
+
+
+class ButtonStateChecker(Part):
+    part_type = PartType.SENSE
+
+    def __int__(self, button_names):
+        """
+        Creating the ButtonStateChecker. This part operates on the
+        button_register_maps that are produced by the JoystickController's
+        run_threaded method. The list of button names to be evaluated has to
+        be passed in the constructor.
+
+        :param list(str) button_names:  list of button names to be checked
+        """
+        super().__init__(button_names=button_names)
+        self.button_names = button_names
+
+    def run(self, button_map):
+        """
+        Donkey car interface. Takes a button map dictionary and returns the
+        dictionary values of the button names passed in the constructor as a
+        tuple.
+
+        :param dict button_map:         Dictionary str:bool that stores the
+                                        trigger state True/False for named
+                                        buttons
+        :return:                        Tuple of len(button_names) containing
+                                        True/False, depending on the entries
+                                        of the input button_map
+        :rtype:                         tuple(bool)
+        """
+        return tuple(button_map[n] for n in self.button_names)
 
 
 if __name__ == "__main__":

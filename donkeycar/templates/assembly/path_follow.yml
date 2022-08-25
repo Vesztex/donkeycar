@@ -1,10 +1,15 @@
 parts:
-  - joystick:
+  - joystickcontroller:
       arguments:
         button_down: [cfg.SAVE_PATH_BTN, cfg.ERASE_PATH_BTN, cfg.RESET_ORIGIN_BTN]
       inputs: [cam/image_array]
       outputs: [user/angle, user/throttle, user/mode, recording, button_down, button_up]
       threaded: true
+  - buttonstatechecker:
+      arguments:
+        button_names: [cfg.SAVE_PATH_BTN, cfg.ERASE_PATH_BTN, cfg.RESET_ORIGIN_BTN]
+      inputs: [button_down]
+      outputs: [ctr/save_path, ctr/erase_path, ctr/reset_origin]
   - pigpioencoder:
       enable: cfg.HAVE_ODOM
       arguments:
@@ -36,8 +41,13 @@ parts:
       inputs: [rs/pos]
       outputs: [pos/x, pos/y]                
   - originoffset:
-      parameter:
-        init_button: cfg.RESET_ORIGIN_BTN
-      inputs: [pos/x, pos/y, button_down]
+      inputs: [pos/x, pos/y, ctr/reset_origin]
       outputs: [pos/x, pos/y]
+  - path:
+      arguments:
+        min_dist: cfg.PATH_MIN_DIST
+        file_name: cfg.PATH_FILENAME
+      inputs: [pos/x, pos/y, ctr/save_path, ctr/erase_path]
+
+
 

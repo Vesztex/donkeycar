@@ -13,31 +13,53 @@ logger = logging.getLogger(__name__)
 
 
 class Path(object):
-    def __init__(self, min_dist=1., file_name="donkey_path.pkl",
-                 save_path_btn="circle", erase_path_btn="triangle"):
+    def __init__(self, min_dist=1., file_name="donkey_path.pkl"):
         self.path = []
         self.min_dist = min_dist
         self.x = math.inf
         self.y = math.inf
         self.recording = True
         self.file_name = file_name
-        self.save_path_btn = save_path_btn
-        self.erase_path_btn = erase_path_btn
         if os.path.exists(self.file_name):
             self.load()
+            print("#" * 79)
+            print("Loaded path:", self.file_name)
+            print("Make sure your car is sitting at the origin of the path.")
+            print("View web page and refresh. You should see your path.")
+            print("Hit 'select' twice to change to ai drive mode.")
+            print("You can press the X button (e-stop) to stop the car at any time.")
+            print("Delete file", self.file_name, "and re-start")
+            print("to record a new path.")
+            print("#" * 79)
 
-    def run(self, x, y, button_down=[]):
+        else:
+            print("#" * 79)
+            print("You are now in record mode. Open the web page to your car")
+            print("and as you drive you should see a path.")
+            print("Complete one circuit of your course.")
+            print("When you have exactly looped, or just shy of the ")
+            print("loop, then save the path (press Circle).")
+            print("You can also erase a path with the Triangle button.")
+            print("When you're done, close this process with Ctrl+C.")
+            print("Place car exactly at the start.")
+            print("Then restart the car with 'python manage drive'.")
+            print("It will reload the path and you will be ready to  ")
+            print("follow the path using  'select' to change to ai drive mode.")
+            print("You can also press the Square button to reset the origin")
+            print("#" * 79)
+
+    def run(self, x, y, save_path=False, erase_path=False):
         d = dist(x, y, self.x, self.y)
         if self.recording and d > self.min_dist:
             self.path.append((x, y))
-            logging.info("path point (%f, %f)" % ( x, y))
+            logging.info(f"path point ({x}, {y})")
             self.x = x
             self.y = y
         result = self.path
         # save or erase path if corresponding button is pressed.
-        if self.save_path_btn in button_down:
+        if save_path:
             self.save()
-        if self.erase_path_btn in button_down:
+        if erase_path:
             self.erase()
         return result
 
@@ -56,14 +78,13 @@ class Path(object):
         if os.path.exists(self.file_name):
             logger.info(f"Removing path {self.file_name}")
             os.remove(self.file_name)
-            mode = 'user'
-            path_loaded = False
         else:
             logger.warning("No path found to erase")
 
 
 class PImage(object):
-    def __init__(self, resolution=(500, 500), color="white", clear_each_frame=False):
+    def __init__(self, resolution=(500, 500), color="white",
+                 clear_each_frame=False):
         self.resolution = resolution
         self.color = color
         self.img = Image.new('RGB', resolution, color=color)
@@ -82,22 +103,18 @@ class OriginOffset(Part):
     """
     part_type = PartType.PLAN
 
-    def __init__(self, init_button="square"):
+    def __init__(self):
         """
         Creation of the OriginOffset part. Requires the joystick button name
         to trigger a reset of the origin.
-
-        :param str init_button: Name of the joystick controller button that
-                                will trigger the part to reset the origin.
         """
-        super().__init__(init_button=init_button)
+        super().__init__()
         self.ox = 0.0
         self.oy = 0.0
         self.last_x = 0.
         self.last_y = 0.
-        self.init_button = init_button
 
-    def run(self, x, y, button_down=[]):
+    def run(self, x, y, reset_origin=False):
         """
         Donkey Car parts interface. Saves x, y position values and returns x,
         y shifted bye the origin values. If the button_down list contains the
@@ -106,14 +123,15 @@ class OriginOffset(Part):
 
         :param float x:                 Input x coordinate
         :param float y:                 Input y coordinate
-        :param list(str) button_down:   List of controller buttons in down
-                                        state.
+        :param bool reset_origin:       If the origin should be reset to
+                                        the last position.
+
         :return:                        Output x,y coordinates
         """
         self.last_x = x
         self.last_y = y
         pos = x + self.ox, y + self.oy
-        if self.init_button in button_down:
+        if reset_origin is True:
             self.init_to_last()
         return pos
 
@@ -191,7 +209,9 @@ class PlotCircle(object):
 
         return img
 
+
 from donkeycar.la import Line3D, Vec3
+
 
 class CTE(object):
 

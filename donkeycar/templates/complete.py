@@ -347,7 +347,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
             rec_tracker_part.force_alert = 1
         if (cfg.CONTROLLER_TYPE != "pigpio_rc") and (cfg.CONTROLLER_TYPE != "MM1"):  # these controllers don't use the joystick class
             if isinstance(ctr, JoystickController):
-                ctr.set_button_down_trigger('circle', show_record_count_status) #then we are not using the circle button. hijack that to force a record count indication
+                ctr.set_button_down_register('circle', show_record_count_status) #then we are not using the circle button. hijack that to force a record count indication
         else:
             
             show_record_count_status()
@@ -373,7 +373,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         bh = BehaviorPart(cfg.BEHAVIOR_LIST)
         V.add(bh, outputs=['behavior/state', 'behavior/label', "behavior/one_hot_state_array"])
         try:
-            ctr.set_button_down_trigger('L1', bh.increment_state)
+            ctr.set_button_down_register('L1', bh.increment_state)
         except:
             pass
 
@@ -528,7 +528,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
 
     if (cfg.CONTROLLER_TYPE != "pigpio_rc") and (cfg.CONTROLLER_TYPE != "MM1"):
         if isinstance(ctr, JoystickController):
-            ctr.set_button_down_trigger(cfg.AI_LAUNCH_ENABLE_BUTTON, aiLauncher.enable_ai_launch)
+            ctr.set_button_down_register(cfg.AI_LAUNCH_ENABLE_BUTTON, aiLauncher.enable_ai_launch)
 
     class AiRunCondition:
         '''

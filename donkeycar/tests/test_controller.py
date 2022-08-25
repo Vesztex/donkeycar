@@ -16,7 +16,7 @@ def test_ps3_joystick_controller():
     js.print_controls()
     def test_fn():
         pass
-    js.set_button_down_trigger("x", test_fn)
+    js.set_button_down_register("x", test_fn)
     js.erase_last_N_records()
     js.on_throttle_changes()
     js.emergency_stop()

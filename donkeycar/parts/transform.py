@@ -2,6 +2,9 @@
 
 import time
 
+from donkeycar.parts import Part
+
+
 class Lambda:
     """
     Wraps a function into a donkey part.
@@ -51,7 +54,7 @@ class DelayedTrigger:
         return
 
 
-class PIDController:
+class PIDController(Part):
     """ Performs a PID computation and returns a control value.
         This is based on the elapsed time (dt) and the current value of the process variable
         (i.e. the thing we're measuring and trying to change).
@@ -59,6 +62,14 @@ class PIDController:
     """
 
     def __init__(self, p=0, i=0, d=0, debug=False):
+        """
+        Creation of the PID controller part
+        :param float p:         proportional gain
+        :param float i:         integral gain
+        :param float:           derivative gain
+        :param bool debug:      If we should print debug messages
+        """
+        super().__init__(p=p, i=i, d=d, debug=debug)
 
         # initialize gains
         self.Kp = p
@@ -81,6 +92,12 @@ class PIDController:
         self.debug = debug
 
     def run(self, err):
+        """ Donkey car parts interface. Calculating the input in order match
+            the given output
+
+        :param float err:   Error term from the last observation
+        :return:            Returns the input for the next controller call
+        """
         curr_tm = time.time()
 
         self.difError = err - self.prev_err
@@ -99,7 +116,7 @@ class PIDController:
 
         # Add differential component (avoiding divide-by-zero).
         if dt > 0:
-            curr_alpha += -self.Kd * ((self.difError) / float(dt))
+            curr_alpha += -self.Kd * (self.difError / float(dt))
 
         # Maintain memory for next loop.
         self.prev_tm = curr_tm
@@ -109,7 +126,7 @@ class PIDController:
         # Update the output
         self.alpha = curr_alpha
 
-        if (self.debug):
+        if self.debug:
             print('PID err value:', round(err, 4))
             print('PID output:', round(curr_alpha, 4))
 

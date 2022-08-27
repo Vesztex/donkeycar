@@ -30,8 +30,8 @@ from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.path import Path, PathPlot, CTE, PID_Pilot, PlotCircle, PImage, OriginOffset
 from donkeycar.parts.transform import PIDController
 from donkeycar.parts.pigpio_enc import PiGPIOEncoder, OdomDist
-from donkeycar.parts.realsense2 import RS_T265
-        
+from donkeycar.parts.realsense2 import RS_T265, PosStream
+
 
 def drive(cfg):
     '''
@@ -95,12 +95,6 @@ def drive(cfg):
           outputs=['rs/pos', 'rs/vel', 'rs/acc', 'rs/camera/left/img_array'],
           threaded=True)
 
-    # Pull out the realsense T265 position stream, output 2d coordinates we can use to map.
-    class PosStream:
-        def run(self, pos):
-            #y is up, x is right, z is backwards/forwards
-            return pos.x, pos.z
-
     V.add(PosStream(), inputs=['rs/pos'], outputs=['pos/x', 'pos/y'])
 
     # This part will reset the car back to the origin. You must put the car in the known origin
@@ -120,7 +114,7 @@ def drive(cfg):
     # This is only needed because the part run_condition only accepts boolean
     class PilotCondition:
         def run(self, mode):
-            return mode == 'user'
+            return mode != 'user'
 
     V.add(PilotCondition(), inputs=['user/mode'], outputs=['run_pilot'])
 

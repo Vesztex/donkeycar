@@ -103,15 +103,20 @@ class Checker(Part):
     """
     part_type = PartType.PROCESS
 
-    def __init__(self, must_match=None):
+    def __init__(self, must_match=None, match_true=False):
         """
         Create part Checker
 
-        :param Any/list must_match: value or list of values which the input
+        :param Any/list must_match: Value or list of values which the input
                                     will be compared against.
+        :param bool match_true:     Switch that indicates if the match
+                                    outcome should be inverted. Defaults
+                                    to False.
         """
-        super().__init__(must_match=must_match)
+        assert type(match_true) is bool, "match_true parameter must be bool"
+        super().__init__(must_match=must_match, match_true=match_true)
         self.must_match = must_match
+        self.match_true = match_true
 
     def run(self, input):
         """
@@ -119,8 +124,11 @@ class Checker(Part):
         or one of the saved values) given in the constructor.
 
         :param Any input:   An input value
-        :return bool:       True if the value equals the saved value or is in
-                            the iterable of the saved values
+        :return bool:       Returns match_true if the value equals the saved
+                            value or is in the iterable of the saved values
         """
-        return input in self.must_match if type(self.must_match) is list \
+        result = input in self.must_match if type(self.must_match) is list \
             else input == self.must_match
+        return result == self.match_true
+
+

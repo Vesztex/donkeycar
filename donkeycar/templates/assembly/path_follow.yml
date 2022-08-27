@@ -43,11 +43,23 @@ parts:
   - originoffset:
       inputs: [pos/x, pos/y, ctr/reset_origin]
       outputs: [pos/x, pos/y]
+  - checker:
+      arguments:
+        must_match: user
+      inputs: [user/mode]
+      outputs: [run_user]
+  - checker:
+      arguments:
+        must_match: user
+        match_true: false
+      inputs: [user/mode]
+      outputs: [run_pilot]
   - path:
       arguments:
         min_dist: cfg.PATH_MIN_DIST
         file_name: cfg.PATH_FILENAME
       inputs: [pos/x, pos/y, ctr/save_path, ctr/erase_path]
+      run_condition: run_user
 
 
 

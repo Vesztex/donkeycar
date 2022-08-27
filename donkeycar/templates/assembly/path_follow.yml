@@ -60,6 +60,32 @@ parts:
         file_name: cfg.PATH_FILENAME
       inputs: [pos/x, pos/y, ctr/save_path, ctr/erase_path]
       run_condition: run_user
+  - pimage:
+      arguments:
+        clear_each_frame: true
+      outputs: [map/image]
+  - pathplot:
+      arguments:
+        scale: cfg.PATH_SCALE
+        offset: cfg.PATH_OFFSET
+      inputs: [map/image, path]
+      outputs: [map/image]
+  - cte:
+      inputs: [path, pos/x, pos/y]
+      outputs: [cte/error]
+      run_condition: run_pilot
+  - pidcontroller:
+      arguments:
+        p: cfg.PID_P
+        i: cfg.PID_I
+        d: cfg.PID_D
+  - pid_pilot:
+      arguments:
+        pid: pidcontroller.0
+        throttle: cfg.PID_THROTTLE)
+      inputs: [cte/error]
+      outputs: [pilot/angle, pilot/throttle]
+      run_condition: run_pilot
 
 
 

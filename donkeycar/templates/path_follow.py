@@ -46,13 +46,16 @@ def drive(cfg):
     
     #Initialize car
     V = dk.vehicle.Vehicle()
-
-    if cfg.HAVE_SOMBRERO:
-        from donkeycar.utils import Sombrero
-        s = Sombrero()
    
     ctr = get_js_controller(cfg)
-
+    # Here's a trigger to save the path. Complete one circuit of your course,
+    # when you have exactly looped, or just shy of the loop, then save the
+    # path and shutdown this process. Restart and the path will be loaded.
+    ctr.set_button_down_register(cfg.SAVE_PATH_BTN)
+    # Here's a trigger to erase a previously saved path.
+    ctr.set_button_down_register(cfg.ERASE_PATH_BTN)
+    # Here's a trigger to reset the origin.
+    ctr.set_button_down_register(cfg.RESET_ORIGIN_BTN)
     V.add(ctr,
           inputs=['cam/image_array'],
           outputs=['user/angle', 'user/throttle', 'user/mode', 'recording',
@@ -60,8 +63,8 @@ def drive(cfg):
           threaded=True)
 
     btn_chkr = ButtonStateChecker(button_names=[cfg.SAVE_PATH_BTN,
-                                               cfg.ERASE_PATH_BTN,
-                                               cfg.RESET_ORIGIN_BTN])
+                                                cfg.ERASE_PATH_BTN,
+                                                cfg.RESET_ORIGIN_BTN])
     V.add(btn_chkr, inputs=['button_down'],
           outputs=['ctr/save_path', 'ctr/erase_path', 'ctr/reset_origin'])
 
@@ -70,7 +73,9 @@ def drive(cfg):
         V.add(enc, outputs=['enc/ticks'])
 
         odom = OdomDist(mm_per_tick=cfg.MM_PER_TICK, debug=cfg.ODOM_DEBUG)
-        V.add(odom, inputs=['enc/ticks', 'user/throttle'], outputs=['enc/dist_m', 'enc/vel_m_s', 'enc/delta_vel_m_s'])
+        V.add(odom,
+              inputs=['enc/ticks', 'user/throttle'],
+              outputs=['enc/dist_m', 'enc/vel_m_s', 'enc/delta_vel_m_s'])
 
         if not os.path.exists(cfg.WHEEL_ODOM_CALIB):
             print("You must supply a json file when using odom with T265. There is a sample file in templates.")
@@ -126,17 +131,6 @@ def drive(cfg):
           inputs=['pos/x', 'pos/y', 'ctr/save_path', 'ctr/erase_path'],
           outputs=['path'],
           run_condition='run_user')
-
-    # Here's a trigger to save the path. Complete one circuit of your course,
-    # when you have exactly looped, or just shy of the loop, then save the
-    # path and shutdown this process. Restart and the path will be loaded.
-    ctr.set_button_down_register(cfg.SAVE_PATH_BTN)
-
-    # Here's a trigger to erase a previously saved path.
-    ctr.set_button_down_register(cfg.ERASE_PATH_BTN)
-
-    # Here's a trigger to reset the origin.
-    ctr.set_button_down_register(cfg.RESET_ORIGIN_BTN)
 
     # Here's an image we can map to.
     img = PImage(clear_each_frame=True)

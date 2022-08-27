@@ -82,15 +82,32 @@ class Path(object):
             logger.warning("No path found to erase")
 
 
-class PImage(object):
+class PImage(Part):
     def __init__(self, resolution=(500, 500), color="white",
                  clear_each_frame=False):
+        """
+        Creating the PImage part. This produces a single fixed image every
+        time.
+
+        :param tuple resolution:        Number of pixels WxH
+        :param str color:               Color name, like 'white'
+        :param bool clear_each_frame:   If a new image is created every time
+        """
+        super().__init__(resolution=resolution, color=color,
+                         clear_each_frame=clear_each_frame)
         self.resolution = resolution
         self.color = color
         self.img = Image.new('RGB', resolution, color=color)
         self.clear_each_frame = clear_each_frame
 
     def run(self):
+        """
+        Donkey car part interface. Returns an image of a fixed color and
+        resolution.
+
+        :return:    Image
+        :rtype:     PIL Image
+        """
         if self.clear_each_frame:
             self.img = Image.new('RGB', self.resolution, color=self.color)
 
@@ -140,20 +157,27 @@ class OriginOffset(Part):
         self.oy = -self.last_y
 
 
-class PathPlot(object):
+class PathPlot(Part):
     '''
-    draw a path plot to an image
+    Part that draws a path plot on to an image
     '''
     def __init__(self, scale=1.0, offset=(0., 0.0)):
+        """
+        Creating the PathPlot part.
+
+        :param scale:   Scale of the path
+        :param offset:  Offset of the path
+        """
+        super().__init__(scale=scale, offset=offset)
         self.scale = scale
         self.offset = offset
 
     def plot_line(self, sx, sy, ex, ey, draw, color):
-        '''
+        """
         scale dist so that max_dist is edge of img (mm)
         and img is PIL Image, draw the line using the draw ImageDraw object
-        '''
-        draw.line((sx,sy, ex, ey), fill=color, width=1)
+        """
+        draw.line((sx, sy, ex, ey), fill=color, width=1)
 
     def run(self, img, path):
         
@@ -213,7 +237,14 @@ class PlotCircle(object):
 from donkeycar.la import Line3D, Vec3
 
 
-class CTE(object):
+class CTE(Part):
+    """ Part that measures the cross track error"""
+    def __int__(self):
+        """
+        Creating the CTE part
+        :return:
+        """
+        super().__init__()
 
     def nearest_two_pts(self, path, x, y):
         if len(path) < 2:
@@ -223,10 +254,10 @@ class CTE(object):
         for iP, p in enumerate(path):
             d = dist(p[0], p[1], x, y)
             distances.append((d, iP, p))
-        distances.sort(key=lambda elem : elem[0])
+        distances.sort(key=lambda elem: elem[0])
         iA = (distances[0][1] - 1) % len(path)
         a = path[iA]
-        #iB is the next element in the path, wrapping around..
+        # iB is the next element in the path, wrapping around..
         iB = (iA + 2) % len(path)
         b = path[iB]
         
@@ -253,13 +284,29 @@ class CTE(object):
         return cte
 
 
-class PID_Pilot(object):
+class PID_Pilot(Part):
+    """ Part that steers to minimise the cross track error"""
 
     def __init__(self, pid, throttle):
+        """
+        Creating the PID
+        :param PID pid:             PID controller part
+        :param float throttle:      Fixed throttle value
+        """
+        super().__init__(pid=pid, throttle=throttle)
         self.pid = pid
         self.throttle = throttle
 
     def run(self, cte):
+        """
+        Donkey car parts interface. We return steering and throttle,
+        where steering minimises the CTE using a PID controller and the
+        throttle value is fixed in the constructor.
+
+        :param float cte:   Current CTE value
+        :return:            Tuple of (steering, throttle)
+        :rtype:             2-tuple (float, float)
+        """
         steer = self.pid.run(cte)
-        logging.info("CTE: %f steer: %f" % (cte, steer))
+        logging.debug(f"CTE: {cte} steer: {steer}")
         return steer, self.throttle

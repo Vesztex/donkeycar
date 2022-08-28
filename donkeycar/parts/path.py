@@ -12,8 +12,14 @@ from donkeycar.utils import norm_deg, dist, deg2rad, arr_to_img
 logger = logging.getLogger(__name__)
 
 
-class Path(object):
+class Path(Part):
     def __init__(self, min_dist=1., file_name="donkey_path.pkl"):
+        """
+        Creation of the Path part.
+
+        :param min_dist:    minimum distance for recording points
+        :param file_name:   file name of recorded path
+        """
         self.path = []
         self.min_dist = min_dist
         self.x = math.inf
@@ -200,21 +206,30 @@ class PathPlot(Part):
         return img
 
 
-class PlotCircle(object):
-    '''
-    draw a circle plot to an image
-    '''
-    def __init__(self,  scale=1.0, offset=(0., 0.0), radius=4, color = (0, 255, 0)):
+class PlotCircle(Part):
+    """
+    Part that draws a circle plot on to an image, given its center coordinates
+    """
+    def __init__(self, path, scale=1.0, offset=(0.0, 0.0), radius=4):
+        """
+        Creating the PlotCircle part.
+
+        :param Path path:   Path part that determines if recording is on or off
+        :param scale:       scaling factor applied to x,y coordinates
+        :param offset:      offset applied to x, y coordinates
+        :param radius:      radius of the circle
+        """
+        super().__init__(path=path, scale=scale, offset=offset, radius=radius)
         self.scale = scale
         self.offset = offset
         self.radius = radius
-        self.color = color
+        self.color = 'green' if path.recording else 'blue'
 
     def plot_circle(self, x, y, rad, draw, color, width=1):
-        '''
+        """
         scale dist so that max_dist is edge of img (mm)
         and img is PIL Image, draw the circle using the draw ImageDraw object
-        '''
+        """
         sx = x - rad
         sy = y - rad
         ex = x + rad
@@ -222,15 +237,23 @@ class PlotCircle(object):
 
         draw.ellipse([(sx, sy), (ex, ey)], fill=color)
 
-
     def run(self, img, x, y):
+        """
+        Donkey car parts interface. Draws a circle into the image at given x,
+        y coordinates.
+
+        :param PIL.Image img:   Input PIL image
+        :param float x:         x coordinate of circle
+        :param float y:         y coordinate of circle
+        :return:                Image with circle
+        :rtype:                 PIL.Image
+        """
         draw = ImageDraw.Draw(img)
         self.plot_circle(x * self.scale + self.offset[0],
-                        y * self.scale + self.offset[1], 
-                        self.radius,
-                        draw, 
-                        self.color)
-
+                         y * self.scale + self.offset[1],
+                         self.radius,
+                         draw,
+                         self.color)
         return img
 
 
@@ -297,16 +320,53 @@ class PID_Pilot(Part):
         self.pid = pid
         self.throttle = throttle
 
-    def run(self, cte):
+    def run(self, cte, pid_d_adj=None):
         """
         Donkey car parts interface. We return steering and throttle,
         where steering minimises the CTE using a PID controller and the
         throttle value is fixed in the constructor.
 
-        :param float cte:   Current CTE value
-        :return:            Tuple of (steering, throttle)
-        :rtype:             2-tuple (float, float)
+        :param float cte:       Current CTE value
+        :param float pid_d_adj: Adjustment of PID derivative term
+        :return:                Tuple of (steering, throttle)
+        :rtype:                 2-tuple (float, float)
         """
         steer = self.pid.run(cte)
         logging.debug(f"CTE: {cte} steer: {steer}")
+        if pid_d_adj:
+            self.pid.Kd += pid_d_adj
+            logging.info(f"pid: d+ {self.pid.Kd}")
         return steer, self.throttle
+
+
+class ButtonInterpreter(Part):
+    """
+    Part to turn button press signals which are bool parameters into a number
+    which can be used to adjust other parts. """
+    def __init__(self, increment=0.5):
+        """
+        Creating the ButtonInterpreter part.
+
+        :param increment:   Amount that is returned as positive or negative
+                            value in the run method. Defaults to 0.5
+        """
+        assert increment > 0, "Button increment must be > 0"
+        super().__init__(increment=increment)
+        self.increment = increment
+
+    def run(self, dec, inc):
+        """
+        Donkey car part interface. Reads two button states in order to
+        decrement or increment values in other parts. Allows only one
+        action at a time.
+
+        :param bool dec:  decrement switch
+        :param bool inc:  increment switch
+        :return:          increment or decrement value or zero
+        :rtype:           float
+        """
+        if dec and not inc:
+            return -self.increment
+        elif inc and not dec:
+            return self.increment
+        return 0

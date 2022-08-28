@@ -27,7 +27,8 @@ import donkeycar as dk
 from donkeycar.parts.controller import WebFpv, get_js_controller, \
     LocalWebController, ButtonStateChecker
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
-from donkeycar.parts.path import Path, PathPlot, CTE, PID_Pilot, PlotCircle, PImage, OriginOffset
+from donkeycar.parts.path import Path, PathPlot, CTE, PID_Pilot, PlotCircle, \
+    PImage, OriginOffset, ButtonInterpreter
 from donkeycar.parts.transform import PIDController
 from donkeycar.parts.pigpio_enc import PiGPIOEncoder, OdomDist
 from donkeycar.parts.realsense2 import RS_T265, PosStream
@@ -137,7 +138,6 @@ def drive(cfg):
     V.add(img, outputs=['map/image'])
 
     # This PathPlot will draw path on the image
-
     plot = PathPlot(scale=cfg.PATH_SCALE, offset=cfg.PATH_OFFSET)
     V.add(plot, inputs=['map/image', 'path'], outputs=['map/image'])
 
@@ -146,26 +146,20 @@ def drive(cfg):
     V.add(cte, inputs=['path', 'pos/x', 'pos/y'], outputs=['cte/error'],
           run_condition='run_pilot')
 
+    # Buttons to tune PID constants
+    ctr.set_button_down_register("L2")
+    ctr.set_button_down_register("R2")
+    btn_pid_d_manipulator = ButtonInterpreter(increment=0.5)
+    V.add(btn_pid_d_manipulator, inputs=['ctr/dec_pid_d', 'ctr/inc_pid_d'],
+          outputs=['ctr/pid_adj'])
     # This will use the cross track error and PID constants to try to steer
     # back towards the path.
     pid = PIDController(p=cfg.PID_P, i=cfg.PID_I, d=cfg.PID_D)
     pilot = PID_Pilot(pid, cfg.PID_THROTTLE)
-    V.add(pilot, inputs=['cte/error'],
+    V.add(pilot, inputs=['cte/error', 'ctr/pid_adj'],
           outputs=['pilot/angle', 'pilot/throttle'], run_condition="run_pilot")
 
-    def dec_pid_d():
-        pid.Kd -= 0.5
-        logging.info("pid: d- %f" % pid.Kd)
-
-    def inc_pid_d():
-        pid.Kd += 0.5
-        logging.info("pid: d+ %f" % pid.Kd)
-
-    # Buttons to tune PID constants
-    ctr.set_button_down_register("L2", dec_pid_d)
-    ctr.set_button_down_register("R2", inc_pid_d)
-
-    # #This web controller will create a web server. We aren't using any
+    # This web controller will create a web server. We aren't using any
     # controls, just for visualization.
     web_ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT,
                                  mode=cfg.WEB_INIT_MODE)
@@ -214,10 +208,10 @@ def drive(cfg):
     # Print Joystick controls
     ctr.print_controls()
 
-    carcolor = 'green' if path.recording else 'blue'
-    loc_plot = PlotCircle(scale=cfg.PATH_SCALE, offset=cfg.PATH_OFFSET,
-                          color=carcolor)
-    V.add(loc_plot, inputs=['map/image', 'pos/x', 'pos/y'], outputs=['map/image'])
+    loc_plot = PlotCircle(path=path, scale=cfg.PATH_SCALE,
+                          offset=cfg.PATH_OFFSET)
+    V.add(loc_plot, inputs=['map/image', 'pos/x', 'pos/y'],
+          outputs=['map/image'])
 
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS)
 

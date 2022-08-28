@@ -1,15 +1,15 @@
 parts:
   - joystickcontroller:
       arguments:
-        button_down: [cfg.SAVE_PATH_BTN, cfg.ERASE_PATH_BTN, cfg.RESET_ORIGIN_BTN]
+        button_down: [cfg.SAVE_PATH_BTN, cfg.ERASE_PATH_BTN, cfg.RESET_ORIGIN_BTN, "L2", "R2"]
       inputs: [cam/image_array]
       outputs: [user/angle, user/throttle, user/mode, recording, button_down, button_up]
       threaded: true
   - buttonstatechecker:
       arguments:
-        button_names: [cfg.SAVE_PATH_BTN, cfg.ERASE_PATH_BTN, cfg.RESET_ORIGIN_BTN]
+        button_names: [cfg.SAVE_PATH_BTN, cfg.ERASE_PATH_BTN, cfg.RESET_ORIGIN_BTN, "L2", "R2"]
       inputs: [button_down]
-      outputs: [ctr/save_path, ctr/erase_path, ctr/reset_origin]
+      outputs: [ctr/save_path, ctr/erase_path, ctr/reset_origin, ctr/dec_pid_d, ctr/inc_pid_d]
   - pigpioencoder:
       enable: cfg.HAVE_ODOM
       arguments:
@@ -74,6 +74,11 @@ parts:
       inputs: [path, pos/x, pos/y]
       outputs: [cte/error]
       run_condition: run_pilot
+  - buttoninterpreter:
+      arguments:
+        increment: 0.5
+      inputs: [ctr/dec_pid_d, ctr/inc_pid_d]
+      outputs: [ctr/pid_d_adj]
   - pidcontroller:
       arguments:
         p: cfg.PID_P
@@ -82,10 +87,43 @@ parts:
   - pid_pilot:
       arguments:
         pid: pidcontroller.0
-        throttle: cfg.PID_THROTTLE)
+        throttle: cfg.PID_THROTTLE
       inputs: [cte/error]
-      outputs: [pilot/angle, pilot/throttle]
+      outputs: [pilot/angle, pilot/throttle, ctr/pid_d_adj]
       run_condition: run_pilot
-
+  - localwebcontroller:
+      inputs: [map/image]
+      outputs: [web/angle, web/throttle, web/mode, web/recording]
+      threaded: true
+  - checker:
+      arguments:
+        must_match: [local, local_angle]
+      inputs: [user/mode]
+      outputs: [use_pilot]
+  - dispatcher:
+      # if run_pilot is true (i.e. == 1) return pilot/angle otherwise user/angle
+      inputs: [use_pilot, user/angle, pilot/angle]
+      outputs: [angle]
+  - checker:
+      # check if user/mode is user or local_angle because then we use user/throttle
+      arguments:
+        must_match: [user, local_angle]
+      inputs: [user/mode]
+      outputs: [use_user/throttle]
+  - dispatcher:
+      # if user_throttle is true return user/throttle else return pilot/throttle
+      inputs: [use_user/throttle, pilot/throttle, user/throttle]
+      outputs: [throttle]
+  - pwmsteering:
+      inputs: [angle]
+  - pwmthrottle:
+      inputs: [throttle]
+  - plotcircle:
+      argumnets:
+        path: path
+        scale: cfg.PATH_SCALE
+        offset: cfg.PATH_OFFSET
+      inputs: [map/image, pos/x, pos/y]
+      outputs: [map/image]
 
 

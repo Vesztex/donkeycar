@@ -281,12 +281,16 @@ def main(args):
     import argparse
     import donkeycar as dk
     parser = argparse.ArgumentParser(prog=__name__)
+    parser.add_argument('--yaml', default=None,
+                        help='path to assembly yaml file')
     for part_name, part_arg_list in CreatableFactory.arg_registry.items():
         for arg_name in part_arg_list:
             parser.add_argument(f'--{part_name}.{arg_name}')
-    kwargs = vars(parser.parse_args(args))
-    yml = os.path.join(os.path.dirname(dk.__file__), 'templates',
-                       'assembly', 'test_vehicle.yml')
+    parsed_args = parser.parse_args(args)
+    kwargs = vars(parsed_args)
+    yml = parsed_args.yaml \
+        or os.path.join(os.path.dirname(dk.__file__), 'templates',
+                        'assembly', 'test_vehicle.yml')
     cfg = donkeycar.load_config(os.path.join(os.getcwd(), 'config.py'))
     b = Builder(cfg, yml)
     v = b.build_vehicle(kwargs)

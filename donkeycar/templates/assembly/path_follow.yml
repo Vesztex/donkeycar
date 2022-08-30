@@ -59,6 +59,7 @@ parts:
         min_dist: cfg.PATH_MIN_DIST
         file_name: cfg.PATH_FILENAME
       inputs: [pos/x, pos/y, ctr/save_path, ctr/erase_path]
+      outputs: [path]
       run_condition: run_user
   - pimage:
       arguments:
@@ -119,8 +120,8 @@ parts:
   - pwmthrottle:
       inputs: [throttle]
   - plotcircle:
-      argumnets:
-        path: path
+      arguments:
+        path: path.0
         scale: cfg.PATH_SCALE
         offset: cfg.PATH_OFFSET
       inputs: [map/image, pos/x, pos/y]

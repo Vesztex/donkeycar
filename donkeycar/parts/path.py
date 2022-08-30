@@ -20,6 +20,7 @@ class Path(Part):
         :param min_dist:    minimum distance for recording points
         :param file_name:   file name of recorded path
         """
+        super().__init__(min_dist=min_dist, file_name=file_name)
         self.path = []
         self.min_dist = min_dist
         self.x = math.inf
@@ -214,10 +215,11 @@ class PlotCircle(Part):
         """
         Creating the PlotCircle part.
 
-        :param Path path:   Path part that determines if recording is on or off
-        :param scale:       scaling factor applied to x,y coordinates
-        :param offset:      offset applied to x, y coordinates
-        :param radius:      radius of the circle
+        :param Path path:           Path part that determines if recording is
+                                    on or off
+        :param float scale:         Scaling factor applied to x,y coordinates
+        :param tuple(float) offset: Offset applied to x, y coordinates
+        :param int radius:          radius of the circle
         """
         super().__init__(path=path, scale=scale, offset=offset, radius=radius)
         self.scale = scale
@@ -242,11 +244,11 @@ class PlotCircle(Part):
         Donkey car parts interface. Draws a circle into the image at given x,
         y coordinates.
 
-        :param PIL.Image img:   Input PIL image
+        :param Image img:   Input PIL image
         :param float x:         x coordinate of circle
         :param float y:         y coordinate of circle
         :return:                Image with circle
-        :rtype:                 PIL.Image
+        :rtype:                 Image
         """
         draw = ImageDraw.Draw(img)
         self.plot_circle(x * self.scale + self.offset[0],

@@ -13,25 +13,19 @@ Options:
     --meta=<key:value> Key/Value strings describing describing a piece of meta data about this drive. Option may be used more than once.
 """
 import os
-import sys
-import time
 import logging
-import json
-from subprocess import Popen
-import shlex
-
 from docopt import docopt
-import numpy as np
 
 import donkeycar as dk
-from donkeycar.parts.controller import WebFpv, get_js_controller, \
-    LocalWebController, ButtonStateChecker
-from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
+from donkeycar.parts import pins
+from donkeycar.parts.controller import get_js_controller, ButtonStateChecker
+from donkeycar.parts.actuator import PWMSteering, PWMThrottle, PulseController
 from donkeycar.parts.path import Path, PathPlot, CTE, PID_Pilot, PlotCircle, \
     PImage, OriginOffset, ButtonInterpreter
 from donkeycar.parts.transform import PIDController
 from donkeycar.parts.pigpio_enc import PiGPIOEncoder, OdomDist
 from donkeycar.parts.realsense2 import RS_T265, PosStream
+from donkeycar.parts.web_controller.web import LocalWebController
 
 
 def drive(cfg):
@@ -189,18 +183,23 @@ def drive(cfg):
                   'pilot/angle', 'pilot/throttle'], 
           outputs=['angle', 'throttle'])
 
-    steering_controller = PCA9685(cfg.STEERING_CHANNEL, cfg.PCA9685_I2C_ADDR,
-                                  busnum=cfg.PCA9685_I2C_BUSNUM)
+    dt = cfg.PWM_STEERING_THROTTLE
+    steering_controller = PulseController(
+        pwm_pin=pins.pwm_pin_by_id(dt["PWM_STEERING_PIN"]),
+        pwm_scale=dt["PWM_STEERING_SCALE"],
+        pwm_inverted=dt["PWM_STEERING_INVERTED"])
     steering = PWMSteering(controller=steering_controller,
-                           left_pulse=cfg.STEERING_LEFT_PWM,
-                           right_pulse=cfg.STEERING_RIGHT_PWM)
+                           left_pulse=dt["STEERING_LEFT_PWM"],
+                           right_pulse=dt["STEERING_RIGHT_PWM"])
 
-    throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL, cfg.PCA9685_I2C_ADDR,
-                                  busnum=cfg.PCA9685_I2C_BUSNUM)
+    throttle_controller = PulseController(
+        pwm_pin=pins.pwm_pin_by_id(dt["PWM_THROTTLE_PIN"]),
+        pwm_scale=dt["PWM_THROTTLE_SCALE"],
+        pwm_inverted=dt['PWM_THROTTLE_INVERTED'])
     throttle = PWMThrottle(controller=throttle_controller,
-                           max_pulse=cfg.THROTTLE_FORWARD_PWM,
-                           zero_pulse=cfg.THROTTLE_STOPPED_PWM,
-                           min_pulse=cfg.THROTTLE_REVERSE_PWM)
+                           max_pulse=dt['THROTTLE_FORWARD_PWM'],
+                           zero_pulse=dt['THROTTLE_STOPPED_PWM'],
+                           min_pulse=dt['THROTTLE_REVERSE_PWM'])
 
     V.add(steering, inputs=['angle'])
     V.add(throttle, inputs=['throttle'])

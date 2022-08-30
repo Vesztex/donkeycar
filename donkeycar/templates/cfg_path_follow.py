@@ -14,6 +14,9 @@ import os
 CAR_PATH = PACKAGE_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(CAR_PATH, 'data')
 MODELS_PATH = os.path.join(CAR_PATH, 'models')
+ASSEMBLY_PATH = os.path.join(CAR_PATH, 'assembly')
+MYPARTS_PATH = os.path.join(CAR_PATH, 'myparts')
+
 # 
 # #VEHICLE
 DRIVE_LOOP_HZ = 20      # the vehicle loop will pause if faster than this speed.
@@ -79,23 +82,26 @@ RESET_ORIGIN_BTN = "square"       # joystick button to press to move car back to
 ERASE_PATH_BTN = "triangle"     # joystick button to erase path
 
 
-
-# 
-# #Odometry
+# Odometry
 HAVE_ODOM = False                   # Do you have an odometer? Uses pigpio 
 MM_PER_TICK = 12.7625               # How much travel with a single tick, in mm
 ODOM_PIN = 4                        # Which GPIO board mode pin to use as input
 ODOM_DEBUG = False                  # Write out values on vel and distance as it runs
 # 
-# #Intel T265
+# Intel T265
 WHEEL_ODOM_CALIB = "calibration_odometry.json"
-# 
-# #DonkeyGym
-# #Only on Ubuntu linux, you can use the simulator as a virtual donkey and
-# #issue the same python manage.py drive command as usual, but have them control a virtual car.
-# #This enables that, and sets the path to the simualator and the environment.
-# #You will want to download the simulator binary from: https://github.com/tawnkramer/donkey_gym/releases/download/v18.9/DonkeySimLinux.zip
-# #then extract that and modify DONKEY_SIM_PATH.
-DONKEY_GYM = False
-DONKEY_SIM_PATH = "path to sim" #"/home/tkramer/projects/sdsandbox/sdsim/build/DonkeySimLinux/donkey_sim.x86_64"
-DONKEY_GYM_ENV_NAME = "donkey-generated-track-v0" # ("donkey-generated-track-v0"|"donkey-generated-roads-v0"|"donkey-warehouse-v0"|"donkey-avc-sparkfun-v0")
+
+# PWM driver
+PWM_STEERING_THROTTLE = {
+    "PWM_STEERING_PIN": "PCA9685.1:40.1",   # PWM output pin for steering servo
+    "PWM_STEERING_SCALE": 1.0,              # used to compensate for PWM frequency differents from 60hz; NOT for adjusting steering range
+    "PWM_STEERING_INVERTED": False,         # True if hardware requires an inverted PWM pulse
+    "PWM_THROTTLE_PIN": "PCA9685.1:40.0",   # PWM output pin for ESC
+    "PWM_THROTTLE_SCALE": 1.0,              # used to compensate for PWM frequence differences from 60hz; NOT for increasing/limiting speed
+    "PWM_THROTTLE_INVERTED": False,         # True if hardware requires an inverted PWM pulse
+    "STEERING_LEFT_PWM": 460,               #pwm value for full left steering
+    "STEERING_RIGHT_PWM": 290,              #pwm value for full right steering
+    "THROTTLE_FORWARD_PWM": 500,            #pwm value for max forward throttle
+    "THROTTLE_STOPPED_PWM": 370,            #pwm value for no movement
+    "THROTTLE_REVERSE_PWM": 220,            #pwm value for max reverse throttle
+}

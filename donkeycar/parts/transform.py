@@ -21,6 +21,7 @@ class Lambda:
     def shutdown(self):
         return
 
+
 class TriggeredCallback:
     def __init__(self, args, func_cb):
         self.args = args

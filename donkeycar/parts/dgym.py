@@ -2,15 +2,40 @@ import os
 import time
 import gym
 import gym_donkeycar
+from donkeycar.parts import Part
 
 
 def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 
-class DonkeyGymEnv(object):
+class DonkeyGymEnv(Part):
 
-    def __init__(self, sim_path, host="127.0.0.1", port=9091, headless=0, env_name="donkey-generated-track-v0", sync="asynchronous", conf={}, record_location=False, record_gyroaccel=False, record_velocity=False, record_lidar=False, delay=0):
+    def __init__(self, sim_path, host="127.0.0.1", port=9091,
+                 env_name="donkey-generated-track-v0",
+                 conf={}, record_location=False,
+                 record_gyroaccel=False, record_velocity=False,
+                 record_lidar=False, delay=0):
+        """
+        Creation of DonkeyGymEnv part.
+
+        :param sim_path:
+        :param host:
+        :param port:
+        :param env_name:
+        :param conf:
+        :param record_location:
+        :param record_gyroaccel:
+        :param record_velocity:
+        :param record_lidar:
+        :param delay:
+        """
+        super().__init__(sim_path=sim_path, host=host, port=port,
+                         env_name=env_name, conf=conf,
+                         record_location=record_location,
+                         record_gyroaccel=record_gyroaccel,
+                         record_velocity=record_velocity,
+                         record_lidar=record_lidar)
 
         if sim_path != "remote":
             if not os.path.exists(sim_path):
@@ -40,7 +65,6 @@ class DonkeyGymEnv(object):
         self.record_gyroaccel = record_gyroaccel
         self.record_velocity = record_velocity
         self.record_lidar = record_lidar
-
         self.buffer = []
 
     def delay_buffer(self, frame, info):

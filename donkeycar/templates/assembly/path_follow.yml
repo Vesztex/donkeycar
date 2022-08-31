@@ -93,7 +93,6 @@ parts:
       run_condition: run_pilot
   - localwebcontroller:
       inputs: [map/image]
-      outputs: [web/angle, web/throttle, web/mode, web/recording]
       threaded: true
   - checker:
       arguments:

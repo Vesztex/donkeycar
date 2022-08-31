@@ -244,7 +244,7 @@ class PlotCircle(Part):
         Donkey car parts interface. Draws a circle into the image at given x,
         y coordinates.
 
-        :param Image img:   Input PIL image
+        :param Image img:       Input PIL image
         :param float x:         x coordinate of circle
         :param float y:         y coordinate of circle
         :return:                Image with circle

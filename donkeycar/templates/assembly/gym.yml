@@ -6,45 +6,38 @@ parts:
         host: cfg.SIM_HOST
         env_name: cfg.DONKEY_GYM_ENV_NAME
         conf: cfg.GYM_CONF
-        record_location: cfg.SIM_RECORD_LOCATION
-        record_gyroaccel: cfg.SIM_RECORD_GYROACCEL
-        record_velocity: cfg.SIM_RECORD_VELOCITY
-        record_lidar: cfg.SIM_RECORD_LIDAR
         delay: cfg.SIM_ARTIFICIAL_LATENCY
       inputs: [angle, throttle]
-      outputs: [cam/image_array]
+      outputs: [cam/image_array, pos/pos, pos/speed, pos/cte, gyro, accel, vel, lidar/dist_array]
       threaded: true
   - localwebcontroller:
       inputs: [cam/image_array, tub/current_index]
       outputs: [user/angle, user/throttle, user/mode, recording]
       threaded: true
   - checker:
+      # check if user/mode is local or local_angle because then we run pilot
       arguments:
         must_match: [local, local_angle]
       inputs: [user/mode]
-  - dispatcher:
-    # if run_pilot is true (i.e. == 1) return pilot/angle otherwise user/angle
-      inputs: [run_pilot, user/angle, pilot/angle]
-      outputs: [angle]
+      outputs: [run_pilot]
   - checker:
     # check if user/mode is user or local_angle because then we use user/throttle
       arguments:
         must_match: [user, local_angle]
       inputs: [user/mode]
       outputs: [use_user/throttle]
+  - keraspilot:
+      inputs: [ cam/image_array ]
+      outputs: [ pilot/angle, pilot/throttle ]
+      run_condition: run_pilot
+  - dispatcher:
+    # if run_pilot is true (i.e. == 1) return pilot/angle otherwise user/angle
+      inputs: [run_pilot, user/angle, pilot/angle]
+      outputs: [angle]
   - dispatcher:
     # if user_throttle is true return user/throttle else return pilot/throttle
       inputs: [use_user/throttle, pilot/throttle, user/throttle]
       outputs: [throttle]
-  - pwmsteering:
-      inputs: [angle]
-  - pwmthrottle:
-      inputs: [throttle]
-      outputs: [run_pilot]
-  - keraspilot:
-      inputs: [cam/image_array]
-      outputs: [pilot/angle, pilot/throttle]
-      run_condition: run_pilot
   - tubwriter:
       arguments:
         inputs: [cam/image_array, user/angle, user/throttle, user/mode]

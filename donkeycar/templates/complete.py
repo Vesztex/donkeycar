@@ -195,7 +195,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         from donkeycar.parts.tfmini import TFMini
         lidar = TFMini(port=cfg.TFMINI_SERIAL_PORT)
         V.add(lidar, inputs=[], outputs=['lidar/dist'], threaded=True)
-    
+
     if cfg.SHOW_FPS:
         from donkeycar.parts.fps import FrequencyLogger
         V.add(FrequencyLogger(cfg.FPS_DEBUG_INTERVAL), outputs=["fps/current", "fps/fps_list"])
@@ -767,7 +767,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
                                min_pulse=cfg.THROTTLE_REVERSE_PWM)
         V.add(steering, inputs=['angle'], threaded=True)
         V.add(throttle, inputs=['throttle'], threaded=True)
-    
+
     elif cfg.DRIVE_TRAIN_TYPE == "VESC":
         from donkeycar.parts.actuator import VESC
         logger.info("Creating VESC at port {}".format(cfg.VESC_SERIAL_PORT))
@@ -775,7 +775,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
                       cfg.VESC_MAX_SPEED_PERCENT,
                       cfg.VESC_HAS_SENSOR,
                       cfg.VESC_START_HEARTBEAT,
-                      cfg.VESC_BAUDRATE, 
+                      cfg.VESC_BAUDRATE,
                       cfg.VESC_TIMEOUT,
                       cfg.VESC_STEERING_SCALE,
                       cfg.VESC_STEERING_OFFSET
@@ -823,18 +823,10 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
 
     # rbx
     if cfg.DONKEY_GYM:
-        if cfg.SIM_RECORD_LOCATION:  
-            inputs += ['pos/pos_x', 'pos/pos_y', 'pos/pos_z', 'pos/speed', 'pos/cte']
-            types  += ['float', 'float', 'float', 'float', 'float']
-        if cfg.SIM_RECORD_GYROACCEL: 
-            inputs += ['gyro/gyro_x', 'gyro/gyro_y', 'gyro/gyro_z', 'accel/accel_x', 'accel/accel_y', 'accel/accel_z']
-            types  += ['float', 'float', 'float', 'float', 'float', 'float']
-        if cfg.SIM_RECORD_VELOCITY:  
-            inputs += ['vel/vel_x', 'vel/vel_y', 'vel/vel_z']
-            types  += ['float', 'float', 'float']
-        if cfg.SIM_RECORD_LIDAR:
-            inputs += ['lidar/dist_array']
-            types  += ['nparray']
+        inputs += ['pos/pos', 'pos/speed', 'pos/cte', 'gyro', 'accel', 'vel',
+                   'lidar/dist_array']
+        types += ['vector', 'float', 'float', 'vector', 'vector', 'vector',
+                  'nparray']
 
     if cfg.RECORD_DURING_AI:
         inputs += ['pilot/angle', 'pilot/throttle']
@@ -848,12 +840,12 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         types += ['float', 'float', 'float']
         V.add(mon, inputs=[], outputs=perfmon_outputs, threaded=True)
 
-    # do we want to store new records into own dir or append to existing
-    tub_path = TubHandler(path=cfg.DATA_PATH).create_tub_path() if \
-        cfg.AUTO_CREATE_NEW_TUB else cfg.DATA_PATH
     meta += getattr(cfg, 'METADATA', [])
-    tub_writer = TubWriter(tub_path, inputs=inputs, types=types, metadata=meta)
-    V.add(tub_writer, inputs=inputs, outputs=["tub/num_records"], run_condition='recording')
+    tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs, types=types,
+                           metadata=meta,
+                           auto_create_new_tub=cfg.AUTO_CREATE_NEW_TUB)
+    V.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],
+          run_condition='recording')
 
     # Telemetry (we add the same metrics added to the TubHandler
     if cfg.HAVE_MQTT_TELEMETRY:

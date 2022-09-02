@@ -190,10 +190,9 @@ def drive(cfg, model_path=None, model_type=None):
     inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode']
     types = ['image_array', 'float', 'float', 'str']
 
-    # do we want to store new records into own dir or append to existing
-    tub_path = TubHandler(path=cfg.DATA_PATH).create_tub_path() if \
-        cfg.AUTO_CREATE_NEW_TUB else cfg.DATA_PATH
-    tub_writer = TubWriter(base_path=tub_path, inputs=inputs, types=types)
+    # do we want to store new records into own dir
+    tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs, types=types,
+                           auto_create_new_tub=cfg.AUTO_CREATE_NEW_TUB)
     car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],
             run_condition='recording')
     if not model_path and cfg.USE_RC:

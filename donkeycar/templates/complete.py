@@ -783,18 +783,10 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
 
     # rbx
     if cfg.DONKEY_GYM:
-        if cfg.SIM_RECORD_LOCATION:  
-            inputs += ['pos/pos_x', 'pos/pos_y', 'pos/pos_z', 'pos/speed', 'pos/cte']
-            types  += ['float', 'float', 'float', 'float', 'float']
-        if cfg.SIM_RECORD_GYROACCEL: 
-            inputs += ['gyro/gyro_x', 'gyro/gyro_y', 'gyro/gyro_z', 'accel/accel_x', 'accel/accel_y', 'accel/accel_z']
-            types  += ['float', 'float', 'float', 'float', 'float', 'float']
-        if cfg.SIM_RECORD_VELOCITY:  
-            inputs += ['vel/vel_x', 'vel/vel_y', 'vel/vel_z']
-            types  += ['float', 'float', 'float']
-        if cfg.SIM_RECORD_LIDAR:
-            inputs += ['lidar/dist_array']
-            types  += ['nparray']
+        inputs += ['pos/pos', 'pos/speed', 'pos/cte', 'gyro', 'accel', 'vel',
+                   'lidar/dist_array']
+        types += ['vector', 'float', 'float', 'vector', 'vector', 'vector',
+                  'nparray']
 
     if cfg.RECORD_DURING_AI:
         inputs += ['pilot/angle', 'pilot/throttle']
@@ -808,11 +800,11 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         types += ['float', 'float', 'float']
         V.add(mon, inputs=[], outputs=perfmon_outputs, threaded=True)
 
-    # do we want to store new records into own dir or append to existing
-    tub_path = TubHandler(path=cfg.DATA_PATH).create_tub_path() if \
-        cfg.AUTO_CREATE_NEW_TUB else cfg.DATA_PATH
-    tub_writer = TubWriter(tub_path, inputs=inputs, types=types, metadata=meta)
-    V.add(tub_writer, inputs=inputs, outputs=["tub/num_records"], run_condition='recording')
+    tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs, types=types,
+                           metadata=meta,
+                           auto_create_new_tub=cfg.AUTO_CREATE_NEW_TUB)
+    V.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],
+          run_condition='recording')
 
     # Telemetry (we add the same metrics added to the TubHandler
     if cfg.HAVE_MQTT_TELEMETRY:

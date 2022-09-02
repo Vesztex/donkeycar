@@ -8,7 +8,8 @@ parts:
         conf: cfg.GYM_CONF
         delay: cfg.SIM_ARTIFICIAL_LATENCY
       inputs: [angle, throttle]
-      outputs: [cam/image_array, pos/pos, pos/speed, pos/cte, gyro, accel, vel, lidar/dist_array]
+      outputs: [cam/image_array, pos/pos, pos/speed, pos/cte, gyro, accel, vel,
+                lidar/dist_array]
       threaded: true
   - localwebcontroller:
       inputs: [cam/image_array, tub/current_index]
@@ -40,8 +41,13 @@ parts:
       outputs: [throttle]
   - tubwriter:
       arguments:
-        inputs: [cam/image_array, user/angle, user/throttle, user/mode]
-        types: [image_array, float, float, str]
-      inputs: [cam/image_array, user/angle, user/throttle, user/mode]
+        inputs: [cam/image_array, user/angle, user/throttle, user/mode,
+                 pos/pos, pos/speed, pos/cte, gyro, accel, vel,
+                 lidar/dist_array]
+        types: [image_array, float, float, str, vector, float, float, vector,
+                vector, vector, nparray]
+      inputs: [cam/image_array, user/angle, user/throttle, user/mode,
+               pos/pos, pos/speed, pos/cte, gyro, accel, vel,
+               lidar/dist_array]
       outputs: [tub/current_index]
       run_condition: recording

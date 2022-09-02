@@ -1,8 +1,11 @@
 import os
 import time
+import logging
 import gym
-import gym_donkeycar
 from donkeycar.parts import Part
+
+
+logger = logging.getLogger(__name__)
 
 
 def is_exe(fpath):
@@ -27,31 +30,37 @@ class DonkeyGymEnv(Part):
         super().__init__(sim_path=sim_path, host=host, port=port,
                          env_name=env_name, conf=conf)
 
-        if sim_path != "remote":
-            if not os.path.exists(sim_path):
-                raise Exception(
-                    "The path you provided for the sim does not exist.")
+        try:
+            if sim_path != "remote":
+                if not os.path.exists(sim_path):
+                    raise FileNotFoundError(
+                        "The path you provided for the sim does not exist.")
 
-            if not is_exe(sim_path):
-                raise Exception("The path you provided is not an executable.")
+                if not is_exe(sim_path):
+                    raise FileNotFoundError("The path you provided is not an "
+                                            "executable.")
 
-        conf["exe_path"] = sim_path
-        conf["host"] = host
-        conf["port"] = port
-        conf["guid"] = 0
-        conf["frame_skip"] = 1
-        self.env = gym.make(env_name, conf=conf)
-        self.frame = self.env.reset()
-        self.action = [0.0, 0.0, 0.0]
-        self.running = True
-        self.info = {'pos': (0., 0., 0.),
-                     'speed': 0,
-                     'cte': 0,
-                     'gyro': (0., 0., 0.),
-                     'accel': (0., 0., 0.),
-                     'vel': (0., 0., 0.)}
-        self.delay = float(delay) / 1000
-        self.buffer = []
+            conf["exe_path"] = sim_path
+            conf["host"] = host
+            conf["port"] = port
+            conf["guid"] = 0
+            conf["frame_skip"] = 1
+            self.env = gym.make(env_name, conf=conf)
+            self.frame = self.env.reset()
+            self.action = [0.0, 0.0, 0.0]
+            self.running = True
+            self.info = {'pos': (0., 0., 0.),
+                         'speed': 0,
+                         'cte': 0,
+                         'gyro': (0., 0., 0.),
+                         'accel': (0., 0., 0.),
+                         'vel': (0., 0., 0.)}
+            self.delay = float(delay) / 1000
+            self.buffer = []
+        except (ImportError, FileNotFoundError):
+            logger.error("Failed to properly intitalise DonkeyGymEnv part. "
+                         "You cannot run this part, but you can check it in "
+                         "the car builder.")
 
     def delay_buffer(self, frame, info):
         now = time.time()

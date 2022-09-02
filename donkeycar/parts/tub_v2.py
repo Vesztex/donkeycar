@@ -107,22 +107,29 @@ class TubWriter(Part):
     """
     A Donkey part, which writes records to the datastore.
     """
-    part_type = PartType.PROCESS
+    part_type = PartType.ACT
 
     def __init__(self, base_path, inputs=[], types=[], metadata=[],
-                 max_catalog_len=1000):
+                 max_catalog_len=1000, auto_create_new_tub=False):
         """
         Creation of TubWriter part.
 
-        :param str base_path:           path of tub
-        :param list(str) inputs:        list of input variable names
-        :param list(str) types:         list of input variable types
-        :param list(tuple) metadata:    metadata as a list of (key,value) pairs
-        :param int max_catalog_len:     length of each catalog file
+        :param str base_path:               path of tub
+        :param list(str) inputs:            list of input variable names
+        :param list(str) types:             list of input variable types
+        :param list(tuple) metadata:        metadata as a list of (key,value) pairs
+        :param int max_catalog_len:         length of each catalog file
+        :param bool auto_create_new_tub:    If new directories should be
+                                            created whenever the TubWriter is
+                                            opened, default False
         """
         super().__init__(base_path=base_path, inputs=inputs, types=types,
-                         metadata=metadata, max_catalog_len=max_catalog_len)
-        self.tub = Tub(base_path, inputs, types, metadata, max_catalog_len)
+                         metadata=metadata, max_catalog_len=max_catalog_len,
+                         auto_create_new_tub=auto_create_new_tub)
+        tub_path = TubHandler(path=base_path).create_tub_path() if \
+            auto_create_new_tub else base_path
+
+        self.tub = Tub(tub_path, inputs, types, metadata, max_catalog_len)
 
     def run(self, *args):
         """

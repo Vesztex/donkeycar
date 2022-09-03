@@ -103,7 +103,7 @@ class Checker(Part):
     """
     part_type = PartType.PROCESS
 
-    def __init__(self, must_match=None, match_true=False):
+    def __init__(self, must_match=None, match_true=True):
         """
         Create part Checker
 

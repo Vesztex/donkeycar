@@ -28,19 +28,22 @@ CAMERA_FRAMERATE = DRIVE_LOOP_HZ
 #
 # PWM_STEERING_THROTTLE
 #
-# Drive train for RC car with a steering servo and ESC.
-# Uses a PwmPin for steering (servo) and a second PwmPin for throttle (ESC)
-# Base PWM Frequence is presumed to be 60hz; use PWM_xxxx_SCALE to adjust pulse with for non-standard PWM frequencies
+# Drive train for RC car with a steering servo and ESC. Uses a PwmPin for
+# steering (servo) and a second PwmPin for throttle (ESC) Base PWM frequency
+# is presumed to be 60hz; use PWM_xxxx_SCALE to adjust pulse with for
+# non-standard PWM frequencies
 #
 PWM_STEERING_THROTTLE = {
     "PWM_STEERING_PIN": "PCA9685.1:40.1",  # PWM output pin for steering servo
     "PWM_STEERING_SCALE": 1.0,
-    # used to compensate for PWM frequency differents from 60hz; NOT for adjusting steering range
+    # used to compensate for PWM frequency differents from 60hz; NOT for
+    # adjusting steering range
     "PWM_STEERING_INVERTED": False,
     # True if hardware requires an inverted PWM pulse
     "PWM_THROTTLE_PIN": "PCA9685.1:40.0",  # PWM output pin for ESC
     "PWM_THROTTLE_SCALE": 1.0,
-    # used to compensate for PWM frequence differences from 60hz; NOT for increasing/limiting speed
+    # used to compensate for PWM frequence differences from 60hz; NOT for
+    # increasing/limiting speed
     "PWM_THROTTLE_INVERTED": False,
     # True if hardware requires an inverted PWM pulse
     "STEERING_LEFT_PWM": 460,  # pwm value for full left steering
@@ -52,14 +55,22 @@ PWM_STEERING_THROTTLE = {
 
 # LOGGING
 HAVE_CONSOLE_LOGGING = True
-LOGGING_LEVEL = 'INFO'  # (Python logging level) 'NOTSET' / 'DEBUG' / 'INFO' / 'WARNING' / 'ERROR' / 'FATAL' / 'CRITICAL'
-LOGGING_FORMAT = '%(message)s'  # (Python logging format - https://docs.python.org/3/library/logging.html#formatter-objects
+# (Python logging level) 'NOTSET' / 'DEBUG' / 'INFO' / 'WARNING' / 'ERROR' /
+# 'FATAL' / 'CRITICAL'
+LOGGING_LEVEL = 'INFO'
+# (Python logging format -
+# https://docs.python.org/3/library/logging.html#formatter-objects
+LOGGING_FORMAT = '%(message)s'
 
 # TRAINING
-DEFAULT_AI_FRAMEWORK = 'tensorflow'  # The default AI framework to use. Choose from (tensorflow|pytorch)
-DEFAULT_MODEL_TYPE = 'linear'  # (linear|categorical|rnn|imu|behavior|3d|localizer|latent)
-CREATE_TF_LITE = True  # automatically create tflite model in training
-CREATE_TENSOR_RT = False  # automatically create tensorrt model in training
+# The default AI framework to use. Choose from (tensorflow|pytorch)
+DEFAULT_AI_FRAMEWORK = 'tensorflow'
+# (linear|categorical|rnn|imu|behavior|3d|localizer|latent)
+DEFAULT_MODEL_TYPE = 'linear'
+# automatically create tflite model in training
+CREATE_TF_LITE = True
+# automatically create tensorrt model in training
+CREATE_TENSOR_RT = False
 BATCH_SIZE = 128
 TRAIN_TEST_SPLIT = 0.8
 MAX_EPOCHS = 100
@@ -72,19 +83,14 @@ PRINT_MODEL_SUMMARY = True  # print layers and weights to stdout
 OPTIMIZER = None  # adam, sgd, rmsprop, etc.. None accepts default
 LEARNING_RATE = 0.001  # only used when OPTIMIZER specified
 LEARNING_RATE_DECAY = 0.0  # only used when OPTIMIZER specified
-PRUNE_CNN = False
-PRUNE_PERCENT_TARGET = 75  # The desired percentage of pruning.
-PRUNE_PERCENT_PER_ITERATION = 20  # Percenge of pruning that is perform per iteration.
-PRUNE_VAL_LOSS_DEGRADATION_LIMIT = 0.2  # The max amout of validation loss that is permitted during pruning.
-PRUNE_EVAL_PERCENT_OF_DATASET = .05  # percent of dataset used to perform evaluation of model.
 
 # model transfer options
 FREEZE_LAYERS = False
 NUM_LAST_LAYERS_TO_TRAIN = 7
 
-# For the categorical model, this limits the upper bound of the learned throttle
-# it's very IMPORTANT that this value is matched from the training PC config.py and the robot.py
-# and ideally wouldn't change once set.
+# For the categorical model, this limits the upper bound of the learned
+# throttle it's very IMPORTANT that this value is matched from the training
+# PC config.py and the robot.py and ideally wouldn't change once set.
 MODEL_CATEGORICAL_MAX_THROTTLE_RANGE = 0.8
 
 # RNN or 3D
@@ -116,29 +122,53 @@ HAVE_SOMBRERO = False
 
 # RECORD OPTIONS
 RECORD_DURING_AI = False
-AUTO_CREATE_NEW_TUB = False  # create a new tub (tub_YY_MM_DD) directory when recording or append records to data directory directly
+# create a new tub (tub_YY_MM_DD) directory when recording or append records
+# to data directory directly
+AUTO_CREATE_NEW_TUB = False
 
-# JOYSTICK
-USE_JOYSTICK_AS_DEFAULT = False  # when starting the manage.py, when True, will not require a --js option to use the joystick
-JOYSTICK_MAX_THROTTLE = 0.5  # this scalar is multiplied with the -1 to 1 throttle value to limit the maximum throttle. This can help if you drop the controller or just don't need the full speed available.
-JOYSTICK_STEERING_SCALE = 1.0  # some people want a steering that is less sensitve. This scalar is multiplied with the steering -1 to 1. It can be negative to reverse dir.
-AUTO_RECORD_ON_THROTTLE = True  # if true, we will record whenever throttle is not zero. if false, you must manually toggle recording with some other trigger. Usually circle button on joystick.
-CONTROLLER_TYPE = 'ps3'  # (# ps3|ps4|xbox|nimbus|wiiu|F710|rc3|MM1|custom) custom will run the my_joystick.py controller written by the `donkey createjs` command
-USE_NETWORKED_JS = False  # should we listen for remote joystick control over the network?
-NETWORK_JS_SERVER_IP = "192.168.0.1"  # when listening for network joystick control, which ip is serving this information
-JOYSTICK_DEADZONE = 0.0  # when non zero, this is the smallest throttle before recording triggered.
-JOYSTICK_THROTTLE_DIR = -1.0  # use -1.0 to flip forward/backward, use 1.0 to use joystick's natural forward/backward
-USE_FPV = False  # send camera data to FPV webserver
-JOYSTICK_DEVICE_FILE = "/dev/input/js0"  # this is the unix file use to access the joystick.
+# JOYSTICK -----------------------------
+# when starting the manage.py, when True, will not require a --js
+# option to use the joystick
+USE_JOYSTICK_AS_DEFAULT = False
+# this scalar is multiplied with the -1 to 1 throttle value to limit the
+# maximum throttle. This can help if you drop the controller or just don't
+# need the full speed available
+JOYSTICK_MAX_THROTTLE = 0.5
+# some people want a steering that is less sensitve. This scalar is
+# multiplied with the steering -1 to 1. It can be negative to reverse dir.
+JOYSTICK_STEERING_SCALE = 1.0
+# if true, we will record whenever throttle is not zero. if false, you must
+# manually toggle recording with some other trigger. Usually circle button on
+# joystick.
+AUTO_RECORD_ON_THROTTLE = True
+# (ps3|ps4|xbox|nimbus|wiiu|F710|rc3|MM1|custom) custom will run the
+# my_joystick.py controller written by the `donkey createjs` command
+CONTROLLER_TYPE = 'ps3'
+# should we listen for remote joystick control over the network?
+USE_NETWORKED_JS = False
+# when listening for network joystick control, which ip is serving this
+# information
+NETWORK_JS_SERVER_IP = "192.168.0.1"
+# when non zero, this is the smallest throttle before recording triggered.
+JOYSTICK_DEADZONE = 0.0
+# use -1.0 to flip forward/backward, use 1.0 to use joystick's natural
+# forward/backward
+JOYSTICK_THROTTLE_DIR = -1.0
+# send camera data to FPV webserver
+USE_FPV = False
+# this is the unix file use to access the joystick.
+JOYSTICK_DEVICE_FILE = "/dev/input/js0"
 
 # WEB CONTROL
-WEB_CONTROL_PORT = int(os.getenv("WEB_CONTROL_PORT",
-                                 8887))  # which port to listen on when making a web controller
-WEB_INIT_MODE = "user"  # which control mode to start in. one of user|local_angle|local. Setting local will start in ai mode.
+# which port to listen on when making a web controller
+WEB_CONTROL_PORT = int(os.getenv("WEB_CONTROL_PORT",8887))
+# which control mode to start in. one of user|local_angle|local. Setting
+# local will start in ai mode.
+WEB_INIT_MODE = "user"
 
 # DRIVING
-AI_THROTTLE_MULT = 1.0  # this multiplier will scale every throttle value for all output from NN models
-
+# this multiplier will scale every throttle value for all output from NN models
+AI_THROTTLE_MULT = 1.0
 # DonkeyGym
 
 # Only on Ubuntu linux, you can use the simulator as a virtual donkey and
@@ -174,8 +204,4 @@ SIM_HOST = "127.0.0.1"
 # reasonable.
 SIM_ARTIFICIAL_LATENCY = 0
 
-# Save info from Simulator (pln)
-SIM_RECORD_LOCATION = False
-SIM_RECORD_GYROACCEL = False
-SIM_RECORD_VELOCITY = False
-SIM_RECORD_LIDAR = False
+

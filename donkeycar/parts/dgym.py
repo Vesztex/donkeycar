@@ -94,7 +94,6 @@ class DonkeyGymEnv(Part):
             throttle = 0.0
         if brake is None:
             brake = 0.0
-        print(steering, throttle)
 
         self.action = [steering, throttle, brake]
 

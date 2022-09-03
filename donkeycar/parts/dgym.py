@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import gym
+import gym_donkeycar
 from donkeycar.parts import Part
 
 
@@ -93,6 +94,7 @@ class DonkeyGymEnv(Part):
             throttle = 0.0
         if brake is None:
             brake = 0.0
+        print(steering, throttle)
 
         self.action = [steering, throttle, brake]
 

@@ -44,7 +44,7 @@ parts:
                  pos/pos, pos/speed, pos/cte, gyro, accel, vel,
                  lidar/dist_array]
         types: [image_array, float, float, str, vector, float, float, vector,
-                vector, vector, nparray]
+                vector, vector, list]
       inputs: [cam/image_array, user/angle, user/throttle, user/mode,
                pos/pos, pos/speed, pos/cte, gyro, accel, vel,
                lidar/dist_array]

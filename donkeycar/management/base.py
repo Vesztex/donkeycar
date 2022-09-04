@@ -600,9 +600,11 @@ class CarPlot(BaseCommand):
 
 
 class Drive(BaseCommand):
+    prog_name = 'drive'
+    plot = False
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='drive',
+        parser = argparse.ArgumentParser(prog=self.prog_name,
                                          usage='%(prog)s [options]')
         parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
         parser.add_argument('--assembly', default='./assembly/basic.yml',
@@ -620,7 +622,15 @@ class Drive(BaseCommand):
         b = Builder(cfg, yml)
         kwargs = vars(args)
         v = b.build_vehicle(kwargs)
-        v.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS)
+        if self.plot:
+            b.plot_vehicle(v)
+        else:
+            v.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS)
+
+
+class PlotAssembly(Drive):
+    prog_name = 'plot'
+    plot = True
 
 
 class ModelDatabase(BaseCommand):
@@ -670,6 +680,7 @@ def execute_from_command_line():
         'models': ModelDatabase,
         'carplot': CarPlot,
         'drive': Drive,
+        'assemblyplot': PlotAssembly,
         'ui': Gui,
     }
 

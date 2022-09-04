@@ -38,6 +38,13 @@ parts:
     # if user_throttle is true return user/throttle else return pilot/throttle
       inputs: [use_user/throttle, pilot/throttle, user/throttle]
       outputs: [throttle]
+  - ailaunch:
+      arguments:
+        launch_duration: cfg.AI_LAUNCH_DURATION
+        launch_throttle: cfg.AI_LAUNCH_THROTTLE
+        keep_enabled: cfg.AI_LAUNCH_KEEP_ENABLED
+      inputs: [user/mode, throttle]
+      outputs: [throttle]
   - tubwriter:
       arguments:
         inputs: [cam/image_array, user/angle, user/throttle, user/mode,

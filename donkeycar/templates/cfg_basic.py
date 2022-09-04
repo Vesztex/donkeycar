@@ -79,10 +79,14 @@ VERBOSE_TRAIN = True
 USE_EARLY_STOP = True
 EARLY_STOP_PATIENCE = 5
 MIN_DELTA = .0005
-PRINT_MODEL_SUMMARY = True  # print layers and weights to stdout
-OPTIMIZER = None  # adam, sgd, rmsprop, etc.. None accepts default
-LEARNING_RATE = 0.001  # only used when OPTIMIZER specified
-LEARNING_RATE_DECAY = 0.0  # only used when OPTIMIZER specified
+# print layers and weights to stdout
+PRINT_MODEL_SUMMARY = True
+# adam, sgd, rmsprop, etc.. None accepts default
+OPTIMIZER = None
+# only used when OPTIMIZER specified
+LEARNING_RATE = 0.001
+# only used when OPTIMIZER specified
+LEARNING_RATE_DECAY = 0.0
 
 # model transfer options
 FREEZE_LAYERS = False
@@ -161,7 +165,7 @@ JOYSTICK_DEVICE_FILE = "/dev/input/js0"
 
 # WEB CONTROL
 # which port to listen on when making a web controller
-WEB_CONTROL_PORT = int(os.getenv("WEB_CONTROL_PORT",8887))
+WEB_CONTROL_PORT = int(os.getenv("WEB_CONTROL_PORT", 8887))
 # which control mode to start in. one of user|local_angle|local. Setting
 # local will start in ai mode.
 WEB_INIT_MODE = "user"
@@ -170,6 +174,20 @@ WEB_INIT_MODE = "user"
 # this multiplier will scale every throttle value for all output from NN models
 AI_THROTTLE_MULT = 1.0
 # DonkeyGym
+
+# When racing, to give the ai a boost, configure these values.
+# the ai will output throttle for this many seconds
+AI_LAUNCH_DURATION = 0.0
+# the ai will output this throttle value
+AI_LAUNCH_THROTTLE = 0.0
+# this keypress will enable this boost. It must be enabled before each use to
+# prevent accidental trigger.
+AI_LAUNCH_ENABLE_BUTTON = 'R2'
+# when False ( default) you will need to hit the AI_LAUNCH_ENABLE_BUTTON for
+# each use. This is safest. When this True, is active on each trip into
+# "local" ai mode.
+AI_LAUNCH_KEEP_ENABLED = False
+
 
 # Only on Ubuntu linux, you can use the simulator as a virtual donkey and
 # issue the same python manage.py drive command as usual, but have them

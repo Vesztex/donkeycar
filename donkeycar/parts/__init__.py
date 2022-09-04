@@ -12,3 +12,5 @@ from .path import *
 from .realsense2 import RS_T265
 from .transform import *
 from .dgym import DonkeyGymEnv
+from .launch import AiLaunch
+

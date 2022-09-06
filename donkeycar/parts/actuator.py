@@ -1029,6 +1029,7 @@ class L298N_HBridge_2pin(object):
         if throttle is None:
             logger.warn("TwoWheelSteeringThrottle throttle is None")
             return
+        
         if throttle > 1 or throttle < -1:
             logger.warn( f"TwoWheelSteeringThrottle throttle is {throttle}, but it must be between 1(forward) and -1(reverse)")
             throttle = clamp(throttle, -1, 1)

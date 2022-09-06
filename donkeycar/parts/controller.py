@@ -10,6 +10,7 @@ from donkeycar.utils import EqMemorizedString
 
 logger = logging.getLogger(__name__)
 
+
 class Joystick(object):
     """
     An interface to a physical joystick.
@@ -27,7 +28,6 @@ class Joystick(object):
         self.button_map = []
         self.jsdev = None
         self.dev_fn = dev_fn
-
 
     def init(self):
         """
@@ -995,7 +995,6 @@ class JoystickController(Part):
                 self.recording_latch = self.recording
                 logger.debug(f"JoystickController::on_throttle_changes() setting recording = {self.recording}")
 
-
     def emergency_stop(self):
         """
         initiate a series of steps to try to stop the vehicle as quickly as possible
@@ -1667,7 +1666,7 @@ class JoyStickPub(object):
                     axis = "0"
                     axis_val = 0
                 message_data = (button, button_state, axis, axis_val)
-                self.socket.send_string( "%s %d %s %f" % message_data)
+                self.socket.send_string("%s %d %s %f" % message_data)
                 logger.info(f"SENT {message_data}")
 
 

@@ -572,33 +572,6 @@ class Train(BaseCommand):
                          f"one of 'tensorflow' or 'pytorch'")
 
 
-class CarPlot(BaseCommand):
-
-    def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='carplot',
-                                         usage='%(prog)s [options]')
-        parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
-        parser.add_argument('--app', default='./apps/basic.yml',
-                            help='car application yaml file')
-        parser.add_argument('--save', action="store_true",
-                            help='if plot should be saved')
-        for part_name, part_arg_list in CreatableFactory.arg_registry.items():
-            for arg_name in part_arg_list:
-                parser.add_argument(f'--{part_name}.{arg_name}')
-        parsed_args = parser.parse_args(args)
-        return parsed_args
-
-    def run(self, args):
-        args = self.parse_args(args)
-        kwargs = vars(args)
-        cfg = load_config(args.config)
-        yml = args.app
-        b = Builder(cfg, yml)
-        v = b.build_vehicle(kwargs)
-        b.plot_vehicle(v, filename=os.path.splitext(os.path.basename(yml))[0],
-                       view=args.save)
-
-
 class Drive(BaseCommand):
     prog_name = 'drive'
     plot = False

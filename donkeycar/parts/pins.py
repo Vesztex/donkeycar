@@ -599,14 +599,14 @@ class PCA9685:
         return self._frequency
 
     def set_high(self, channel: int):
-        if self.pwm:
-            self.pwm.set_pwm(channel, 4096, 0)
+        self.pwm.set_pwm(channel, 4096, 0)
 
     def set_low(self, channel: int):
-        if self.pwm:
-            self.pwm.set_pwm(channel, 0, 4096)
+        self.pwm.set_pwm(channel, 0, 4096)
 
     def set_duty_cycle(self, channel: int, duty_cycle: float):
+        if not self.pwm:
+            return
         if duty_cycle < 0 or duty_cycle > 1:
             raise ValueError("duty_cycle must be in range 0 to 1")
         if duty_cycle == 1:

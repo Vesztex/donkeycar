@@ -74,7 +74,7 @@ def pulse_ms(pulse_bits: int) -> float:
     return pulse_bits / 4095
 
 
-class PulseController(Creatable):
+class PulseController(Part):
     """
     Controller that provides a servo PWM pulse using the given PwmPin
     See pins.py for pin provider implementations.

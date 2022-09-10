@@ -15,10 +15,12 @@ import logging
 import os
 
 import donkeycar as dk
+from donkeycar.parts import pins
 from donkeycar.parts.tub_v2 import TubWriter, TubWiper
-from donkeycar.parts.datastore import TubHandler
-from donkeycar.parts.controller import LocalWebController, RCReceiver
-from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
+from donkeycar.parts.controller import RCReceiver
+from donkeycar.parts.web_controller.web import LocalWebController
+from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle, \
+    PulseController
 from donkeycar.pipeline.augmentations import ImageAugmentation
 
 logger = logging.getLogger()
@@ -165,26 +167,26 @@ def drive(cfg, model_path=None, model_type=None):
             outputs=['angle', 'throttle'])
 
     # Drive train setup
-    if cfg.DONKEY_GYM or cfg.DRIVE_TRAIN_TYPE == "MOCK":
-        pass
-    else:
-        steering_controller = PCA9685(cfg.STEERING_CHANNEL,
-                                      cfg.PCA9685_I2C_ADDR,
-                                      busnum=cfg.PCA9685_I2C_BUSNUM)
-        steering = PWMSteering(controller=steering_controller,
-                               left_pulse=cfg.STEERING_LEFT_PWM,
-                               right_pulse=cfg.STEERING_RIGHT_PWM)
+    dt = cfg.PWM_STEERING_THROTTLE
+    steering_controller = PulseController(
+        pwm_pin=pins.pwm_pin_by_id(dt["PWM_STEERING_PIN"]),
+        pwm_scale=dt["PWM_STEERING_SCALE"],
+        pwm_inverted=dt["PWM_STEERING_INVERTED"])
+    steering = PWMSteering(controller=steering_controller,
+                           left_pulse=dt["STEERING_LEFT_PWM"],
+                           right_pulse=dt["STEERING_RIGHT_PWM"])
 
-        throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL,
-                                      cfg.PCA9685_I2C_ADDR,
-                                      busnum=cfg.PCA9685_I2C_BUSNUM)
-        throttle = PWMThrottle(controller=throttle_controller,
-                               max_pulse=cfg.THROTTLE_FORWARD_PWM,
-                               zero_pulse=cfg.THROTTLE_STOPPED_PWM,
-                               min_pulse=cfg.THROTTLE_REVERSE_PWM)
+    throttle_controller = PulseController(
+        pwm_pin=pins.pwm_pin_by_id(dt["PWM_THROTTLE_PIN"]),
+        pwm_scale=dt["PWM_THROTTLE_SCALE"],
+        pwm_inverted=dt['PWM_THROTTLE_INVERTED'])
+    throttle = PWMThrottle(controller=throttle_controller,
+                           max_pulse=dt['THROTTLE_FORWARD_PWM'],
+                           zero_pulse=dt['THROTTLE_STOPPED_PWM'],
+                           min_pulse=dt['THROTTLE_REVERSE_PWM'])
 
-        car.add(steering, inputs=['angle'])
-        car.add(throttle, inputs=['throttle'])
+    car.add(steering, inputs=['angle'])
+    car.add(throttle, inputs=['throttle'])
 
     # add tub to save data
     inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode']

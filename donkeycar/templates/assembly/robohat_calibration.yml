@@ -1,7 +1,7 @@
 
 parts:
   - localwebcontroller:
-      outputs: [angle, throttle, mode, recording, config]
+      outputs: [angle, throttle, mode, recording, buttons, config]
       threaded: true
   - throttlefilter:
       inputs: [throttle]

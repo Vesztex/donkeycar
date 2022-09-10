@@ -87,6 +87,8 @@ class PulseController(Part):
                         for non-standard pwm frequencies.
         :param pwm_inverted:bool True to invert the duty cycle
         """
+        super().__init__(pwm_pin=pwm_pin, pwm_scale=pwm_scale,
+                         pwm_inverted=pwm_inverted)
         self.pwm_pin = pwm_pin
         self.scale = pwm_scale
         self.inverted = pwm_inverted
@@ -174,57 +176,82 @@ class PCA9685:
         self.set_pulse(pulse)
 
 
-class VESC:
-    '''
-    VESC Motor controler using pyvesc
-    This is used for most electric scateboards.
+class VESC(Part):
+    """
+    VESC Motor controler using pyvesc This is used for most electric
+    scateboards.
 
-    inputs: serial_port---- port used communicate with vesc. for linux should be something like /dev/ttyACM1
-    has_sensor=False------- default value from pyvesc
-    start_heartbeat=True----default value from pyvesc (I believe this sets up a heartbeat and kills speed if lost)
-    baudrate=115200--------- baudrate used for communication with VESC
-    timeout=0.05-------------time it will try before giving up on establishing connection
 
-    percent=.2--------------max percentage of the dutycycle that the motor will be set to
-    outputs: none
+    uses the pyvesc library to open communication with the VESC and sets the
+    servo to the angle (0-1) and the duty_cycle(speed of the car) to the
+    throttle (mapped so that percentage will be max/min speed)
 
-    uses the pyvesc library to open communication with the VESC and sets the servo to the angle (0-1) and the duty_cycle(speed of the car) to the throttle (mapped so that percentage will be max/min speed)
-
-    Note that this depends on pyvesc, but using pip install pyvesc will create a pyvesc file that
-    can only set the speed, but not set the servo angle.
+    Note that this depends on pyvesc, but using pip install pyvesc will
+    create a pyvesc file that can only set the speed, but not set the servo
+    angle.
 
     Instead please use:
     pip install git+https://github.com/LiamBindle/PyVESC.git@master
     to install the pyvesc library
-    '''
-    def __init__(self, serial_port, percent=.2, has_sensor=False, start_heartbeat=True, baudrate=115200, timeout=0.05, steering_scale = 1.0, steering_offset = 0.0 ):
+    """
+    part_type = PartType.ACT
 
+    def __init__(self, serial_port, percent=.2, has_sensor=False,
+                 start_heartbeat=True, baudrate=115200, timeout=0.05,
+                 steering_scale=1.0, steering_offset=0.0):
+        """
+        Creating part VESC.
+
+        :param str serial_port:         Port used communicate with vesc. for
+                                        linux should be something like
+                                        /dev/ttyACM1
+        :param float percent:           Max percentage of the dutycycle that
+                                        the motor will be set to, default=0.2
+        :param bool has_sensor:         Default value from pyvesc, default=True
+        :param bool start_heartbeat:    Default value from pyvesc
+        :param int baudrate:            Baudrate used for communication with
+                                        VESC
+        :param float timeout:           Time it will try before giving up on
+                                        establishing connection, default 0.05
+        :param float steering_scale:    Multiplication factor for steering,
+                                        default=1.0
+        :param flaot steering_offset:   Offset amount for steering,
+                                        default=0.0
+        """
+        super().__init__(serial_port=serial_port, percent=percent,
+                         has_sensor=has_sensor,
+                         start_heartbeat=start_heartbeat, baudrate=baudrate,
+                         timeout=timeout, steering_scale=steering_scale,
+                         steering_offset=steering_offset)
         try:
             import pyvesc
+            self.v = pyvesc.VESC(serial_port, has_sensor, start_heartbeat,
+                                 baudrate, timeout)
+        except ImportError as err:
+            logger.error("Cannot create part VESC successfully as pyvesc is "
+                         "not installed. You cannot run that part but onl "
+                         "check it in the car builder.")
         except Exception as err:
-            print("\n\n\n\n", err, "\n")
-            print("please use the following command to import pyvesc so that you can also set")
-            print("the servo position:")
-            print("pip install git+https://github.com/LiamBindle/PyVESC.git@master")
-            print("\n\n\n")
-            time.sleep(1)
+            logger.error(f'{err}: to fix permission denied errors, '
+                         f'try running the following command: '
+                         f'sudo chmod a+rw {serial_port}')
             raise
 
-        assert percent <= 1 and percent >= -1,'\n\nOnly percentages are allowed for MAX_VESC_SPEED (we recommend a value of about .2) (negative values flip direction of motor)'
+        assert -1 <= percent <= 1, \
+            'Only percentages are allowed for MAX_VESC_SPEED (we recommend a ' \
+            'value of about .2), negative values flip direction of motor)'
         self.steering_scale = steering_scale
         self.steering_offset = steering_offset
         self.percent = percent
 
-        try:
-            self.v = pyvesc.VESC(serial_port, has_sensor, start_heartbeat, baudrate, timeout)
-        except Exception as err:
-            print("\n\n\n\n", err)
-            print("\n\nto fix permission denied errors, try running the following command:")
-            print("sudo chmod a+rw {}".format(serial_port), "\n\n\n\n")
-            time.sleep(1)
-            raise
-
     def run(self, angle, throttle):
+        """
+        Donkey car run interface
+
+        :param float angle:     Angle parameter
+        :param float throttle:  Throttle parameter
+        :return:                None
+        """
         self.v.set_servo((angle * self.steering_scale) + self.steering_offset)
         self.v.set_duty_cycle(throttle*self.percent)
 

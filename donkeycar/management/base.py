@@ -11,7 +11,7 @@ import donkeycar as dk
 from donkeycar.builder import Builder
 from donkeycar.management.joystick_creator import CreateJoystick
 from donkeycar.management.tub import TubManager
-from donkeycar.parts import CreatableFactory
+from donkeycar.parts.part import CreatableFactory
 from donkeycar.pipeline.types import TubDataset
 from donkeycar.utils import normalize_image, load_image, math
 
@@ -651,7 +651,6 @@ def execute_from_command_line():
         'update': UpdateCar,
         'train': Train,
         'models': ModelDatabase,
-        'carplot': CarPlot,
         'drive': Drive,
         'assemblyplot': PlotAssembly,
         'ui': Gui,

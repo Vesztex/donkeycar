@@ -9,7 +9,8 @@ import logging
 from typing import Tuple
 
 import donkeycar as dk
-from donkeycar.parts.pins import OutputPin, PwmPin, PinState, output_pin_by_id
+from donkeycar.parts.pins import OutputPin, PwmPin, PinState, output_pin_by_id, \
+    pwm_pin_by_id
 from donkeycar.parts.part import Part, PartType
 from donkeycar import utils
 from donkeycar.utils import clamp
@@ -382,7 +383,8 @@ class PWMThrottle(Part):
     def __init__(self, controller, max_pulse, min_pulse, zero_pulse):
 
         if controller is None:
-            raise ValueError("PWMThrottle requires a set_pulse controller to be passed")
+            raise ValueError("PWMThrottle requires a set_pulse controller to "
+                             "be passed")
         set_pulse = getattr(controller, "set_pulse", None)
         if set_pulse is None or not callable(set_pulse):
             raise ValueError("controller must have a set_pulse method")

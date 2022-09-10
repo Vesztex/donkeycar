@@ -9,12 +9,10 @@ import logging
 from typing import Tuple
 
 import donkeycar as dk
-from donkeycar.parts.pins import OutputPin, PwmPin, PinState, output_pin_by_id, \
-    pwm_pin_by_id
+from donkeycar.parts.pins import OutputPin, PwmPin, PinState, pwm_pin_by_id
 from donkeycar.parts.part import Part, PartType
 from donkeycar import utils
 from donkeycar.utils import clamp
-from donkeycar.parts.pins import OutputPin, PwmPin, PinState
 from donkeycar.utilities.deprecated import deprecated
 
 logger = logging.getLogger(__name__)

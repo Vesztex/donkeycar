@@ -30,18 +30,8 @@ class Memory:
         self.d.update(new_d)
         
     def put(self, keys, inputs):
-        if len(keys) > 1:
-            for i, key in enumerate(keys):
-                try:
-                    self.d[key] = inputs[i]
-                except IndexError as e:
-                    error = str(e) + ' issue with keys: ' + str(key)
-                    raise IndexError(error)
-        
-        else:
-            assert len(keys) == 1, f'Key {keys} needs to be a sequence of ' \
-                                   f'length 1'
-            self.d[keys[0]] = inputs
+        for k, i in zip(keys, inputs):
+            self.d[k] = i
 
     def get(self, keys):
         result = [self.d.get(k) for k in keys]

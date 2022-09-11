@@ -20,7 +20,7 @@ class Memory:
         else:
             if type(key) is not tuple:
                 key = tuple(key)
-                value = tuple(key)
+                value = tuple(value)
             for i, k in enumerate(key):
                 self.d[k] = value[i]
         

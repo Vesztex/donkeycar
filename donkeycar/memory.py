@@ -16,9 +16,13 @@ class Memory:
         else:
             if type(key) is not tuple:
                 key = tuple(key)
-                value = tuple(value)
-            for i, k in enumerate(key):
-                self.d[k] = value[i]
+            if type(value) is not tuple:
+                try:
+                    value = tuple(value)
+                except TypeError:
+                    value = (value,)
+            for k, v in zip(key, value):
+                self.d[k] = v
         
     def __getitem__(self, key):
         if type(key) is tuple:
@@ -30,8 +34,7 @@ class Memory:
         self.d.update(new_d)
         
     def put(self, keys, inputs):
-        for k, i in zip(keys, inputs):
-            self.d[k] = i
+        self[keys] = inputs
 
     def get(self, keys):
         result = [self.d.get(k) for k in keys]

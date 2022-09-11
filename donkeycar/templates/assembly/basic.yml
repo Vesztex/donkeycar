@@ -28,8 +28,10 @@ parts:
       outputs: [throttle]
   - pwmsteering:
       inputs: [angle]
+      threaded: true
   - pwmthrottle:
       inputs: [throttle]
+      threaded: true
   - keraspilot:
       inputs: [cam/image_array]
       outputs: [pilot/angle, pilot/throttle]

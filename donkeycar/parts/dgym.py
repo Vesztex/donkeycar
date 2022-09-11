@@ -1,7 +1,6 @@
 import os
 import time
 import logging
-import gym
 import gym_donkeycar
 from donkeycar.parts import Part
 
@@ -32,6 +31,7 @@ class DonkeyGymEnv(Part):
                          env_name=env_name, conf=conf)
 
         try:
+            import gym
             if sim_path != "remote":
                 if not os.path.exists(sim_path):
                     raise FileNotFoundError(

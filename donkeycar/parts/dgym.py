@@ -1,11 +1,14 @@
 import os
 import time
 import logging
-import gym_donkeycar
+
 from donkeycar.parts import Part
-
-
 logger = logging.getLogger(__name__)
+
+try:
+    import gym_donkeycar
+except ImportError:
+    logger.exception("gym_donkeycar could not be imported.")
 
 
 def is_exe(fpath):

@@ -30,13 +30,16 @@ class Memory:
         self.d.update(new_d)
         
     def put(self, keys, inputs):
+        try:
+            assert len(keys) == len(inputs)
+        except TypeError as e:
+            raise TypeError(f'{e}: issue with keys: {keys}')
         if len(keys) > 1:
             for i, key in enumerate(keys):
                 try:
                     self.d[key] = inputs[i]
                 except IndexError as e:
                     error = str(e) + ' issue with keys: ' + str(key)
-                    logger.error(error)
                     raise IndexError(error)
         
         else:

@@ -11,6 +11,7 @@ parts:
       arguments:
         must_match: [local, local_angle]
       inputs: [user/mode]
+      outputs: [run_pilot]
   - dispatcher:
     # if run_pilot is true (i.e. == 1) return pilot/angle otherwise user/angle
       inputs: [run_pilot, user/angle, pilot/angle]
@@ -29,7 +30,6 @@ parts:
       inputs: [angle]
   - pwmthrottle:
       inputs: [throttle]
-      outputs: [run_pilot]
   - keraspilot:
       inputs: [cam/image_array]
       outputs: [pilot/angle, pilot/throttle]

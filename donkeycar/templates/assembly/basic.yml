@@ -1,6 +1,6 @@
 
 parts:
-  - cvcam:
+  - picamera:
       outputs: [cam/image_array]
       threaded: true
   - localwebcontroller:

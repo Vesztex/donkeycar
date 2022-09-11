@@ -1,10 +1,6 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Jun 25 11:07:48 2017
+import logging
 
-@author: wroscoe
-"""
+logger = logging.getLogger(__name__)
 
 
 class Memory:
@@ -40,6 +36,7 @@ class Memory:
                     self.d[key] = inputs[i]
                 except IndexError as e:
                     error = str(e) + ' issue with keys: ' + str(key)
+                    logger.error(error)
                     raise IndexError(error)
         
         else:

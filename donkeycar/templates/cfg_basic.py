@@ -25,6 +25,29 @@ IMAGE_H = 120
 IMAGE_DEPTH = 3  # default RGB=3, make 1 for mono
 CAMERA_FRAMERATE = DRIVE_LOOP_HZ
 
+# DRIVE_TRAIN_TYPE
+# These options specify which chasis and motor setup you are using.
+# See Actuators documentation https://docs.donkeycar.com/parts/actuators/
+# for a detailed explanation of each drive train type and it's configuration.
+# Choose one of the following and then update the related configuration section:
+#
+# "PWM_STEERING_THROTTLE" uses two PWM output pins to control a steering
+# servo and an ESC, as in a standard RC car.
+# "MM1" Robo HAT MM1 board
+# "SERVO_HBRIDGE_2PIN" Servo for steering and HBridge motor driver in 2pin
+# mode for motor
+# "SERVO_HBRIDGE_3PIN" Servo for steering and HBridge motor driver in 3pin
+# mode for motor
+# "DC_STEER_THROTTLE" uses HBridge pwm to control one steering dc motor,
+# and one drive wheel motor
+# "DC_TWO_WHEEL uses HBridge in 2-pin mode to control two drive motors,
+# one on the left, and one on the right.
+# "DC_TWO_WHEEL_L298N" using HBridge in 3-pin mode to control two drive
+# motors, one of the left and one on the right.
+# "MOCK" no drive train.  This can be used to test other features in a test rig.
+
+DRIVE_TRAIN_TYPE = "PWM_STEERING_THROTTLE"
+
 #
 # PWM_STEERING_THROTTLE
 #

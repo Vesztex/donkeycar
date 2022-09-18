@@ -8,8 +8,9 @@ logger = logging.getLogger(__name__)
 try:
     import gym_donkeycar
 except ImportError:
-    logger.exception("gym_donkeycar could not be imported.")
-
+    logger.exception("Module gym_donkeycar could not be imported. You can "
+                     "ignore this error as long as you don't build a car that "
+                     "uses DonkeyGymEnv.")
 
 def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)

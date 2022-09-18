@@ -35,7 +35,8 @@ def main(cfg):
     ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT)
     V.add(ctr,
           inputs=['cam/image_array', 'tub/num_records'],
-          outputs=['angle', 'throttle', 'user/mode', 'recording', 'config'],
+          outputs=['angle', 'throttle', 'user/mode', 'recording',
+                   'web/buttons', 'config'],
           threaded=True)
 
     # this throttle filter will allow one tap back for esc reverse

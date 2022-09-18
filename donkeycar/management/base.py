@@ -127,10 +127,11 @@ class CreateCar(BaseCommand):
 
         if os.path.exists(car_assembly_path) and not overwrite and \
             len(os.listdir(car_assembly_path)) > 0:
-            print('Assembly dir already exists. Delete it and rerun createcar '
-                  'to replace.')
+            print('Assembly exists and is not empty. Delete it and rerun '
+                  'createcar to replace.')
         else:
             print("Copying assembly files.")
+            shutil.rmtree(car_assembly_path)
             shutil.copytree(assembly_template_path, car_assembly_path)
             os.chmod(car_assembly_path, stat.S_IRWXU)
 

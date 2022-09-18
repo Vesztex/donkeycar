@@ -12,7 +12,7 @@ Options:
 from docopt import docopt
 
 import donkeycar as dk
-from donkeycar.parts.controller import LocalWebController
+from donkeycar.parts.web_controller.web import LocalWebController
 from donkeycar.parts.throttle_filter import ThrottleFilter
 from donkeycar.parts import pins, PWMSteeringCalibrator, PWMThrottleCalibrator
 from socket import gethostname

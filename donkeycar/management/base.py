@@ -131,7 +131,8 @@ class CreateCar(BaseCommand):
                   'createcar to replace.')
         else:
             print("Copying assembly files.")
-            shutil.rmtree(car_assembly_path)
+            if os.path.exists(car_assembly_path):
+                shutil.rmtree(car_assembly_path)
             shutil.copytree(assembly_template_path, car_assembly_path)
             os.chmod(car_assembly_path, stat.S_IRWXU)
 

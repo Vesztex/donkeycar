@@ -1,6 +1,6 @@
 
 parts:
-  - picamera:
+  - mockcamera:
       outputs: [cam/image_array]
   - localwebcontroller:
       inputs: [cam/image_array]

@@ -71,3 +71,5 @@ class TestMemory(unittest.TestCase):
         mem = Memory()
         arr = np.full((120, 160, 3), fill_value=124).astype(np.uint8)
         mem.put(['cam/image_array'], arr)
+        assert np.equal(mem['cam/image_array'], arr).all()
+

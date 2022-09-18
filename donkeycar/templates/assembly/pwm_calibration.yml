@@ -1,6 +1,9 @@
 
 parts:
+  - picamera:
+      outputs: [cam/image_array]
   - localwebcontroller:
+      inputs: [cam/image_array]
       outputs: [angle, throttle, mode, recording, buttons, config]
       threaded: true
   - throttlefilter:

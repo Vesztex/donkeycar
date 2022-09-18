@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import unittest
+import numpy as np
 from donkeycar.memory import Memory
 
 
@@ -64,5 +65,9 @@ class TestMemory(unittest.TestCase):
     def test_get_iter(self):
         mem = Memory()
         mem.put(['myitem'], 888)
-        
         assert dict(mem.items()) == {'myitem': 888}
+
+    def test_np_array(self):
+        mem = Memory()
+        arr = np.full((120, 160, 3), fill_value=124).astype(np.uint8)
+        mem.put(['cam/image_array'], arr)

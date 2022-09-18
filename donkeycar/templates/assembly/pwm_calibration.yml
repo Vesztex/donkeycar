@@ -2,6 +2,7 @@
 parts:
   - mockcamera:
       outputs: [cam/image_array]
+      threaded: true
   - localwebcontroller:
       inputs: [cam/image_array]
       outputs: [angle, throttle, mode, recording, buttons, config]

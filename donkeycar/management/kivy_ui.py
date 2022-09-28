@@ -36,7 +36,7 @@ from kivy.uix.spinner import SpinnerOption, Spinner
 from kivy.uix.togglebutton import ToggleButton
 
 from donkeycar import load_config
-from donkeycar.parts import CreatableFactory, PartType
+from donkeycar.parts.part import CreatableFactory, PartType
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.augmentations import ImageAugmentation
 from donkeycar.pipeline.database import PilotDatabase

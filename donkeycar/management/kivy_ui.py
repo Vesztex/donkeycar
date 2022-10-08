@@ -1313,10 +1313,23 @@ class PartButton(ToggleButton):
             self.manager.selected_button = None
 
 
-class PartsManager(BoxLayout):
+class PartsManager(BoxLayout, FileChooserBase):
     selected_button = ObjectProperty(allownone=True)
     config = ObjectProperty()
     part_builder = ObjectProperty()
+    filters = ['*.yml', '*.yaml']
+    title = 'Select assembly file'
+
+    def on_config(self, obj, config):
+        self.root_path = getattr(self.config, 'ASSEMBLY_PATH', None)
+        if not self.root_path:
+            txt = 'You need to set ASSEMBLY_PATH in your config'
+            assembly_screen().ids.status.text = txt
+            Logger.error(txt)
+
+    def load_action(self):
+        self.load_yaml()
+        self.ids.car_name.text = os.path.basename(self.file_path)
 
     def add_part_button(self, part_name, part_dict):
         btn = PartButton(manager=self, part_dict=part_dict, text=part_name,
@@ -1330,7 +1343,7 @@ class PartsManager(BoxLayout):
         with the content from the selected button, so they can be displayed and
         edited."""
         if button:
-            threaded = button.part_dict.get('threaded')
+            threaded = button.part_dict.get('threaded', False)
             arguments = button.part_dict.get('arguments', {})
             inputs = button.part_dict.get('inputs', [])
             outputs = button.part_dict.get('outputs', [])
@@ -1396,76 +1409,78 @@ class PartsManager(BoxLayout):
             self.ids.grid.remove_widget(self.selected_button)
             self.selected_button = None
 
+    def validate(self):
+        s = self.ids.car_name.text.split('.')
+        if len(s) != 2 or s[1] not in ('yaml', 'yml'):
+            self.ids.car_name.text = 'car.yml'
+            assembly_screen().ids.status.text = 'Car name needs to have ' \
+                                                'extension .yaml or .yml'
+
     def save_yaml(self):
+        if not self.config:
+            assembly_screen().ids.status.text = 'No config loaded'
+            return
         it = iter(self.ids.grid.walk(restrict=True))
         # first one is the GridLayout itself, this we need to skip
         next(it)
         # all others are the PartButtons
         all_parts = [{i.text: i.part_dict} for i in it]
         d = dict(parts=all_parts)
-        path = getattr(self.config, 'ASSEMBLY_PATH', None)
-        if not path:
-            txt = 'You need to set ASSEMBLY_PATH in your config'
-            assembly_screen().ids.status.text = txt
-            Logger.error(txt)
-        else:
-            car_name = self.ids.car_name.text
-            file_name = os.path.join(path, f'{car_name}.yml')
-            try:
-                with open(file_name, 'w', encoding="utf-8") as file:
-                    s = yaml.dump(d, file)
-                    Logger.info(f'Wrote {file_name}')
-                    assembly_screen().ids.status.text = f'Wrote {file_name}'
-            except Exception as e:
-                Logger.error(e)
-                assembly_screen().ids.status.text \
-                    = f'Writing {file_name} failed, please check console output'
+        car_name = self.ids.car_name.text
+        file_name = os.path.join(self.root_path, car_name)
+        try:
+            with open(file_name, 'w', encoding="utf-8") as file:
+                s = yaml.dump(d, file)
+                Logger.info(f'Wrote {file_name}')
+                assembly_screen().ids.status.text = f'Wrote {file_name}'
+        except Exception as e:
+            Logger.error(e)
+            assembly_screen().ids.status.text \
+                = f'Writing {file_name} failed, please check console output'
 
     def load_yaml(self):
-        path = getattr(self.config, 'ASSEMBLY_PATH', None)
-        if not path:
-            txt = 'You need to set ASSEMBLY_PATH in your config'
-            assembly_screen().ids.status.text = txt
-            Logger.error(txt)
-        else:
-            car_name = self.ids.car_name.text
-            file_name = os.path.join(path, f'{car_name}.yml')
-            variables = set()
-            try:
-                self.ids.grid.clear_widgets()
-                with open(file_name) as f:
-                    car_description = yaml.safe_load(f)
-                parts = car_description.get('parts')
-                for p in parts:
-                    assert(isinstance(p, dict))
-                    assert(len(p) == 1)
-                    part_name, part_dict = next(iter(p.items()))
-                    self.add_part_button(part_name, part_dict)
-                    if 'inputs' in part_dict:
-                        variables.update(part_dict['inputs'])
-                    if 'outputs' in part_dict:
-                        variables.update(part_dict['outputs'])
-                    if 'run_condition' in part_dict:
-                        # because run_condition is a string and not a list we
-                        # need to wrap it into a list for update to work
-                        variables.update([part_dict['run_condition']])
-                assembly_screen().variables = variables
-                assembly_screen().ids.status.text = f'Read {file_name}'
-            except yaml.YAMLError as e:
-                Logger.error(e)
-                assembly_screen().ids.status.text \
-                    = f'Error in yaml parsing of {file_name}, please ' \
-                      f'check console output'
-            except Exception as e:
-                Logger.error(e)
-                assembly_screen().ids.status.text \
-                    = f'Error in loading {file_name}, please check console ' \
-                      f'output'
+        if not self.config:
+            assembly_screen().ids.status.text = 'No config loaded'
+            return
+        variables = set()
+        try:
+            self.ids.grid.clear_widgets()
+            with open(self.file_path) as f:
+                car_description = yaml.safe_load(f)
+            parts = car_description.get('parts')
+            for p in parts:
+                assert(isinstance(p, dict))
+                assert(len(p) == 1)
+                part_name, part_dict = next(iter(p.items()))
+                self.add_part_button(part_name, part_dict)
+                if 'inputs' in part_dict:
+                    variables.update(part_dict['inputs'])
+                if 'outputs' in part_dict:
+                    variables.update(part_dict['outputs'])
+                if 'run_condition' in part_dict:
+                    # because run_condition is a string and not a list we
+                    # need to wrap it into a list for update to work
+                    variables.update([part_dict['run_condition']])
+            assembly_screen().variables = variables
+            assembly_screen().ids.status.text = f'Read {self.file_path}'
+        except yaml.YAMLError as e:
+            Logger.error(e)
+            assembly_screen().ids.status.text \
+                = f'Error in yaml parsing of {self.file_path}, please ' \
+                  f'check console output'
+        except Exception as e:
+            Logger.error(e)
+            assembly_screen().ids.status.text \
+                = f'Error in loading {self.file_path}, please check ' \
+                  f'console output'
 
     def plot_car(self):
+        if not self.config:
+            assembly_screen().ids.status.text = 'No config loaded'
+            return
         path = getattr(self.config, 'ASSEMBLY_PATH', None)
         car_name = self.ids.car_name.text
-        yml = os.path.join(path, f'{car_name}.yml')
+        yml = os.path.join(path, car_name)
         b = DkBuilder(self.config, yml)
         try:
             v = b.build_vehicle()

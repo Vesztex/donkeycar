@@ -980,11 +980,13 @@
             on_press: root.save_yaml()
         Button:
             text: 'Load car'
-            on_press: root.load_yaml()
+            on_press: root.open_popup()
         TextInput:
             id: car_name
             multiline: False
-            text: 'car'
+            text: 'car.yaml'
+            on_text_validate:
+                root.validate()
         Button:
             id: button_plot
             text: 'Plot car'

@@ -1054,8 +1054,8 @@ class JoystickController(object):
             self.throttle = self.throttle_scale
             self.on_throttle_changes()
         else:
-            self.throttle = (
-                self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale)
+            self.throttle = \
+                self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale
 
         logger.info(f'throttle_scale: {self.throttle_scale}')
 
@@ -1172,7 +1172,7 @@ class JoystickCreatorController(JoystickController):
     """
 
     def __init__(self, *args, **kwargs):
-        super(JoystickCreatorController, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def init_js(self):
         """
@@ -1201,7 +1201,7 @@ class PS3JoystickController(JoystickController):
     """
 
     def __init__(self, *args, **kwargs):
-        super(PS3JoystickController, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def init_js(self):
         """
@@ -1280,7 +1280,7 @@ class PS4JoystickController(JoystickController):
     """
 
     def __init__(self, *args, **kwargs):
-        super(PS4JoystickController, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def init_js(self):
         """
@@ -1344,7 +1344,7 @@ class XboxOneJoystickController(JoystickController):
     """
 
     def __init__(self, *args, **kwargs):
-        super(XboxOneJoystickController, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def init_js(self):
         """ attempt to init joystick """
@@ -1402,13 +1402,13 @@ class XboxOneSwappedJoystickController(XboxOneJoystickController):
     """
 
     def __init__(self, *args, **kwargs):
-        super(XboxOneSwappedJoystickController, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def init_trigger_maps(self):
         """
         init set of mapping from buttons to function calls
         """
-        super(XboxOneSwappedJoystickController, self).init_trigger_maps()
+        super().init_trigger_maps()
 
         # make the actual swap of the sticks
         self._set_axis_trigger('right_stick_horz', self.set_steering)
@@ -1496,7 +1496,7 @@ class LogitechJoystickController(JoystickController):
 class NimbusController(JoystickController):
     # A Controller object that maps inputs to actions
     def __init__(self, *args, **kwargs):
-        super(NimbusController, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def init_js(self):
         # attempt to init joystick
@@ -1554,7 +1554,7 @@ class WiiUController(JoystickController):
 class RC3ChanJoystickController(JoystickController):
     # A Controller object that maps inputs to actions
     def __init__(self, *args, **kwargs):
-        super(RC3ChanJoystickController, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def init_js(self):
         # attempt to init joystick

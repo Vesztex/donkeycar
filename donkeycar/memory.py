@@ -43,8 +43,6 @@ class Memory:
         
         else:
             self.d[keys[0]] = inputs
-
-            
             
     def get(self, keys):
         result = [self.d.get(k) for k in keys]

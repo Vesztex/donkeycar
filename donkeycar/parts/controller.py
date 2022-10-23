@@ -36,11 +36,11 @@ class Joystick(object):
         except ModuleNotFoundError:
             self.num_axes = 0
             self.num_buttons = 0
-            logger.warn("no support for fnctl module. joystick not enabled.")
+            logger.warning("no support for fnctl module. joystick not enabled.")
             return False
 
         if not os.path.exists(self.dev_fn):
-            logger.warn(f"{self.dev_fn} is missing")
+            logger.warning(f"{self.dev_fn} is missing")
             return False
 
         '''
@@ -96,10 +96,11 @@ class Joystick(object):
 
     def poll(self):
         """
-        query the state of the joystick, returns button which was pressed, if any,
-        and axis which was moved, if any. button_state will be None, 1, or 0 if no changes,
-        pressed, or released. axis_val will be a float from -1 to +1. button and axis will
-        be the string label determined by the axis map in init.
+        query the state of the joystick, returns button which was pressed,
+        if any, and axis which was moved, if any. button_state will be None,
+        1, or 0 if no changes, pressed, or released. axis_val will be a float
+        from -1 to +1. button and axis will be the string label determined by
+        the axis map in init.
         """
         button = None
         button_state = None
@@ -316,7 +317,9 @@ class RCReceiver:
                 self.signals[i] += self.MIN_OUT
             i += 1
         if self.debug:
-            logger.info(f'RC CH1 signal:{round(self.signals[0], 3)}, RC CH2 signal:{round(self.signals[1], 3)}, RC CH3 signal:{round(self.signals[2], 3)}')
+            logger.info(f'RC CH1 signal:{round(self.signals[0], 3)}, '
+                        f'RC CH2 signal:{round(self.signals[1], 3)}, '
+                        f'RC CH3 signal:{round(self.signals[2], 3)}')
 
         # check mode channel if present
         if (self.signals[2] - self.jitter) > 0:
@@ -361,7 +364,8 @@ class JoystickCreator(Joystick):
 class PS3JoystickSixAd(Joystick):
     """
     An interface to a physical PS3 joystick available at /dev/input/js0
-    Contains mapping that worked for Jetson Nano using sixad for PS3 controller's connection
+    Contains mapping that worked for Jetson Nano using sixad for PS3
+    controller's connection
     """
 
     def __init__(self, *args, **kwargs):
@@ -874,7 +878,6 @@ class JoystickController(object):
         self.button_up_register_map = {}
         self.init_trigger_maps()
 
-
     def init_js(self):
         """
         Attempt to init joystick. Should be definied by derived class
@@ -958,7 +961,7 @@ class JoystickController(object):
         """
         initiate a series of steps to try to stop the vehicle as quickly as possible
         """
-        logger.warn('E-Stop!!!')
+        logger.warning('E-Stop!!!')
         self.mode = "user"
         self.recording = False
         self.constant_throttle = False
@@ -1713,16 +1716,15 @@ def get_js_controller(cfg):
 
 class ButtonStateChecker:
 
-    def __int__(self, button_names):
+    def __init__(self, button_names):
         """
         Creating the ButtonStateChecker. This part operates on the
         button_register_maps that are produced by the JoystickController's
         run_threaded method. The list of button names to be evaluated has to
         be passed in the constructor.
 
-        :param list(str) button_names:  list of button names to be checked
+        :param list button_names:  list of button names to be checked
         """
-        super().__init__(button_names=button_names)
         self.button_names = button_names
 
     def run(self, button_map):

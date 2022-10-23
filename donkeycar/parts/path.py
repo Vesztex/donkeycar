@@ -9,13 +9,14 @@ from donkeycar.utils import norm_deg, dist, deg2rad, arr_to_img, is_number_type
 
 
 class AbstractPath:
-    def __init__(self, min_dist=1.):
+    def __init__(self, min_dist=1., file_name="donkey_path.pkl"):
         self.path = []
         self.min_dist = min_dist
         self.x = math.inf
         self.y = math.inf
+        self.file_name = file_name
 
-    def run(self, recording, x, y):
+    def run(self, recording, x, y, save_path=False, load_path=False):
         if recording:
             d = dist(x, y, self.x, self.y)
             if d > self.min_dist:
@@ -23,6 +24,11 @@ class AbstractPath:
                 self.path.append((x, y))
                 self.x = x
                 self.y = y
+        if save_path:
+            self.save()
+        if load_path:
+            self.load()
+
         return self.path
 
     def length(self):
@@ -41,30 +47,30 @@ class AbstractPath:
         self.path = []
         return True
 
-    def save(self, filename):
+    def save(self):
         return False
 
-    def load(self, filename):
+    def load(self):
         return False
 
 
 class CsvPath(AbstractPath):
-    def __init__(self, min_dist=1.):
-        super().__init__(min_dist)
+    def __init__(self, min_dist=1., file_name="donkey_path.pkl"):
+        super().__init__(min_dist, file_name)
 
-    def save(self, filename):
+    def save(self):
         if self.length() > 0:
-            with open(filename, 'w') as outfile:
+            with open(self.file_name, 'w') as outfile:
                 for (x, y) in self.path:
                     outfile.write(f"{x}, {y}\n")
             return True
         else:
             return False
 
-    def load(self, filename):
-        path = pathlib.Path(filename)
+    def load(self):
+        path = pathlib.Path(self.file_name)
         if path.is_file():
-            with open(filename, "r") as infile:
+            with open(self.file_name, "r") as infile:
                 self.path = []
                 for line in infile:
                     xy = [float(i.strip()) for i in line.strip().split(sep=",")]
@@ -74,7 +80,6 @@ class CsvPath(AbstractPath):
             logging.info(f"File '{filename}' does not exist")
             return False
 
-        self.recording = False
 
 
 class RosPath(AbstractPath):

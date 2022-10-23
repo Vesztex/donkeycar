@@ -11,8 +11,10 @@ Usage:
 Options:
     -h --help          Show this screen.
     --js               Use physical joystick.
-    -f --file=<file>   A text file containing paths to tub files, one per line. Option may be used more than once.
-    --meta=<key:value> Key/Value strings describing describing a piece of meta data about this drive. Option may be used more than once.
+    -f --file=<file>   A text file containing paths to tub files, one per line.
+                       Option may be used more than once.
+    --meta=<key:value> Key/Value strings describing describing a piece of meta
+                       data about this drive. Option may be used more than once.
 
 Starts in user mode.
 - The user flow to 'train' a path.   
@@ -37,7 +39,7 @@ Starts in user mode.
 
 
 """
-from distutils.log import debug
+
 import os
 import logging
 
@@ -69,6 +71,7 @@ from donkeycar.parts.explode import ExplodeDict
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
 
 def drive(cfg, use_joystick=False, camera_type='single'):
     '''
@@ -134,8 +137,10 @@ def drive(cfg, use_joystick=False, camera_type='single'):
         # NOTE: image output on the T265 is broken in the python API and
         #       will never get fixed, so not image output from T265
         #
-        rs = RS_T265(image_output=False, calib_filename=cfg.WHEEL_ODOM_CALIB, device_id=cfg.REALSENSE_T265_ID)
-        V.add(rs, inputs=['enc/vel_m_s'], outputs=['rs/pos', 'rs/vel', 'rs/acc'], threaded=True)
+        rs = RS_T265(image_output=False, calib_filename=cfg.WHEEL_ODOM_CALIB,
+                     device_id=cfg.REALSENSE_T265_ID)
+        V.add(rs, inputs=['enc/vel_m_s'],
+              outputs=['rs/pos', 'rs/vel', 'rs/acc'], threaded=True)
 
         #
         # Pull out the realsense T265 position stream, output 2d coordinates we can use to map.
@@ -166,6 +171,8 @@ def drive(cfg, use_joystick=False, camera_type='single'):
     #
     has_input_controller = hasattr(cfg, "CONTROLLER_TYPE") and cfg.CONTROLLER_TYPE != "mock"
     ctr = add_user_controller(V, cfg, use_joystick, input_image = 'map/image')
+
+
 
     #
     # explode the web buttons into their own key/values in memory
@@ -203,8 +210,10 @@ def drive(cfg, use_joystick=False, camera_type='single'):
 
     # This is the path object. It will record a path when distance changes and it travels
     # at least cfg.PATH_MIN_DIST meters. Except when we are in follow mode, see below...
-    path = CsvPath(min_dist=cfg.PATH_MIN_DIST)
-    V.add(path, inputs=['recording', 'pos/x', 'pos/y'], outputs=['path'])
+    path = CsvPath(min_dist=cfg.PATH_MIN_DIST, file_name=cfg.PATH_FILENAME)
+    V.add(path,
+          inputs=['recording', 'pos/x', 'pos/y', 'path/save', 'path/load'],
+          outputs=['path'])
 
     if cfg.DONKEY_GYM:
         lpos = LoggerPart(inputs=['dist/left', 'dist/right', 'dist', 'pos/pos_x', 'pos/pos_y', 'yaw'], level="INFO", logger="simulator")

@@ -30,7 +30,8 @@ import donkeycar as dk
 from donkeycar.parts.transform import TriggeredCallback, DelayedTrigger
 from donkeycar.parts.tub_v2 import TubWriter
 from donkeycar.parts.datastore import TubHandler
-from donkeycar.parts.controller import LocalWebController, WebFpv, JoystickController
+from donkeycar.parts.controller import LocalWebController, WebFpv, \
+    JoystickController, ButtonStateChecker
 from donkeycar.parts.throttle_filter import ThrottleFilter
 from donkeycar.parts.behavior import BehaviorPart
 from donkeycar.parts.file_watcher import FileWatcher
@@ -611,20 +612,20 @@ def add_user_controller(V, cfg, use_joystick, input_image='cam/image_array'):
         #
         # RC controller
         #
+        outputs = ['user/angle', 'user/throttle', 'user/mode', 'recording']
         if cfg.CONTROLLER_TYPE == "pigpio_rc":  # an RC controllers read by GPIO pins. They typically don't have buttons
             from donkeycar.parts.controller import RCReceiver
             ctr = RCReceiver(cfg)
-            V.add(
-                ctr,
-                inputs=['user/mode', 'recording'],
-                outputs=['user/angle', 'user/throttle',
-                         'user/mode', 'recording'],
-                threaded=False)
+            V.add(ctr,
+                  inputs=['user/mode', 'recording'],
+                  outputs=outputs,
+                  threaded=False)
         else:
             #
             # custom game controller mapping created with
             # `donkey createjs` command
             #
+            btn_chkr = None
             if cfg.CONTROLLER_TYPE == "custom":  # custom controller created with `donkey createjs` command
                 from my_joystick import MyJoystickController
                 ctr = MyJoystickController(
@@ -651,12 +652,30 @@ def add_user_controller(V, cfg, use_joystick, input_image='cam/image_array'):
                     netwkJs = JoyStickSub(cfg.NETWORK_JS_SERVER_IP)
                     V.add(netwkJs, threaded=True)
                     ctr.js = netwkJs
+                outputs += ['button_down']
+                # Here's a trigger to save the path. Complete one circuit of your course,
+                # when you have exactly looped, or just shy of the loop, then save the
+                # path and shutdown this process. Restart and the path will be loaded.
+                ctr.set_button_down_register(cfg.SAVE_PATH_BTN)
+                # Here's a trigger to erase a previously saved path.
+                ctr.set_button_down_register(cfg.ERASE_PATH_BTN)
+                # Here's a trigger to reset the origin.
+                ctr.set_button_down_register(cfg.RESET_ORIGIN_BTN)
+
+                btn_chkr = ButtonStateChecker(button_names=[
+                    cfg.SAVE_PATH_BTN,
+                    cfg.ERASE_PATH_BTN,
+                    cfg.RESET_ORIGIN_BTN])
+
             V.add(
                 ctr,
                 inputs=[input_image, 'user/mode', 'recording'],
-                outputs=['user/angle', 'user/throttle',
-                         'user/mode', 'recording'],
+                outputs=outputs,
                 threaded=True)
+            if btn_chkr:
+                V.add(btn_chkr, inputs=['button_down'],
+                      outputs=['ctr/save_path', 'ctr/erase_path',
+                               'ctr/reset_origin'])
     return ctr
 
 

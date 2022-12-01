@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Any, List, Optional, TypeVar, Iterator, Iterable
+from typing import Any, List, Optional, TypeVar, Iterator, Union, Iterable
 import logging
 import numpy as np
 from donkeycar.config import Config

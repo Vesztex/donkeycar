@@ -90,6 +90,9 @@ class FastAiPilot(ABC):
     def seq_size(self) -> int:
         return 0
 
+    def use_lap_pct(self) -> bool:
+        return False
+
     def run(self, img_arr: np.ndarray, other_arr: List[float] = None) \
             -> Tuple[Union[float, torch.tensor], ...]:
         """

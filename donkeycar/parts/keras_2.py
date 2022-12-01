@@ -4,10 +4,11 @@ import logging
 import numpy as np
 from typing import Dict, Tuple, Union, List, Callable
 import tensorflow as tf
+
 from tensorflow import keras
 from tensorflow.keras import regularizers
-from tensorflow.python.keras import Model, Input
-from tensorflow.python.keras.layers import Dense, concatenate, Conv2D, \
+from tensorflow.keras import Model, Input
+from tensorflow.keras.layers import Dense, concatenate, Conv2D, \
     BatchNormalization, Dropout, Flatten, Reshape, UpSampling2D, \
     Conv2DTranspose, LSTM, MaxPooling2D, TimeDistributed as TD, LeakyReLU
 

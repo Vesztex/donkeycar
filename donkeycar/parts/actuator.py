@@ -171,13 +171,14 @@ class PCA9685:
             try:
                 self.pwm.set_pwm(self.channel, 0, pulse)
             except OSError as e:
-            print('Problem w/ PCA9685 on channel', self.channel, ":", e)
+                logger.error(f'Problem w/ PCA9685 on channel {self.channel}: '
+                             f'{e}')
 
     def set_pulse(self, pulse):
         try:
             self.pwm.set_pwm(self.channel, 0, int(pulse * self.pwm_scale))
         except OSError as e:
-            logger.error('Problem w/ PCA9685 on channel', self.channel, ":", e)
+            logger.error(f'Problem w/ PCA9685 on channel {self.channel}: {e}')
 
     def run(self, pulse):
         self.set_pulse(pulse)
@@ -333,7 +334,7 @@ class PWMThrottle:
     MAX_THROTTLE = 1
 
     def __init__(self, controller,
-                 max_pulse=300, min_pulse=490, zero_pulse350):
+                 max_pulse=300, min_pulse=490, zero_pulse=350):
 
         if controller is None:
             raise ValueError("PWMThrottle requires a set_pulse controller to be passed")
@@ -834,16 +835,18 @@ class TwoWheelSteeringThrottle(object):
                  where 1 is full forward and -1 is full backwards.
         """
         if throttle is None:
-            logger.warn("TwoWheelSteeringThrottle throttle is None")
+            logger.warning("TwoWheelSteeringThrottle throttle is None")
             return
         if steering is None:
-            logger.warn("TwoWheelSteeringThrottle steering is None")
+            logger.warning("TwoWheelSteeringThrottle steering is None")
             return
         if throttle > 1 or throttle < -1:
-            logger.warn( f"TwoWheelSteeringThrottle throttle is {throttle}, but it must be between 1(forward) and -1(reverse)")
+            logger.warning( f"TwoWheelSteeringThrottle throttle is {throttle}, "
+                          f"but it must be between 1(forward) and -1(reverse)")
             throttle = clamp(throttle, -1, 1)
         if steering > 1 or steering < -1:
-            logger.warn( f"TwoWheelSteeringThrottle steering is {steering}, but it must be between 1(right) and -1(left)")
+            logger.warning( f"TwoWheelSteeringThrottle steering is {steering}, "
+                          f"but it must be between 1(right) and -1(left)")
             steering = clamp(steering, -1, 1)
 
         left_motor_speed = throttle
@@ -857,6 +860,8 @@ class TwoWheelSteeringThrottle(object):
         return left_motor_speed, right_motor_speed
 
     def shutdown(self) -> None:
+        pass
+
 
 class RCReceiver:
     """
@@ -957,7 +962,6 @@ class RCReceiver:
         """
         Donkey parts interface
         """
-        import pigpio
         self.cb.cancel()
 
 
@@ -1251,7 +1255,8 @@ class ArduinoFirmata:
         self.set_pulse(self.esc_pin, int(angle))
 
 
-@deprecated("This will be removed in a future release and Arduino PWM support will be add to pins.py")
+@deprecated("This will be removed in a future release and Arduino PWM support "
+            "will be add to pins.py")
 class ArdPWMSteering:
     """
     Wrapper over a Arduino Firmata controller to convert angles to PWM pulses.

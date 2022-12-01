@@ -302,8 +302,8 @@ class KerasCategorical(KerasPilot):
                  interpreter: Interpreter = KerasInterpreter(),
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  throttle_range: float = 0.5):
-        super().__init__(interpreter, input_shape)
         self.throttle_range = throttle_range
+        super().__init__(interpreter, input_shape)
 
     def create_model(self):
         return default_categorical(self.input_shape)

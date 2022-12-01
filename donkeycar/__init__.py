@@ -1,3 +1,4 @@
+import os
 import sys
 from pyfiglet import Figlet
 import logging
@@ -5,8 +6,7 @@ from pkg_resources import get_distribution
 
 __version__ = get_distribution('donkeycar').version
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=os.environ.get('LOGLEVEL', 'INFO').upper())
 
 f = Figlet(font='speed')
 

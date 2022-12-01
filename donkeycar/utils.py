@@ -17,7 +17,7 @@ import random
 import time
 import signal
 import logging
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, Union
 
 from PIL import Image
 import numpy as np
@@ -248,6 +248,9 @@ functions to help converte between floating point numbers and categories.
 
 
 def clamp(n, min, max):
+    if min > max:
+        return clamp(n, max, min)
+
     if n < min:
         return min
     if n > max:
@@ -390,10 +393,36 @@ def throttle(input_value):
 OTHER
 '''
 
+def is_number_type(i):
+    return type(i) == int or type(i) == float;
+
+
+def sign(x):
+    if x > 0:
+        return 1
+    if x < 0:
+        return -1
+    return 0
+
+
+def compare_to(
+    value:float,      # IN : value to compare
+    toValue:float,    # IN : value to compare with tolerance
+    tolerance:float): # IN : non-negative tolerance
+                      # RET: 1 if value > toValue + tolerance
+                      #      -1 if value < toValue - tolerance
+                      #      otherwise zero
+    if (toValue - value) > tolerance:
+        return -1
+    if (value - toValue) > tolerance:
+        return 1
+    return 0
+
 
 def map_frange(x, X_min, X_max, Y_min, Y_max):
     '''
     Linear mapping between two ranges of values
+    map from x range to y range
     '''
     X_range = X_max - X_min
     Y_range = Y_max - Y_min
@@ -446,7 +475,7 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
+def get_model_by_type(model_type: str, cfg: 'Config') -> Union['KerasPilot', 'FastAiPilot']:
     '''
     given the string model_type and the configuration settings in cfg
     create a Keras model and return it.
@@ -456,7 +485,8 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
         KerasLSTM, Keras3D_CNN
     from donkeycar.parts.keras_2 import KerasSquarePlus, KerasSquarePlusImu, \
         KerasSquarePlusMemory, KerasSquarePlusMemoryLap
-    from donkeycar.parts.interpreter import KerasInterpreter, TfLite, TensorRT
+    from donkeycar.parts.interpreter import KerasInterpreter, TfLite, TensorRT, \
+        FastAIInterpreter
 
     if model_type is None:
         model_type = cfg.DEFAULT_MODEL_TYPE
@@ -468,12 +498,17 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
     elif 'tensorrt_' in model_type:
         interpreter = TensorRT()
         used_model_type = model_type.replace('tensorrt_', '')
+    elif 'fastai_' in model_type:
+        interpreter = FastAIInterpreter()
+        used_model_type = model_type.replace('fastai_', '')
+        if used_model_type == "linear":
+            from donkeycar.parts.fastai import FastAILinear
+            return FastAILinear(interpreter=interpreter, input_shape=input_shape)
     else:
         interpreter = KerasInterpreter()
         used_model_type = model_type
+
     used_model_type = EqMemorizedString(used_model_type)
-    mem_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
-    mem_depth = getattr(cfg, 'MEM_DEPTH', 0)
     if used_model_type == "linear":
         kl = KerasLinear(interpreter=interpreter, input_shape=input_shape)
     elif used_model_type == "categorical":
@@ -486,6 +521,8 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
     elif used_model_type == "imu":
         kl = KerasIMU(interpreter=interpreter, input_shape=input_shape)
     elif used_model_type == "memory":
+        mem_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
+        mem_depth = getattr(cfg, 'MEM_DEPTH', 0)
         kl = KerasMemory(interpreter=interpreter, input_shape=input_shape,
                          mem_length=mem_length, mem_depth=mem_depth)
     elif used_model_type == "behavior":

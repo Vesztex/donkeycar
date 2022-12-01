@@ -47,20 +47,19 @@ def load_config(config_path=None, myconfig="myconfig.py"):
             local_config = os.path.join(os.path.curdir, 'config.py')
             if os.path.exists(local_config):
                 config_path = local_config
-
-    logger.info(f'Loading config file: {config_path}')
+    
+    logger.info(f'loading config file: {config_path}')
     cfg = Config()
     cfg.from_pyfile(config_path)
 
     # look for the optional myconfig.py in the same path.
     personal_cfg_path = config_path.replace("config.py", myconfig)
     if os.path.exists(personal_cfg_path):
-        logger.info(f"Loading personal config over-rides from {myconfig}")
+        logger.info(f"loading personal config over-rides from {myconfig}")
         personal_cfg = Config()
         personal_cfg.from_pyfile(personal_cfg_path)
         cfg.from_object(personal_cfg)
     else:
-        logger.warning(f"Personal config file {myconfig} not found at"
-                       f" {personal_cfg_path}")
+        logger.warning(f"personal config: file not found {personal_cfg_path}")
 
     return cfg

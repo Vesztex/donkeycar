@@ -399,12 +399,12 @@ class FullImage(Image):
             self.core_image = CoreImage(bytes_io, ext='png')
             self.texture = self.core_image.texture
         except KeyError as e:
-            Logger.error('Record: Missing key:', e)
+            Logger.error(f'Record: Missing key: {e}')
         except Exception as e:
-            Logger.error('Record: Bad record:', str(e))
+            Logger.error(f'Record: Bad record: {e}')
 
     def get_image(self, record):
-        return record.image(cached=False)
+        return record.image()
 
 
 class ControlPanel(BoxLayout):
@@ -423,11 +423,15 @@ class ControlPanel(BoxLayout):
         :param continuous:  If we do <<, >> or <, >
         :return:            None
         """
+        # this widget it used in two screens, so reference the original location
+        # of the config which is the config manager in the tub screen
+        cfg = tub_screen().ids.config_manager.config
+        hz = cfg.DRIVE_LOOP_HZ if cfg else 20
         time.sleep(0.1)
         call = partial(self.step, fwd, continuous)
         if continuous:
             self.fwd = fwd
-            s = float(self.speed) * tub_screen().ids.config_manager.config.DRIVE_LOOP_HZ
+            s = float(self.speed) * hz
             cycle_time = 1.0 / s
         else:
             cycle_time = 0.08
@@ -441,6 +445,9 @@ class ControlPanel(BoxLayout):
         :param largs:       dummy
         :return:            None
         """
+        if self.screen.index is None:
+            self.screen.status("No tub loaded")
+            return
         new_index = self.screen.index + (1 if fwd else -1)
         if new_index >= tub_screen().ids.tub_loader.len:
             new_index = 0
@@ -660,8 +667,9 @@ class TubScreen(Screen):
 
     def on_index(self, obj, index):
         """ Kivy method that is called if self.index changes"""
-        self.current_record = self.ids.tub_loader.records[index]
-        self.ids.slider.value = index
+        if index >= 0:
+            self.current_record = self.ids.tub_loader.records[index]
+            self.ids.slider.value = index
 
     def on_current_record(self, obj, record):
         """ Kivy method that is called if self.current_record changes."""
@@ -802,6 +810,8 @@ class PilotScreen(Screen):
     def on_current_record(self, obj, record):
         """ Kivy method that is called when self.current_index changes. Here
             we update the images and the control panel entry."""
+        if not record:
+            return
         i = record.underlying['_index']
         self.ids.pilot_control.record_display = f"Record {i:06}"
         self.ids.img_1.update(record)
@@ -827,6 +837,8 @@ class PilotScreen(Screen):
         return rc_handler.data['user_pilot_map'][text]
 
     def set_brightness(self, val=None):
+        if not self.config:
+            return
         if self.ids.button_bright.state == 'down':
             self.config.AUG_MULTIPLY_RANGE = (val, val)
             if 'MULTIPLY' not in self.aug_list:
@@ -837,6 +849,8 @@ class PilotScreen(Screen):
         self.on_aug_list(None, None)
 
     def set_blur(self, val=None):
+        if not self.config:
+            return
         if self.ids.button_blur.state == 'down':
             self.config.AUG_BLUR_RANGE = (val, val)
             if 'BLUR' not in self.aug_list:
@@ -847,11 +861,15 @@ class PilotScreen(Screen):
         self.on_aug_list(None, None)
 
     def on_aug_list(self, obj, aug_list):
+        if not self.config:
+            return
         self.config.AUGMENTATIONS = self.aug_list
         self.augmentation = ImageAugmentation(self.config, 'AUGMENTATIONS')
         self.on_current_record(None, self.current_record)
 
     def on_trans_list(self, obj, trans_list):
+        if not self.config:
+            return
         self.config.TRANSFORMATIONS = self.trans_list
         self.transformation = ImageAugmentation(self.config, 'TRANSFORMATIONS')
         self.on_current_record(None, self.current_record)
@@ -962,9 +980,10 @@ class TrainScreen(Screen):
         pilot_txt, tub_txt, pilot_names = self.database.pretty_print(group_tubs)
         self.ids.scroll_tubs.text = tub_txt
         self.ids.scroll_pilots.text = pilot_txt
-        values = ['Choose transfer model'] + pilot_names
-        self.ids.transfer_spinner.values = values
-        self.ids.delete_spinner.values = values
+        self.ids.transfer_spinner.values \
+            = ['Choose transfer model'] + pilot_names
+        self.ids.delete_spinner.values \
+            = ['Pilot'] + pilot_names
 
 
 class CarScreen(Screen):
@@ -1108,7 +1127,6 @@ class CarScreen(Screen):
                    '-o ConnectTimeout=3',
                    f'{self.config.PI_USERNAME}@{self.config.PI_HOSTNAME}',
                    'date']
-            # Logger.info('car check: ' + ' '.join(cmd))
             self.connection = Popen(cmd, shell=False, stdout=PIPE,
                                     stderr=STDOUT, text=True,
                                     encoding='utf-8', universal_newlines=True)

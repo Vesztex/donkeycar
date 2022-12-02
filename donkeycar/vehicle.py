@@ -31,7 +31,7 @@ class PartProfiler:
         prev = self.records[p]['times'][-1]
         thresh = 0.000001
         delta = max(now - prev, thresh)
-        self.records[p]['times'][-1] = delta
+        self.records[p]['times'][-1] = now
 
     def report(self):
         logger.info("Part Profile Summary: (times in ms)")

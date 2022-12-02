@@ -14,6 +14,7 @@ from donkeycar.utils import arr_to_binary
 logger = logging.getLogger(__name__)
 
 
+
 class CameraError(Exception):
     pass
 
@@ -25,68 +26,70 @@ class BaseCamera:
 
 
 class PiCamera(BaseCamera):
+    """
+    RPi Camera class based on Bullseye's python class Picamera2.
+    """
     def __init__(self, image_w=160, image_h=120, image_d=3,
-                 framerate=20, vflip=False, hflip=False):
-        from picamera.array import PiRGBArray
-        from picamera import PiCamera
+                 vflip=False, hflip=False):
+        from picamera2 import Picamera2
+        from libcamera import Transform
 
-        resolution = (image_w, image_h)
-        # initialize the camera and stream
-        self.camera = PiCamera()  # PiCamera gets resolution (height, width)
-        self.camera.resolution = resolution
-        self.camera.framerate = framerate
-        self.camera.vflip = vflip
-        self.camera.hflip = hflip
-        self.rawCapture = PiRGBArray(self.camera, size=resolution)
-        self.stream = self.camera.capture_continuous(self.rawCapture,
-                                                     format="rgb",
-                                                     use_video_port=True)
+        # it's weird but BGR returns RGB images
+        config_dict = {"size": (image_w, image_h), "format": "BGR888"}
+        transform = Transform(hflip=hflip, vflip=vflip)
+        self.camera = Picamera2()
+        config = self.camera.create_preview_configuration(
+            config_dict, transform=transform)
+        self.camera.align_configuration(config)
+        self.camera.configure(config)
+        # try min / max frame rate as 0.1 / 1 ms (it will be slower though)
+        self.camera.set_controls({"FrameDurationLimits": (100, 1000)})
+        self.camera.start()
 
-        # initialize the frame to right size and zeros (meaning black)
-        self.frame = np.zeros((image_h, image_w, image_d))
-        # variable used to indicate if the thread should be stopped
+        # initialize the frame and the variable used to indicate
+        # if the thread should be stopped
+        self.frame = None
         self.on = True
         self.image_d = image_d
 
-        logger.info(f'PiCamera loaded with frame size {resolution} and frame '
-                    f'rate {framerate}...warming camera')
-        time.sleep(1)
+        # get the first frame or timeout
+        logger.info('PiCamera opened...')
+        warming_time = time.time() + 5  # quick after 5 seconds
+        while self.frame is None and time.time() < warming_time:
+            logger.info("...warming camera")
+            self.run()
+            time.sleep(0.2)
+
+        if self.frame is None:
+            raise CameraError("Unable to start PiCamera.")
+
+        logger.info("PiCamera ready.")
 
     def run(self):
-        f = next(self.stream)
-        frame = f.array
-        self.rawCapture.truncate(0)
+        # grab the next frame from the camera buffer
+        self.frame = self.camera.capture_array("main")
         if self.image_d == 1:
-            frame = rgb2gray(frame)
-        return frame
+            self.frame = rgb2gray(self.frame)
+
+        return self.frame
 
     def update(self):
         # keep looping infinitely until the thread is stopped
-        for f in self.stream:
-            # grab the frame from the stream and clear the stream in
-            # preparation for the next frame
-            self.frame = f.array
-            self.rawCapture.truncate(0)
-
-            if self.image_d == 1:
-                self.frame = rgb2gray(self.frame)
-
-            # if the thread indicator variable is set, stop the thread
-            if not self.on:
-                break
+        while self.on:
+            self.run()
 
     def shutdown(self):
         # indicate that the thread should be stopped
         self.on = False
         logger.info('Stopping PiCamera')
         time.sleep(.5)
-        self.stream.close()
-        self.rawCapture.close()
         self.camera.close()
+        self.camera = None
 
 
 class Webcam(BaseCamera):
-    def __init__(self, image_w=160, image_h=120, image_d=3, framerate = 20, camera_index = 0):
+    def __init__(self, image_w=160, image_h=120, image_d=3,
+                 framerate=20, camera_index=0):
         #
         # pygame is not installed by default.
         # Installation on RaspberryPi (with env activated):

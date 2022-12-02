@@ -7,7 +7,7 @@ channels:
   - fastai
 
 dependencies:
-  - python=3.7
+  - python=3.9
   - h5py
   - pillow
   - opencv
@@ -32,7 +32,7 @@ dependencies:
   - pytorch-lightning
   - numpy
   - psutil
-  - kivy=2.0.0
+  - kivy=2.1
   - plotly
   - pyyaml
   - fastai
@@ -40,7 +40,7 @@ dependencies:
   - pyserial
   - utm
   - pip:
-    - tensorflow==2.2.0
+    - tensorflow==2.9
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid
     - opencv-python-headless

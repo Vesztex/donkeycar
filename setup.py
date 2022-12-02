@@ -24,7 +24,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='donkeycar',
-      version="4.4.1-DG",
+      version="4.4.2-DG",
       long_description=long_description,
       description='Self driving library for python.',
       url='https://github.com/autorope/donkeycar',
@@ -55,22 +55,28 @@ setup(name='donkeycar',
           "utm",
       ],
       extras_require={
+          # if installing into a conda (i.e. miniforge) env on Pi we have to
+          # run 'sudo apt-get install libcap-dev' first.
           'pi': [
-              'picamera',
+              'picamera2',
               'Adafruit_PCA9685',
-              'adafruit-circuitpython-lis3dh',
               'adafruit-circuitpython-ssd1306',
               'adafruit-circuitpython-mpu6050',
               'adafruit-circuitpython-rplidar',
               'RPi.GPIO',
-              'imgaug'
+              'imgaug',
+              'tensorflow @ https://github.com/PINTO0309/Tensorflow-bin/releases/download/v2.9.0/tensorflow-2.9.0-cp39-none-linux_aarch64.whl'
           ],
           'nano': [
               'Adafruit_PCA9685',
-              'adafruit-circuitpython-lis3dh',
               'adafruit-circuitpython-ssd1306',
               'adafruit-circuitpython-rplidar',
               'Jetson.GPIO',
+              'matplotlib',
+              'kivy-jetson==2.1',
+              'pandas',
+              'pyyaml',
+              'plotly'
           ],
           'pc': [
               'matplotlib',
@@ -87,7 +93,7 @@ setup(name='donkeycar',
               'mypy'
           ],
           'ci': ['codecov'],
-          'tf': ['tensorflow==2.2.0'],
+          'tf': ['tensorflow==2.9'],
           'torch': [
               'pytorch>=1.7.1',
               'torchvision',

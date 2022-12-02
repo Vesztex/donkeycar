@@ -2,7 +2,8 @@ import math
 import os
 from time import time
 from typing import List, Dict, Union, Tuple
-from logging import getLogger
+import logging
+
 from tensorflow.python.keras.models import load_model
 
 from donkeycar.config import Config
@@ -17,8 +18,7 @@ from donkeycar.utils import get_model_by_type, normalize_image, train_test_split
 import tensorflow as tf
 import numpy as np
 
-
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class BatchSequence(object):
@@ -108,14 +108,14 @@ def train(cfg: Config, tub_paths: str, model: str = None,
     model_path, model_num = \
         get_model_train_details(database, model)
 
-    base_path = os.path.splitext(model_path)[0]
+    base_path, ext = tuple(os.path.splitext(model_path))
     kl = get_model_by_type(model_type, cfg)
     if transfer:
         kl.load(transfer)
         if getattr(cfg, 'FREEZE_LAYERS', False):
             kl.freeze_first_layers()
     if cfg.PRINT_MODEL_SUMMARY:
-        print(kl.interpreter.summary())
+        kl.interpreter.summary()
 
     tubs = tub_paths.split(',')
     all_tub_paths = [os.path.expanduser(tub) for tub in tubs]
@@ -164,15 +164,21 @@ def train(cfg: Config, tub_paths: str, model: str = None,
                        patience=cfg.EARLY_STOP_PATIENCE,
                        show_plot=cfg.SHOW_PLOT)
 
+    # We are doing the tflite/trt conversion here on a previously saved model
+    # and not on the kl.interpreter.model object directly. The reason is that
+    # we want to convert the best model which is not the model in its current
+    # state, but in the state it was saved the last time during training.
     if getattr(cfg, 'CREATE_TF_LITE', True):
         tf_lite_model_path = f'{base_path}.tflite'
         keras_model_to_tflite(model_path, tf_lite_model_path)
 
     if getattr(cfg, 'CREATE_TENSOR_RT', False):
-        # load h5 (ie. keras) model
-        model_rt = load_model(model_path)
-        # save in tensorflow savedmodel format (i.e. directory)
-        model_rt.save(f'{base_path}.savedmodel')
+        # convert .h5 model to .savedmodel, only if we are using h5 format
+        if ext == '.h5':
+            logger.info(f"Converting from .h5 to .savedmodel first")
+            model_tmp = load_model(model_path, compile=False)
+            # save in tensorflow savedmodel format (i.e. directory)
+            model_tmp.save(f'{base_path}.savedmodel')
         # pass savedmodel to the rt converter
         saved_model_to_tensor_rt(f'{base_path}.savedmodel', f'{base_path}.trt')
 

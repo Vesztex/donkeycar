@@ -46,18 +46,14 @@ class KerasSquarePlus(KerasLinear):
         return linear_square_plus(self.input_shape, size=self.size,
                                   pos_throttle=self.use_speed)
 
-    def y_transform(self, record: Union[TubRecord, List[TubRecord]]) -> XY:
+    def y_transform(self, record: Union[TubRecord, List[TubRecord]]) \
+            -> Dict[str, Union[float, List[float]]]:
         assert isinstance(record, TubRecord), 'TubRecord expected'
         angle = record.underlying['user/angle']
         if self.use_speed:
             throttle = record.underlying['car/speed'] / self.max_speed
         else:
             throttle = record.underlying['user/throttle']
-        return angle, throttle
-
-    def y_translate(self, y: XY) -> Dict[str, Union[float, List[float]]]:
-        assert isinstance(y, tuple), 'Expected tuple'
-        angle, throttle = y
         return {'angle': angle, 'throttle': throttle}
 
     def output_shapes(self):
@@ -67,10 +63,6 @@ class KerasSquarePlus(KerasLinear):
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])})
         return shapes
-
-    def get_num_last_layers_to_train(self):
-        l = len(square_plus_dense(self.size))
-        l += 2  # angle, throttle
 
 
 class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
@@ -92,35 +84,29 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
         else:
             return record.underlying['user/throttle']
 
-    def x_transform_and_process(
+    def x_transform(
             self,
             record: Union[TubRecord, List[TubRecord]],
-            img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
+            img_processor: Callable[[np.ndarray], np.ndarray]) \
+            -> Dict[str, Union[float, np.ndarray]]:
         """ Transforms the record into x for training the model to x,y,
             here we assume the model only takes the image as input. """
         assert isinstance(record, list), 'List[TubRecord] expected'
         assert len(record) == self.mem_length + 1, \
             f"Record list of length {self.mem_length} required but " \
             f"{len(record)} was passed"
-        img_arr = record[-1].image(cached=None, as_nparray=True,
-                                   transformation=img_processor)
+        img_arr = record[-1].image(processor=img_processor)
         mem = [[r.underlying['user/angle'], self.get_throttle(r)]
                for r in record[:-1]]
         mem_arr = np.array(mem).reshape((2 * self.mem_length,))
-        return img_arr, mem_arr
+        return {'img_in': img_arr, 'mem_in': mem_arr}
 
-    def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
-        """ Translates x into dictionary where all model input layer's names
-            must be matched by dictionary keys. """
-        assert(isinstance(x, tuple)), 'Tuple expected'
-        img_arr, mem = x
-        return {'img_in': img_arr, 'mem_in': mem}
-
-    def y_transform(self, records: Union[TubRecord, List[TubRecord]]) -> XY:
+    def y_transform(self, records: Union[TubRecord, List[TubRecord]]) \
+            -> Dict[str, Union[float, List[float]]]:
         assert isinstance(records, list), 'List[TubRecord] expected'
         angle = records[-1].underlying['user/angle']
         throttle = self.get_throttle(records[-1])
-        return angle, throttle
+        return {'angle': angle, 'throttle': throttle}
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
@@ -148,21 +134,13 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
                                       has_lap_pct=True,
                                       pos_throttle=self.use_speed)
 
-    def x_transform_and_process(
-            self,
-            record: Union[TubRecord, List[TubRecord]],
-            img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
-        img_arr, mem_arr \
-            = super().x_transform_and_process(record, img_processor)
+    def x_transform(self, record: Union[TubRecord, List[TubRecord]],
+                    img_processor: Callable[[np.ndarray], np.ndarray]) \
+            -> Dict[str, Union[float, np.ndarray]]:
+        x_dict = super().x_transform(record, img_processor)
         lap_pct = np.array([record[-1].underlying['lap_pct']])
-        return img_arr, mem_arr, lap_pct
-
-    def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
-        """ Translates x into dictionary where all model input layer's names
-            must be matched by dictionary keys. """
-        assert(isinstance(x, tuple)), 'Tuple expected'
-        img_arr, mem, lap_pct = x
-        return {'img_in': img_arr, 'mem_in': mem, 'xlap_pct_in': lap_pct}
+        x_dict['xlap_pct_in'] = lap_pct
+        return x_dict
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
@@ -226,12 +204,21 @@ class KerasSquarePlusImu(KerasSquarePlus):
         super().__init__(interpreter, input_shape, *args, **kwargs)
 
     def create_model(self):
-        model = linear_square_plus_imu(self.input_shape, imu_dim=self.imu_dim,
+        model = linear_square_plus_imu(self.input_shape,
+                                       imu_dim=self.imu_dim,
                                        size=self.size,
                                        pos_throttle=self.use_speed)
         return model
 
     def normalize_imu(self, accel, gyro):
+        """
+        Normalises IMU values into [-1, 1]
+
+        :param accel:   list of 3 accel values
+        :param gyro:    list of 3 gyro values
+        :return:        np.array of normalised values resized to a smaller
+                        dimension, if the imu_dim is < 6
+        """
         accel_norm = np.array(accel) / self.accel_norm
         gyro_norm = np.array(gyro) / self.gyro_norm
         imu = np.concatenate((accel_norm, gyro_norm))[:self.imu_dim]
@@ -250,32 +237,16 @@ class KerasSquarePlusImu(KerasSquarePlus):
         np_imu_array = self.normalize_imu(other_arr[:3], other_arr[3:])
         return self.inference(norm_arr, np_imu_array)
 
-    def x_transform(self, record: Union[TubRecord, List[TubRecord]]) -> XY:
-        assert isinstance(record, TubRecord), 'TubRecord expected'
-        img_arr = record.image(cached=None)
-        imu_arr = record.underlying['car/accel'] \
-            + record.underlying['car/gyro']
-        return img_arr, np.array(imu_arr)
-
-    def x_transform_and_process(
-            self,
-            record: Union[TubRecord, List[TubRecord]],
-            img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
+    def x_transform(self,
+                    record: Union[TubRecord, List[TubRecord]],
+                    img_processor: Callable[[np.ndarray], np.ndarray]) \
+            -> Dict[str, Union[float, np.ndarray]]:
         # this transforms the record into x for training the model to x,y
-        xt = self.x_transform(record)
-        assert isinstance(xt, tuple), 'Tuple expected'
-        x_img, x_imu = xt
-        # here the image is in first slot of the tuple, second is imu
-        x_img_process = img_processor(x_img)
-        # this normalizes the imu values
-        x_accel = x_imu[:3] / self.accel_norm
-        x_gyro = x_imu[3:] / self.gyro_norm
-        x_imu_process = np.concatenate((x_accel, x_gyro))[:self.imu_dim]
-        return x_img_process, x_imu_process
-
-    def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
-        assert isinstance(x, tuple), 'Tuple required'
-        return {'img_in': x[0], 'imu_in': x[1]}
+        assert isinstance(record, TubRecord), 'TubRecord expected'
+        img_arr = record.image(processor=img_processor)
+        imu_process = self.normalize_imu(record.underlying['car/accel'],
+                                         record.underlying['car/gyro'])
+        return {'img_in': img_arr, 'imu_in': imu_process}
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape

@@ -105,7 +105,7 @@ class LocalWebController(tornado.web.Application):
         Create and publish variables needed on many of
         the web handlers.
         """
-        logger.info('Starting Donkey Server...', end='')
+        logger.info('Starting Donkey Server...')
 
         this_dir = os.path.dirname(os.path.realpath(__file__))
         self.static_file_path = os.path.join(this_dir, 'templates', 'static')
@@ -139,7 +139,7 @@ class LocalWebController(tornado.web.Application):
 
         settings = {'debug': True}
         super().__init__(handlers, **settings)
-        logger.info(f"... you can now go to {gethostname()}.local:{port} to "
+        logger.info(f"You can now go to {gethostname()}.local:{port} to "
                     f"drive your car.")
 
     def update(self):

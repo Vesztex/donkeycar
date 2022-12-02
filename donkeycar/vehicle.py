@@ -21,17 +21,17 @@ class PartProfiler:
         self.records = {}
 
     def profile_part(self, p):
-        self.records[p] = {"times": []}
+        self.records[p] = {'start_time': 0.0, 'dt': []}
 
     def on_part_start(self, p):
-        self.records[p]['times'].append(time.time())
+        self.records[p]['start_time'] = time.time()
 
     def on_part_finished(self, p):
         now = time.time()
-        prev = self.records[p]['times'][-1]
+        start_time = self.records[p]['start_time']
         thresh = 0.000001
-        delta = max(now - prev, thresh)
-        self.records[p]['times'][-1] = now
+        delta = max(now - start_time, thresh)
+        self.records[p]['dt'].append(delta)
 
     def report(self):
         logger.info("Part Profile Summary: (times in ms)")
@@ -43,7 +43,7 @@ class PartProfiler:
             # remove first and last entry because you there could be one-off
             # time spent in initialisations, and the latest diff could be
             # incomplete because of user keyboard interrupt
-            arr = val['times'][1:-1]
+            arr = val['dt'][1:-1]
             if len(arr) == 0:
                 continue
             row = [p.__class__.__name__,

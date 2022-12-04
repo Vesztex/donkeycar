@@ -23,7 +23,6 @@ import logging
 import socket
 import donkeycar as dk
 import donkeycar.parts
-from donkeycar.parts.dgym import GymOdometer
 from donkeycar.parts.tub_v2 import TubWiper, TubWriter
 from donkeycar.parts.file_watcher import FileWatcher
 from donkeycar.parts.keras_2 import ModelLoader
@@ -85,7 +84,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     # add camera ---------------------------------------------------------------
     if not no_cam:
         cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
-                       image_d=cfg.IMAGE_DEPTH, framerate=frame_rate)
+                       image_d=cfg.IMAGE_DEPTH)
         car.add(cam, outputs=[CAM_IMG], threaded=True)
 
     # add odometer -------------------------------------------------------------
@@ -281,7 +280,7 @@ def stream(cfg):
     car = dk.vehicle.Vehicle()
     hz = 20
     cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
-                   image_d=cfg.IMAGE_DEPTH, framerate=hz)
+                   image_d=cfg.IMAGE_DEPTH)
     car.add(cam, outputs=['cam/image_array'], threaded=True)
     streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)
     car.add(streamer, inputs=['cam/image_array'], threaded=True)
@@ -314,7 +313,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
     """
     Running donkey gym
     """
-    from donkeycar.parts.dgym import DonkeyGymEnv, GymLapTimer
+    from donkeycar.parts.dgym import GymOdometer, DonkeyGymEnv, GymLapTimer
 
     if verbose:
         donkeycar.logger.setLevel(logging.DEBUG)

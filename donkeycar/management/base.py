@@ -2,21 +2,17 @@ import argparse
 import io
 import os
 import shutil
-import socket
 import stat
 import sys
 import time
-from socket import *
 import logging
+from socket import socket, AF_INET, SOCK_DGRAM
 from threading import Thread
-
 from progress.bar import IncrementalBar
+
 import donkeycar as dk
 from donkeycar.management.joystick_creator import CreateJoystick
 from donkeycar.management.tub import TubManager
-from donkeycar.pipeline.database import PilotDatabase
-from donkeycar.pipeline.types import TubRecord, TubDataset
-
 from donkeycar.utils import normalize_image, load_image, math
 
 PACKAGE_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -177,7 +173,7 @@ class FindCar(BaseCommand):
 
     def run(self, args):
         print('Looking up your computer IP address...')
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s = socket(AF_INET, SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         print('Your IP address: %s ' % s.getsockname()[0])
@@ -635,10 +631,12 @@ class Monitor(BaseCommand):
     def run(self, args):
         from PIL import Image
         import cv2
+        import numpy as np
+
         args = self.parse_args(args)
         cfg = load_config(args.config)
         address = (cfg.PC_HOSTNAME, cfg.FPV_PORT)
-        self.my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.my_socket = socket(AF_INET, SOCK_DGRAM)
         self.my_socket.bind(address)
         cv2.namedWindow('Donkey FPV', cv2.WINDOW_NORMAL)
         scale = float(args.scale)

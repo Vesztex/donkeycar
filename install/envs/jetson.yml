@@ -33,6 +33,7 @@ dependencies:
   - pynmea2
   - pyserial
   - utm
+  - albumentations
   - pip:
     - --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v502
     - tensorflow==2.9.1+nv22.09

@@ -20,7 +20,6 @@ dependencies:
   - pytest-cov
   - codecov
   - pip
-  - imgaug
   - progress
   - paho-mqtt
   - PrettyTable
@@ -39,10 +38,10 @@ dependencies:
   - pynmea2
   - pyserial
   - utm
+  - albumentations
   - pip:
     - tensorflow==2.9
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid
-    - opencv-python-headless
     - moviepy
 

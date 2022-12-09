@@ -12,11 +12,8 @@ import cv2
 
 from donkeycar.pipeline.augmentations import Augmentations
 
-# Camera Parameters
-WIDTH = 640
-HEIGHT = 480
 
-# Example augumentations
+# Example augmentations
 cropping = Augmentations.crop(0, 0, 100, 0, keep_size=True)
 mask = Augmentations.trapezoidal_mask(10, 630, 100, 300, 50, 480)
 
@@ -26,16 +23,18 @@ def preview_augmentations():
     capture = cv2.VideoCapture(0)
     time.sleep(2)
     if capture.isOpened():
-        print('Camera Connected.')
+        print('Camera Connected. Press "q" to stop the program - you need to '
+              'focus on the running app to do so, not on the shell!')
     else:
-        print('Unable to connect. Are you sure you are using the right camera parameters ?')
+        print('Unable to connect. Are you sure you are using the right camera '
+              'parameters ?')
         return
 
     while True:
         success, frame = capture.read()
         if success:
-            cropped = cropping.augment_image(frame)
-            masked = mask.augment_image(frame)
+            cropped = cropping(image=frame)['image']
+            masked = mask(image=frame)['image']
             # Convert to RGB
             cv2.imshow('Preview', frame)
             cv2.imshow('Cropped', cropped)
@@ -45,6 +44,7 @@ def preview_augmentations():
                 # Store output
                 pass
             elif prompt == ord('q'):
+                print('Bye bye...')
                 break
 
     capture.release()

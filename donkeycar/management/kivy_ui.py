@@ -1,7 +1,7 @@
 import json
 import re
 import time
-from copy import copy, deepcopy
+from copy import copy
 from datetime import datetime
 from functools import partial
 from subprocess import Popen, PIPE, STDOUT
@@ -829,11 +829,11 @@ class PilotScreen(Screen):
         if not self.config:
             return
         if self.ids.button_bright.state == 'down':
-            self.config.AUG_MULTIPLY_RANGE = (val, val)
-            if 'MULTIPLY' not in self.aug_list:
-                self.aug_list.append('MULTIPLY')
-        elif 'MULTIPLY' in self.aug_list:
-            self.aug_list.remove('MULTIPLY')
+            self.config.AUG_BRIGHTNESS_RANGE = (val, val)
+            if 'BRIGHTNESS' not in self.aug_list:
+                self.aug_list.append('BRIGHTNESS')
+        elif 'BRIGHTNESS' in self.aug_list:
+            self.aug_list.remove('BRIGHTNESS')
         # update dependency
         self.on_aug_list(None, None)
 
@@ -853,14 +853,16 @@ class PilotScreen(Screen):
         if not self.config:
             return
         self.config.AUGMENTATIONS = self.aug_list
-        self.augmentation = ImageAugmentation(self.config, 'AUGMENTATIONS')
+        self.augmentation = ImageAugmentation(self.config, 'AUGMENTATIONS',
+                                              always_apply=True)
         self.on_current_record(None, self.current_record)
 
     def on_trans_list(self, obj, trans_list):
         if not self.config:
             return
         self.config.TRANSFORMATIONS = self.trans_list
-        self.transformation = ImageAugmentation(self.config, 'TRANSFORMATIONS')
+        self.transformation = ImageAugmentation(self.config, 'TRANSFORMATIONS',
+                                                always_apply=True)
         self.on_current_record(None, self.current_record)
 
     def set_mask(self, state):

@@ -388,7 +388,7 @@ class FullImage(Image):
         self.core_image = None
 
     def update(self, record):
-        """ This method is called ever time a record gets updated. """
+        """ This method is called every time a record gets updated. """
         try:
             img_arr = self.get_image(record)
             pil_image = PilImage.fromarray(img_arr)
@@ -832,10 +832,13 @@ class PilotScreen(Screen):
             self.config.AUG_BRIGHTNESS_RANGE = (val, val)
             if 'BRIGHTNESS' not in self.aug_list:
                 self.aug_list.append('BRIGHTNESS')
+            else:
+                # Since we only changed the content of the config here,
+                # self.on_aug_list() would not be called, but we want to update
+                # the augmentation. Hence, update the dependency manually here.
+                self.on_aug_list(None, None)
         elif 'BRIGHTNESS' in self.aug_list:
             self.aug_list.remove('BRIGHTNESS')
-        # update dependency
-        self.on_aug_list(None, None)
 
     def set_blur(self, val=None):
         if not self.config:
@@ -844,10 +847,11 @@ class PilotScreen(Screen):
             self.config.AUG_BLUR_RANGE = (val, val)
             if 'BLUR' not in self.aug_list:
                 self.aug_list.append('BLUR')
+            else:
+                # see why we need to do this in set_brightness
+                self.on_aug_list(None, None)
         elif 'BLUR' in self.aug_list:
             self.aug_list.remove('BLUR')
-        # update dependency
-        self.on_aug_list(None, None)
 
     def on_aug_list(self, obj, aug_list):
         if not self.config:

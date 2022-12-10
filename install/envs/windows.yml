@@ -8,6 +8,7 @@ channels:
 
 dependencies:
   - python=3.9
+  - importlib_resources
   - h5py
   - pillow
   - opencv

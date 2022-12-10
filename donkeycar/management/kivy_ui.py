@@ -8,6 +8,7 @@ from subprocess import Popen, PIPE, STDOUT
 from threading import Thread
 from collections import namedtuple
 from kivy.logger import Logger
+from importlib_resources import files
 
 import io
 import os
@@ -1210,9 +1211,8 @@ class CarScreen(Screen):
 
 
 class StartScreen(Screen):
-    img_path = os.path.realpath(os.path.join(
-        os.path.dirname(__file__),
-        '../parts/web_controller/templates/static/donkeycar-logo-sideways.png'))
+    img_path = str(files('donkeycar.parts.web_controller').joinpath(
+        'templates').joinpath('static').joinpath('donkeycar-logo-sideways.png'))
     pass
 
 

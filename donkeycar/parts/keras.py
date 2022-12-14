@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 
 import numpy as np
-from typing import Dict, Tuple, Optional, Union, List, Sequence, Callable
+from typing import Dict, Tuple, Optional, Union, List, Sequence, Callable, Any
 from logging import getLogger
 
 from tensorflow.python.data.ops.dataset_ops import DatasetV1, DatasetV2
@@ -395,12 +395,23 @@ class KerasMemory(KerasLinear):
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  mem_length: int = 3,
                  mem_depth: int = 0,
-                 mem_start_speed: float = 0.0):
+                 mem_start_speed: float = 0.0,
+                 **kwargs):
+        """
+        Ctor
+
+        :param interpreter:
+        :param input_shape:
+        :param mem_length:
+        :param mem_depth:
+        :param mem_start_speed:
+        :param kwargs:          need to pass kwargs here for diamond to work
+        """
         self.mem_length = mem_length
         self.mem_start_speed = mem_start_speed
         self.mem_seq = deque([[0, mem_start_speed]] * mem_length)
         self.mem_depth = mem_depth
-        super().__init__(interpreter, input_shape)
+        super().__init__(interpreter, input_shape, **kwargs)
 
     def seq_size(self) -> int:
         return self.mem_length + 1

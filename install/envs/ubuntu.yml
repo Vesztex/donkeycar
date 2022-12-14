@@ -1,7 +1,6 @@
-name: donkey
+name: donkey_39
 
 channels:
-  - defaults
   - conda-forge
   - pytorch
   - fastai
@@ -35,12 +34,12 @@ dependencies:
   - psutil
   - plotly
   - pyyaml
-  - tensorflow=2.9
   - fastai
   - pynmea2
   - pyserial
   - utm
   - pip:
+    - tensorflow==2.9
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid
     - opencv-python-headless

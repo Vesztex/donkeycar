@@ -64,6 +64,19 @@ class KerasSquarePlus(KerasLinear):
                    'throttle': tf.TensorShape([])})
         return shapes
 
+    def freeze_first_layers(self, num_last_layers_to_train=None):
+        assert isinstance(self.interpreter, KerasInterpreter), \
+            'Can only freeze layers in Keras model but not in TfLite and others'
+        # We freeze the first layer which is the CNN encoder. Note the input
+        # layer is the first layer, hence skip 2.
+        num_to_freeze = 2
+        frozen_layers = []
+        for i in range(num_to_freeze):
+            self.interpreter.model.layers[i].trainable = False
+            frozen_layers.append(self.interpreter.model.layers[i].name)
+        logger.info(f'Freezing layers {frozen_layers}')
+        return num_to_freeze
+
 
 class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
     def __init__(self,
@@ -812,7 +825,7 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
     concat = [latent, mem_out]
     inputs = [img_in, mem_in]
     if has_lap_pct:
-        # using leaky relu here with negative branch so we get some
+        # using leaky relu here with negative branch, so we get some
         # extrapolation if we put smaller values than the minimum percentile
         # we used in training
         lap_in = Input(shape=(1,), name='xlap_pct_in')

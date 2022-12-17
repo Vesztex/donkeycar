@@ -78,6 +78,7 @@ class Interpreter(ABC):
     def __init__(self):
         self.input_keys: list[str] = None
         self.output_keys: list[str] = None
+        self.shapes: tuple[dict] = None
 
     @abstractmethod
     def load(self, model_path: str) -> None:
@@ -97,7 +98,7 @@ class Interpreter(ABC):
         raise NotImplementedError('Requires implementation')
 
     @abstractmethod
-    def get_input_shapes(self) -> List[tf.TensorShape]:
+    def get_input_shape(self, input_name) -> tf.TensorShape:
         pass
 
     def predict(self, img_arr: np.ndarray, *other_arr: np.ndarray) \
@@ -130,16 +131,20 @@ class KerasInterpreter(Interpreter):
 
     def set_model(self, pilot: 'KerasPilot') -> None:
         self.model = pilot.create_model()
-        inputs, outputs = pilot.output_shapes()
-        self.input_keys = list(inputs.keys())
-        self.output_keys = list(outputs.keys())
+        self.shapes = (dict(zip(self.model.input_names,
+                                self.model.input_shape)),
+                       dict(zip(self.model.output_names,
+                                self.model.output_shape)))
+        self.input_keys = list(self.shapes[0].keys())
+        self.output_keys = list(self.shapes[1].keys())
 
     def set_optimizer(self, optimizer: tf.keras.optimizers.Optimizer) -> None:
         self.model.optimizer = optimizer
 
-    def get_input_shapes(self) -> List[tf.TensorShape]:
+    def get_input_shape(self, input_name) -> tf.TensorShape:
         assert self.model, 'Model not set'
-        return [inp.shape for inp in self.model.inputs]
+        #return [inp.shape for inp in self.model.inputs]
+        return self.shapes[0][input_name]
 
     def compile(self, **kwargs):
         assert self.model, 'Model not set'
@@ -194,9 +199,9 @@ class FastAIInterpreter(Interpreter):
     def set_optimizer(self, optimizer: 'fastai_optimizer') -> None:
         self.model.optimizer = optimizer
 
-    def get_input_shapes(self):
+    def get_input_shape(self, input_name):
         assert self.model, 'Model not set'
-        return [inp.shape for inp in self.model.inputs]
+        return self.model.inputs[0].shape
 
     def compile(self, **kwargs):
         pass
@@ -270,10 +275,13 @@ class TfLite(Interpreter):
         ret = list(outputs[k][0] for k in self.output_keys)
         return ret if len(ret) > 1 else ret[0]
 
-    def get_input_shapes(self):
+    def get_input_shape(self, input_name):
         assert self.interpreter is not None, "Need to load tflite model first"
         details = self.interpreter.get_input_details()
-        return list(d['shape'] for d in details)
+        for detail in details:
+            if detail['name'] == f"serving_default_{input_name}:0":
+                return detail['shape']
+        raise RuntimeError(f'{input_name} not found in TFlite model')
 
     @staticmethod
     def expand_and_convert(arr):
@@ -296,13 +304,13 @@ class TensorRT(Interpreter):
     def set_model(self, pilot: 'KerasPilot') -> None:
         # We can't determine the output shape neither here, nor in the
         # constructor, because calling output_shapes() on the model will call
-        # get_input_shape() from the interpreter which will fail at that
+        # get_input_shap() from the interpreter which will fail at that
         # state as the trt model hasn't been loaded yet
         self.pilot = pilot
 
-    def get_input_shapes(self) -> List[tf.TensorShape]:
+    def get_input_shape(self, input_name) -> tf.TensorShape:
         assert self.graph_func, "Requires loadin the tensorrt model first"
-        return [inp.shape for inp in self.graph_func.inputs]
+        return self.graph_func.inputs[input_name]
 
     def compile(self, **kwargs):
         pass

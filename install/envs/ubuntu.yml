@@ -1,4 +1,4 @@
-name: donkey_39
+name: donkey_tf_211
 
 channels:
   - conda-forge
@@ -39,7 +39,7 @@ dependencies:
   - pyserial
   - utm
   - pip:
-    - tensorflow==2.9
+    - tensorflow==2.11
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid
     - opencv-python-headless

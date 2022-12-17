@@ -86,8 +86,8 @@ class KerasPilot(ABC):
             raise Exception(f"Unknown optimizer type: {optimizer_type}")
         self.interpreter.set_optimizer(optimizer)
 
-    def get_input_shapes(self) -> List[tf.TensorShape]:
-        return self.interpreter.get_input_shapes()
+    def get_input_shape(self, input_name) -> tf.TensorShape:
+        return self.interpreter.get_input_shape(input_name)
 
     def seq_size(self) -> int:
         return 0
@@ -333,7 +333,7 @@ class KerasCategorical(KerasPilot):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         shapes = ({'img_in': tf.TensorShape(img_shape)},
                   {'angle_out': tf.TensorShape([15]),
                    'throttle_out': tf.TensorShape([20])})
@@ -377,7 +377,7 @@ class KerasLinear(KerasPilot):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         shapes = ({'img_in': tf.TensorShape(img_shape)},
                   {'n_outputs0': tf.TensorShape([]),
                    'n_outputs1': tf.TensorShape([])})
@@ -409,7 +409,8 @@ class KerasMemory(KerasLinear):
         """
         self.mem_length = mem_length
         self.mem_start_speed = mem_start_speed
-        self.mem_seq = deque([[0, mem_start_speed]] * mem_length)
+        # create memory of [anlge=0, throttle=mem_start_speed] * mem_length
+        self.mem_seq = deque([[0.0, mem_start_speed]] * mem_length)
         self.mem_depth = mem_depth
         super().__init__(interpreter, input_shape, **kwargs)
 
@@ -422,8 +423,11 @@ class KerasMemory(KerasLinear):
 
     def load(self, model_path: str) -> None:
         super().load(model_path)
-        self.mem_length = self.interpreter.get_input_shapes()[1][1] // 2
-        self.mem_seq = deque([[0, self.mem_start_speed]] * self.mem_length)
+        mem_shape = self.interpreter.get_input_shape('mem_in')
+        # take the mem_shape (index 1), the length (index 1) and divide by 2.
+        self.mem_length = mem_shape[1] // 2
+        # create memory of [anlge=0, throttle=mem_start_speed] * mem_length
+        self.mem_seq = deque([[0.0, self.mem_start_speed]] * self.mem_length)
         logger.info(f'Loaded {type(self).__name__} model with mem length'
                     f' {self.mem_length}')
 
@@ -462,7 +466,7 @@ class KerasMemory(KerasLinear):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'mem_in': tf.TensorShape(2 * self.mem_length)},
                   {'n_outputs0': tf.TensorShape([]),
@@ -499,7 +503,7 @@ class KerasInferred(KerasPilot):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         shapes = ({'img_in': tf.TensorShape(img_shape)},
                   {'n_outputs0': tf.TensorShape([])})
         return shapes
@@ -555,7 +559,7 @@ class KerasIMU(KerasPilot):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         # the keys need to match the models input/output layers
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'imu_in': tf.TensorShape([self.num_imu_inputs])},
@@ -594,7 +598,7 @@ class KerasBehavioral(KerasCategorical):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         # the keys need to match the models input/output layers
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'xbehavior_in': tf.TensorShape([self.num_behavior_inputs])},
@@ -641,7 +645,7 @@ class KerasLocalizer(KerasPilot):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         # the keys need to match the models input/output layers
         shapes = ({'img_in': tf.TensorShape(img_shape)},
                   {'angle': tf.TensorShape([]),
@@ -717,7 +721,7 @@ class KerasLSTM(KerasPilot):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         # the keys need to match the models input/output layers
         shapes = ({'img_in': tf.TensorShape(img_shape)},
                   {'model_outputs': tf.TensorShape([self.num_outputs])})
@@ -793,7 +797,7 @@ class Keras3D_CNN(KerasPilot):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         # the keys need to match the models input/output layers
         shapes = ({'img_in': tf.TensorShape(img_shape)},
                   {'outputs': tf.TensorShape([self.num_outputs])})

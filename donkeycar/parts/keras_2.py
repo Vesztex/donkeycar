@@ -8,7 +8,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import regularizers
 from tensorflow.keras import Model, Input
-from tensorflow.keras.layers import Dense, concatenate, Conv2D, \
+from tensorflow.keras.layers import Dense, Concatenate, Conv2D, \
     BatchNormalization, Dropout, Flatten, Reshape, UpSampling2D, \
     Conv2DTranspose, LSTM, MaxPooling2D, TimeDistributed as TD, LeakyReLU
 
@@ -58,7 +58,7 @@ class KerasSquarePlus(KerasLinear):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         shapes = ({'img_in': tf.TensorShape(img_shape)},
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])})
@@ -123,7 +123,7 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'mem_in': tf.TensorShape(2 * self.mem_length)},
                   {'angle': tf.TensorShape([]),
@@ -157,7 +157,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'mem_in': tf.TensorShape(2 * self.mem_length),
                    'lap_pct_in': tf.TensorShape(1)},
@@ -263,7 +263,7 @@ class KerasSquarePlusImu(KerasSquarePlus):
 
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shapes()[0][1:]
+        img_shape = self.get_input_shape('img_in')[1:]
         # the keys need to match the models input/output layers
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'imu_in': tf.TensorShape([self.imu_dim])},
@@ -390,7 +390,7 @@ class KerasWorldImu(KerasWorld, KerasSquarePlusImu):
         return [latent_input, imu_input]
 
     def transform_controller_inputs(self, inputs):
-        return concatenate(inputs)
+        return Concatenate()(inputs)
 
     def create_model(self):
         controller = self.make_controller()
@@ -425,7 +425,7 @@ class WorldMemory:
         # imu_seq_in = keras.Input(input_shape_imu, name='imu_seq_in')
         drive_seq_in = keras.Input(input_shape_drive, name='drive_seq_in')
         inputs = [latent_seq_in, drive_seq_in]
-        x = concatenate(inputs, axis=-1)
+        x = Concatenate(axis=-1)(inputs)
         for i in range(self.layers):
             last = (i == self.layers - 1)
             x = LSTM(units=self.units,
@@ -802,7 +802,7 @@ def linear_square_plus_imu(input_shape=(120, 160, 3),
                       kernel_regularizer=regularizers.l2(l2),
                       name='dense_imu')
     y = TD(imu_dense, name='td_imu_dense')(y) if seq_len else imu_dense(y)
-    z = concatenate([x, y])
+    z = Concatenate(name='concat_latent_imu')([x, y])
     outputs = square_plus_output_layers(z, size, l2, seq_len,
                                         pos_throttle=pos_throttle)
     name = create_name(False, None, 0, False, seq_len, size)
@@ -822,7 +822,7 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
     mem_in = Input(shape=(2 * mem_length,), name='mem_in')
     memory = memory_model(mem_in, mem_length, mem_depth, drop2)
     mem_out = memory(mem_in)
-    concat = [latent, mem_out]
+    x = Concatenate(name='concat_latent_mem')([latent, mem_out])
     inputs = [img_in, mem_in]
     if has_lap_pct:
         # using leaky relu here with negative branch, so we get some
@@ -831,12 +831,11 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
         lap_in = Input(shape=(1,), name='lap_pct_in')
         xl = lap_in
         for i in range(3):
-            xl = Dense(16, name=f'lap_{i}')(xl)
-            xl = LeakyReLU(alpha=0.5)(xl)
-        concat.append(xl)
+            xl = Dense(16, name=f'lap_{i}', activation='sigmoid')(xl)
+#            xl = LeakyReLU(alpha=0.5)(xl)
+        x = Concatenate(name='concat_latent_mem_lap')([x, xl])
         inputs.append(lap_in)
-    z = concatenate(concat, axis=-1)
-    outputs = square_plus_output_layers(z, size, l2, None,
+    outputs = square_plus_output_layers(x, size, l2, None,
                                         pos_throttle=pos_throttle)
     name = create_name(has_lap_pct, None, mem_length, True, None, size)
     model = Model(inputs=inputs, outputs=outputs, name=name)

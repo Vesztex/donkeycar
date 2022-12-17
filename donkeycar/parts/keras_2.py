@@ -152,7 +152,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
             -> Dict[str, Union[float, np.ndarray]]:
         x_dict = super().x_transform(record, img_processor)
         lap_pct = np.array([record[-1].underlying['lap_pct']])
-        x_dict['xlap_pct_in'] = lap_pct
+        x_dict['lap_pct_in'] = lap_pct
         return x_dict
 
     def output_shapes(self):
@@ -160,7 +160,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         img_shape = self.get_input_shapes()[0][1:]
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'mem_in': tf.TensorShape(2 * self.mem_length),
-                   'xlap_pct_in': tf.TensorShape(1)},
+                   'lap_pct_in': tf.TensorShape(1)},
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])})
         return shapes
@@ -828,14 +828,14 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
         # using leaky relu here with negative branch, so we get some
         # extrapolation if we put smaller values than the minimum percentile
         # we used in training
-        lap_in = Input(shape=(1,), name='xlap_pct_in')
+        lap_in = Input(shape=(1,), name='lap_pct_in')
         xl = lap_in
         for i in range(3):
             xl = Dense(16, name=f'lap_{i}')(xl)
             xl = LeakyReLU(alpha=0.5)(xl)
         concat.append(xl)
         inputs.append(lap_in)
-    z = concatenate(concat)
+    z = concatenate(concat, axis=-1)
     outputs = square_plus_output_layers(z, size, l2, None,
                                         pos_throttle=pos_throttle)
     name = create_name(has_lap_pct, None, mem_length, True, None, size)

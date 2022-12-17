@@ -169,11 +169,18 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
             Tuple[Union[float, np.ndarray], ...]:
         # Only called at start to fill the previous values
         np_mem_arr = np.array(self.mem_seq).reshape((2 * self.mem_length,))
-        img_arr_norm = normalize_image(img_arr)
+        norm_img_arr = normalize_image(img_arr)
         lap_pct, = other_arr
         np_lap_arr = np.array(lap_pct)
-        angle, throttle = super().inference(img_arr_norm, np_mem_arr,
-                                            np_lap_arr)
+        # create dictionary on the fly, we expect the order of the arguments:
+        # img_arr, *other_arr to exactly match the order of the
+        # self.output_shape() first dictionary keys, because that's how we
+        # set up the model
+        values = (norm_img_arr, np_mem_arr, np_lap_arr)
+        # note output_shapes() returns a 2-tuple of dicts for input shapes
+        # and output shapes(), so we need the first tuple here
+        input_dict = dict(zip(self.output_shapes()[0].keys(), values))
+        angle, throttle = self.inference_from_dict(input_dict)
         # fill new values into back of history list for next call
         self.mem_seq.popleft()
         self.mem_seq.append([angle, throttle])
@@ -246,9 +253,18 @@ class KerasSquarePlusImu(KerasSquarePlus):
         :param other_arr:   numpy imu array with raw data with accel / gyro
         :return:            tuple of (angle, throttle)
         """
-        norm_arr = normalize_image(img_arr)
+        norm_img_arr = normalize_image(img_arr)
         np_imu_array = self.normalize_imu(other_arr[:3], other_arr[3:])
-        return self.inference(norm_arr, np_imu_array)
+
+        # create dictionary on the fly, we expect the order of the arguments:
+        # img_arr, *other_arr to exactly match the order of the
+        # self.output_shape() first dictionary keys, because that's how we
+        # set up the model
+        values = (norm_img_arr, np_imu_array)
+        # note output_shapes() returns a 2-tuple of dicts for input shapes
+        # and output shapes(), so we need the first tuple here
+        input_dict = dict(zip(self.output_shapes()[0].keys(), values))
+        return self.inference_from_dict(input_dict)
 
     def x_transform(self,
                     record: Union[TubRecord, List[TubRecord]],
@@ -550,7 +566,10 @@ class WorldPilot(KerasWorldImu):
         # now we run the model returning drive vector and last latent vector
         inputs = (img_arr, imu_arr,
                   np.array([self.latent_seq]), np.array([self.drive_seq]))
-        [angle, throttle, latent] = self.interpreter.predict(*inputs)
+        keys = ('img_in', 'imu_in', 'latent_seq_in', 'drive_seq_in')
+        input_dict = dict(zip(keys, inputs))
+        [angle, throttle, latent] \
+            = self.interpreter.predict_from_dict(input_dict)
         # convert drive array of ndarray into more convenient type
         drive_arr = np.array([angle[0][0], throttle[0][0]])
         # add new results for angle, throttle and latent vector into sequence
@@ -822,7 +841,8 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
     mem_in = Input(shape=(2 * mem_length,), name='mem_in')
     memory = memory_model(mem_in, mem_length, mem_depth, drop2)
     mem_out = memory(mem_in)
-    x = Concatenate(name='concat_latent_mem')([latent, mem_out])
+    concat_layers = [latent, mem_out]
+    concat_name = 'concat_latent_mem'
     inputs = [img_in, mem_in]
     if has_lap_pct:
         # using leaky relu here with negative branch, so we get some
@@ -832,9 +852,12 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
         xl = lap_in
         for i in range(3):
             xl = Dense(16, name=f'lap_{i}', activation='sigmoid')(xl)
-#            xl = LeakyReLU(alpha=0.5)(xl)
-        x = Concatenate(name='concat_latent_mem_lap')([x, xl])
+            xl = LeakyReLU(alpha=0.5)(xl)
+        concat_layers.append(xl)
+        concat_name += '_lap'
         inputs.append(lap_in)
+
+    x = Concatenate(name=concat_name)(concat_layers)
     outputs = square_plus_output_layers(x, size, l2, None,
                                         pos_throttle=pos_throttle)
     name = create_name(has_lap_pct, None, mem_length, True, None, size)

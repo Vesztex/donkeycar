@@ -106,23 +106,17 @@ class KerasPilot(ABC):
                             state vector in the Behavioural model
         :return:            tuple of (angle, throttle)
         """
-        norm_arr = normalize_image(img_arr)
+        norm_img_arr = normalize_image(img_arr)
         np_other_array = tuple(np.array(arr) for arr in other_arr)
-        return self.inference(norm_arr, *np_other_array)
-
-    def inference(self, img_arr: np.ndarray, *other_arr: np.ndarray) \
-            -> Tuple[Union[float, np.ndarray], ...]:
-        """ Inferencing using the interpreter
-            :param img_arr:     float32 [0,1] numpy array with normalized image
-                                data
-            :param other_arr:   numpy array of additional data to be used in the
-                                pilot, like IMU array for the IMU model or a
-                                state vector in the Behavioural model
-            :return:            tuple of (angle, throttle)
-        """
-        assert type(img_arr) is np.ndarray, "image array must be numpy array"
-        out = self.interpreter.predict(img_arr, *other_arr)
-        return self.interpreter_to_output(out)
+        # create dictionary on the fly, we expect the order of the arguments:
+        # img_arr, *other_arr to exactly match the order of the
+        # self.output_shape() first dictionary keys, because that's how we
+        # set up the model
+        values = (norm_img_arr, ) + np_other_array
+        # note output_shapes() returns a 2-tuple of dicts for input shapes
+        # and output shapes(), so we need the first tuple here
+        input_dict = dict(zip(self.output_shapes()[0].keys(), values))
+        return self.inference_from_dict(input_dict)
 
     def inference_from_dict(self, input_dict: Dict[str, np.ndarray]) \
             -> Tuple[Union[float, np.ndarray], ...]:
@@ -435,8 +429,16 @@ class KerasMemory(KerasLinear):
             Tuple[Union[float, np.ndarray], ...]:
         # Only called at start to fill the previous values
         np_mem_arr = np.array(self.mem_seq).reshape((2 * self.mem_length,))
-        img_arr_norm = normalize_image(img_arr)
-        angle, throttle = super().inference(img_arr_norm, np_mem_arr)
+        norm_img_arr = normalize_image(img_arr)
+        # create dictionary on the fly, we expect the order of the arguments:
+        # img_arr, *other_arr to exactly match the order of the
+        # self.output_shape() first dictionary keys, because that's how we
+        # set up the model
+        values = (norm_img_arr, np_mem_arr)
+        # note output_shapes() returns a 2-tuple of dicts for input shapes
+        # and output shapes(), so we need the first tuple here
+        input_dict = dict(zip(self.output_shapes()[0].keys(), values))
+        angle, throttle = self.inference_from_dict(input_dict)
         # fill new values into back of history list for next call
         self.mem_seq.popleft()
         self.mem_seq.append([angle, throttle])
@@ -711,7 +713,8 @@ class KerasLSTM(KerasPilot):
         new_shape = (self.seq_length, *self.input_shape)
         img_arr = np.array(self.img_seq).reshape(new_shape)
         img_arr_norm = normalize_image(img_arr)
-        return self.inference(img_arr_norm, *other_arr)
+        input_dict = {'img_in': img_arr_norm}
+        return self.inference_from_dict(input_dict)
 
     def interpreter_to_output(self, interpreter_out) \
             -> Tuple[Union[float, np.ndarray], ...]:
@@ -787,7 +790,8 @@ class Keras3D_CNN(KerasPilot):
         new_shape = (self.seq_length, *self.input_shape)
         img_arr = np.array(self.img_seq).reshape(new_shape)
         img_arr_norm = normalize_image(img_arr)
-        return self.inference(img_arr_norm, *other_arr)
+        input_dict = {'img_in', img_arr_norm}
+        return self.inference_from_dict(input_dict)
 
     def interpreter_to_output(self, interpreter_out) \
             -> Tuple[Union[float, np.ndarray], ...]:

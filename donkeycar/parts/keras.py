@@ -790,7 +790,7 @@ class Keras3D_CNN(KerasPilot):
         new_shape = (self.seq_length, *self.input_shape)
         img_arr = np.array(self.img_seq).reshape(new_shape)
         img_arr_norm = normalize_image(img_arr)
-        input_dict = {'img_in', img_arr_norm}
+        input_dict = {'img_in': img_arr_norm}
         return self.inference_from_dict(input_dict)
 
     def interpreter_to_output(self, interpreter_out) \

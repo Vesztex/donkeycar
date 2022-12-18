@@ -131,27 +131,34 @@ class KerasInterpreter(Interpreter):
 
     def set_model(self, pilot: 'KerasPilot') -> None:
         self.model = pilot.create_model()
-        self.shapes = (dict(zip(self.model.input_names,
-                                self.model.input_shape)),
-                       dict(zip(self.model.output_names,
-                                self.model.output_shape)))
-        self.input_keys = list(self.shapes[0].keys())
-        self.output_keys = list(self.shapes[1].keys())
+        # input_shape and output_shape in keras are unfortunately not a list
+        # if there is only a single input / output. So pack them into a list
+        # if they are single:
+        input_shape = self.model.input_shape
+        if type(input_shape) is not list:
+            input_shape = [input_shape]
+        output_shape = self.model.output_shape
+        if type(output_shape) is not list:
+            output_shape = [output_shape]
+
+        self.shapes = (dict(zip(self.model.input_names, input_shape)),
+                       dict(zip(self.model.output_names, output_shape)))
 
     def set_optimizer(self, optimizer: tf.keras.optimizers.Optimizer) -> None:
         self.model.optimizer = optimizer
 
     def get_input_shape(self, input_name) -> tf.TensorShape:
         assert self.model, 'Model not set'
-        #return [inp.shape for inp in self.model.inputs]
         return self.shapes[0][input_name]
 
     def compile(self, **kwargs):
         assert self.model, 'Model not set'
         self.model.compile(**kwargs)
 
-    def invoke(self, inputs):
-        outputs = self.model(inputs, training=False)
+    def predict_from_dict(self, input_dict):
+        for k, v in input_dict.items():
+            input_dict[k] = self.expand_and_convert(v)
+        outputs = self.model(input_dict, training=False)
         # for functional models the output here is a list
         if type(outputs) is list:
             # as we invoke the interpreter with a batch size of one we remove
@@ -161,11 +168,6 @@ class KerasInterpreter(Interpreter):
         # for sequential models the output shape is (1, n) with n = output dim
         else:
             return outputs.numpy().squeeze(axis=0)
-
-    def predict_from_dict(self, input_dict):
-        for k, v in input_dict.items():
-            input_dict[k] = self.expand_and_convert(v)
-        return self.invoke(input_dict)
 
     def load(self, model_path: str) -> None:
         logger.info(f'Loading model {model_path}')

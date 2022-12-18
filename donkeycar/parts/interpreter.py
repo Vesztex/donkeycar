@@ -141,8 +141,10 @@ class KerasInterpreter(Interpreter):
         if type(output_shape) is not list:
             output_shape = [output_shape]
 
-        self.shapes = (dict(zip(self.model.input_names, input_shape)),
-                       dict(zip(self.model.output_names, output_shape)))
+        self.input_keys = self.model.input_names
+        self.output_keys = self.model.output_names
+        self.shapes = (dict(zip(self.input_keys, input_shape)),
+                       dict(zip(self.output_keys, output_shape)))
 
     def set_optimizer(self, optimizer: tf.keras.optimizers.Optimizer) -> None:
         self.model.optimizer = optimizer

@@ -308,13 +308,13 @@ class TensorRT(Interpreter):
     def set_model(self, pilot: 'KerasPilot') -> None:
         # We can't determine the output shape neither here, nor in the
         # constructor, because calling output_shapes() on the model will call
-        # get_input_shap() from the interpreter which will fail at that
+        # get_input_shape() from the interpreter which will fail at that
         # state as the trt model hasn't been loaded yet
         self.pilot = pilot
 
     def get_input_shape(self, input_name) -> tf.TensorShape:
         assert self.graph_func, "Requires loadin the tensorrt model first"
-        return self.graph_func.inputs[input_name]
+        return self.graph_func.structured_input_signature[1][input_name].shape
 
     def compile(self, **kwargs):
         pass

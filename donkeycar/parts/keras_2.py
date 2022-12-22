@@ -793,11 +793,17 @@ def linear_square_plus(input_shape=(120, 160, 3), size='S', seq_len=None,
     cnn = linear_square_plus_cnn(img_in, size, l2, seq_len is not None)
 
     latent = cnn(img_in)
-    outputs = square_plus_output_layers(latent, size, l2,
+    # outputs = square_plus_output_layers(latent, size, l2,
+    #                                     seq_len=seq_len,
+    #                                     pos_throttle=pos_throttle)
+    controller = square_plus_controller(latent, size=size, l2=l2,
                                         seq_len=seq_len,
                                         pos_throttle=pos_throttle)
+    angle_throttle = controller(latent)
+
     name = create_name(False, None, 0, False, seq_len, size)
-    model = Model(inputs=[img_in], outputs=outputs, name=name)
+    model = Model(inputs=[img_in], outputs=angle_throttle, name=name)
+    model.output_names = controller.output_names
     return model
 
 
@@ -897,6 +903,14 @@ def square_plus_output_layers(in_tensor, size, l2,
     activation = 'sigmoid' if pos_throttle else 'tanh'
     throttle_out = Dense(units=1, activation=activation, name='throttle')(z)
     return [angle_out, throttle_out]
+
+
+def square_plus_controller(in_tensor, size, l2, seq_len=None,
+                           pos_throttle=True):
+    out_layers = square_plus_output_layers(in_tensor, size, l2, seq_len=seq_len,
+                                           pos_throttle=pos_throttle)
+    model = Model(inputs=[in_tensor], outputs=out_layers, name='controller')
+    return model
 
 
 def create_name(has_lap_pct, imu_dim, mem_len, multi_input, seq_len, size):

@@ -172,8 +172,12 @@ class KerasInterpreter(Interpreter):
             return outputs.numpy().squeeze(axis=0)
 
     def load(self, model_path: str) -> None:
-        logger.info(f'Loading model {model_path}')
         self.model = keras.models.load_model(model_path, compile=False)
+        # this sets the tf.keras output names of a composite model to what we
+        # want, because these names get lost when saving as savedmodel
+        logger.info(f'Loading model {model_path} and overwriting model output '
+                    f'names {self.model.output_names} with {self.output_keys}')
+        self.model.output_names = self.output_keys
 
     def load_weights(self, model_path: str, by_name: bool = True) -> \
             None:

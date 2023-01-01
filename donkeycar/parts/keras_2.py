@@ -1,6 +1,8 @@
 import copy
 import time
 import logging
+from collections import deque
+
 import numpy as np
 from typing import Dict, Tuple, Union, List, Callable
 import tensorflow as tf
@@ -50,10 +52,7 @@ class KerasSquarePlus(KerasLinear):
             -> Dict[str, Union[float, List[float]]]:
         assert isinstance(record, TubRecord), 'TubRecord expected'
         angle = record.underlying['user/angle']
-        if self.use_speed:
-            throttle = record.underlying['car/speed'] / self.max_speed
-        else:
-            throttle = record.underlying['user/throttle']
+        throttle = self._get_throttle(record)
         return {'angle': angle, 'throttle': throttle}
 
     def output_shapes(self):
@@ -77,6 +76,15 @@ class KerasSquarePlus(KerasLinear):
         logger.info(f'Freezing layers {frozen_layers}')
         return num_to_freeze
 
+    def reset(self):
+        logger.info("Pilot reset called")
+
+    def _get_throttle(self, record):
+        if self.use_speed:
+            return record.underlying['car/speed'] / self.max_speed
+        else:
+            return record.underlying['user/throttle']
+
 
 class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
     def __init__(self,
@@ -91,12 +99,6 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
                                       has_lap_pct=False,
                                       pos_throttle=self.use_speed)
 
-    def get_throttle(self, record):
-        if self.use_speed:
-            return record.underlying['car/speed'] / self.max_speed
-        else:
-            return record.underlying['user/throttle']
-
     def x_transform(
             self,
             record: Union[TubRecord, List[TubRecord]],
@@ -109,7 +111,7 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
             f"Record list of length {self.mem_length} required but " \
             f"{len(record)} was passed"
         img_arr = record[-1].image(processor=img_processor)
-        mem = [[r.underlying['user/angle'], self.get_throttle(r)]
+        mem = [[r.underlying['user/angle'], self._get_throttle(r)]
                for r in record[:-1]]
         mem_arr = np.array(mem).reshape((2 * self.mem_length,))
         return {'img_in': img_arr, 'mem_in': mem_arr}
@@ -118,7 +120,7 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
             -> Dict[str, Union[float, List[float]]]:
         assert isinstance(records, list), 'List[TubRecord] expected'
         angle = records[-1].underlying['user/angle']
-        throttle = self.get_throttle(records[-1])
+        throttle = self._get_throttle(records[-1])
         return {'angle': angle, 'throttle': throttle}
 
     def output_shapes(self):
@@ -129,6 +131,11 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])})
         return shapes
+
+    def reset(self):
+        super().reset()
+        logger.info(f"Resetting with start speed {self.mem_start_speed}")
+        self.mem_seq = deque([[0.0, self.mem_start_speed]] * self.mem_length)
 
 
 class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
@@ -539,7 +546,7 @@ class WorldPilot(KerasWorldImu):
     def load(self, model_path):
         self.interpreter.model = keras.models.load_model(model_path)
         model = self.interpreter.model
-        print(model.summary())
+        model.summary(expand_nested=True)
         self.memory = model.get_layer('Memory')
         # get seq length from input shape of memory model
         self.seq_length = self.memory.inputs[0].shape[1]
@@ -698,6 +705,20 @@ class ModelLoader:
             else:
                 # no update wait 1s
                 time.sleep(1.0)
+
+
+class ModelResetter:
+    """ Part to reset a pilot back to start. Used in gym, where we restart
+        when receiving a game-over signal from the sim. In that case we want
+        to make sure the models memory or other static values get reset,
+        so it won't drive backward or similar.
+    """
+    def __init__(self, pilot):
+        self.pilot = pilot
+
+    def run(self, reset: bool = False):
+        if reset:
+            self.pilot.reset()
 
 
 def linear_square_plus_cnn(img_in, size='R', l2=0.001, is_seq=False):

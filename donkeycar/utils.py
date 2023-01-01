@@ -511,6 +511,7 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> Union['KerasPilot', 'Fa
     used_model_type = EqMemorizedString(used_model_type)
     mem_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
     mem_depth = getattr(cfg, 'MEM_DEPTH', 0)
+    mem_start_speed = getattr(cfg, 'MEM_START_SPEED', 0)
 
     if used_model_type == "linear":
         kl = KerasLinear(interpreter=interpreter, input_shape=input_shape)
@@ -557,13 +558,15 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> Union['KerasPilot', 'Fa
             interpreter=interpreter, input_shape=input_shape, size=cfg.NN_SIZE,
             use_speed=cfg.USE_SPEED_FOR_MODEL,
             max_speed=cfg.MAX_SPEED,
-            mem_length=mem_length, mem_depth=mem_depth)
+            mem_length=mem_length, mem_depth=mem_depth,
+            mem_start_speed=mem_start_speed)
     elif used_model_type == 'sq_mem_lap':
         kl = KerasSquarePlusMemoryLap(
             interpreter=interpreter, input_shape=input_shape, size=cfg.NN_SIZE,
             use_speed=cfg.USE_SPEED_FOR_MODEL,
             max_speed=cfg.MAX_SPEED,
-            mem_length=mem_length, mem_depth=mem_depth)
+            mem_length=mem_length, mem_depth=mem_depth,
+            mem_start_speed=mem_start_speed)
     else:
         known = [k + u for k in ('', 'tflite_', 'tensorrt_')
                  for u in used_model_type.mem]

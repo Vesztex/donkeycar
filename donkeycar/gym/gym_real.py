@@ -61,7 +61,6 @@ class DonkeyRealEnv(gym.Env):
 
         # wait until loaded
         self.controller.wait_until_connected()
-        
 
     def close(self):
         self.controller.quit()        
@@ -69,7 +68,7 @@ class DonkeyRealEnv(gym.Env):
     def step(self, action):
         for i in range(self.frame_skip):
             self.controller.take_action(action)
-            time.sleep(0.05)
+            # time.sleep(0.05)
             observation = self.controller.observe()
             reward, done, info = 0.1, False, None
         return observation, reward, done, info

@@ -97,6 +97,9 @@ MODEL_CATEGORICAL_MAX_THROTTLE_RANGE = 0.8
 # RNN or 3D
 SEQUENCE_LENGTH = 5
 
+# MEM model
+MEM_START_SPEED = 0.5
+
 # Default to fastest quarter or laps
 LAP_PCT = 0.25
 

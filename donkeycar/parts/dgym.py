@@ -76,11 +76,10 @@ class DonkeyGymEnv(object):
 
     def update(self):
         while self.running:
+            self.frame, reward, self.done, self.info = \
+                self.env.step(self.action)
             if self.delay > 0.0:
-                current_frame, _, self.done, self.info = self.env.step(self.action)
-                self.delay_buffer(current_frame, current_info)
-            else:
-                self.frame, _, _, self.info = self.env.step(self.action)
+                self.delay_buffer(self.frame, self.info)
 
     def run_threaded(self, steering, throttle, brake=None):
         if steering is None or throttle is None:

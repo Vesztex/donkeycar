@@ -25,7 +25,7 @@ import donkeycar as dk
 import donkeycar.parts
 from donkeycar.parts.tub_v2 import TubWiper, TubWriter
 from donkeycar.parts.file_watcher import FileWatcher
-from donkeycar.parts.keras_2 import ModelLoader
+from donkeycar.parts.keras_2 import ModelLoader, ModelResetter
 from donkeycar.parts.transform import SimplePidController, \
     ImuCombinerNormaliser, ThrottleSwitch, \
     SpeedRescaler, RecordingCondition
@@ -335,7 +335,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
                        record_lidar=cfg.SIM_RECORD_LIDAR,
                        delay=cfg.SIM_ARTIFICIAL_LATENCY,
                        new_sim=not is_sim,
-                       respawn_on_game_over=model_type is not None)
+                       respawn_on_game_over=model_path is not None)
     threaded = True
     inputs = ['angle', 'throttle']
     outputs = [CAM_IMG, 'pos/pos', 'car/speed', 'pos/cte']
@@ -378,12 +378,18 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
             kl_inputs.append('car/imu')
         if kl.use_lap_pct():
             class LapPct:
+                def __init__(self):
+                    logger.info(f"Creating part LapPct: {cfg.LAP_PCT}")
+
                 def run(self):
                     return [cfg.LAP_PCT]
+
             car.add(LapPct(), outputs=['lap_pct'])
             kl_inputs.append('lap_pct')
         # add auto pilot and model reloader ------------------------------------
         kl_outputs = ['pilot/angle', 'pilot/throttle']
+        model_resetter = ModelResetter(kl)
+        car.add(model_resetter, inputs=['game_over'])
         car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
     else:
         # rename the usr throttle

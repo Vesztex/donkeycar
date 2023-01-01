@@ -115,7 +115,7 @@ class Interpreter(ABC):
     def predict_from_dict(self, input_dict) -> Sequence[Union[float, np.ndarray]]:
         pass
 
-    def summary(self) -> str:
+    def summary(self) -> None:
         pass
 
     def __str__(self) -> str:
@@ -184,8 +184,8 @@ class KerasInterpreter(Interpreter):
         assert self.model, 'Model not set'
         self.model.load_weights(model_path, by_name=by_name)
 
-    def summary(self) -> str:
-        return self.model.summary()
+    def summary(self) -> None:
+        self.model.summary(expand_nested=True)
 
     @staticmethod
     def expand_and_convert(arr):
@@ -247,8 +247,8 @@ class FastAIInterpreter(Interpreter):
         logger.info(self.model)
         self.model.eval()
 
-    def summary(self) -> str:
-        return self.model
+    def summary(self) -> None:
+        self.model.summary()
 
 
 class TfLite(Interpreter):

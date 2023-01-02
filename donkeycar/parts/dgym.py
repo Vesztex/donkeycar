@@ -89,7 +89,6 @@ class DonkeyGymEnv(object):
             brake = 0.0
 
         self.action = [steering, throttle, brake]
-        hit = self.info.get('hit', 'none')
         game_over = self.done
         if self.done:
             logger.info('Game Over')
@@ -129,27 +128,25 @@ class GymLapTimer:
         self.last_lap_time = 0.0
         self.last_lap_distance = 0.0
         self.lap_info = []
-        self.is_valid = True
         logger.info("Create GymLapTimer")
 
-    def run(self, last_lap_time, distance, game_over):
+    def run(self, last_lap_time, distance):
         if last_lap_time != self.last_lap_time:
-            logger.info(f'Recorded lap {self.current_lap} in '
-                        f'{last_lap_time: 6.2f}s')
+            # invalid loops in the sim have lap time = 0.0
+            is_valid = last_lap_time > 0.1
             lap_length = distance - self.last_lap_distance
+            logger.info(f'Recorded {"in" if not is_valid else ""}valid lap'
+                        f' {self.current_lap} in '
+                        f'{last_lap_time:.2f}s of length {lap_length:.2f}m')
             # store current values
             self.last_lap_time = last_lap_time
             self.last_lap_distance = distance
+
             info = dict(lap=self.current_lap, time=last_lap_time,
-                        distance=lap_length, valid=self.is_valid)
+                        distance=lap_length, valid=is_valid)
             self.lap_info.append(info)
             # update current lap and reset valid lap
             self.current_lap += 1
-            self.is_valid = True
-        else:
-            # set invald lap once we get a game over trigger
-            if game_over:
-                self.is_valid = False
 
         return self.current_lap
 

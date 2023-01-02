@@ -350,7 +350,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
     car.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
     car.add(GymOdometer(), inputs=['pos/pos'], outputs=['car/distance'])
     lap_timer = GymLapTimer()
-    car.add(lap_timer, inputs=['last_lap_time', 'car/distance', 'game_over'],
+    car.add(lap_timer, inputs=['last_lap_time', 'car/distance'],
             outputs=['car/lap'])
 
 # load model if present ----------------------------------------------------

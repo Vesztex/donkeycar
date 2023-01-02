@@ -166,8 +166,10 @@ class Tub(object):
             session_dict = self.manifest.metadata.get(session_id)
             assert session_dict, f"Missing metadata for session_id {session_id}"
             lap_timer = session_dict.get('laptimer')
-            assert lap_timer, f"Missing laptimer in session_id {session_id} " \
-                              f"metadata"
+            if not lap_timer:
+                logger.warning(f"Missing or empty laptimer in session_id"
+                               f" {session_id} metadata, skipping this id")
+                continue
             # Remove lap zero if it shouldn't be considered. It should be first
             # entry, but check before removal.
             if not use_lap_0 and lap_timer[0]['lap'] == 0:

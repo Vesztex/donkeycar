@@ -40,6 +40,7 @@ class KerasSquarePlus(KerasLinear):
         self.use_speed = kwargs.get('use_speed', True)
         self.max_speed = 1.0 if not self.use_speed else kwargs['max_speed']
         super().__init__(interpreter, input_shape)
+        self.num_to_freeze = 2
 
     def __str__(self) -> str:
         return super().__str__() + f'-{self.size}-speed:{int(self.use_speed)}'
@@ -68,13 +69,12 @@ class KerasSquarePlus(KerasLinear):
             'Can only freeze layers in Keras model but not in TfLite and others'
         # We freeze the first layer which is the CNN encoder. Note the input
         # layer is the first layer, hence skip 2.
-        num_to_freeze = 2
         frozen_layers = []
-        for i in range(num_to_freeze):
+        for i in range(self.num_to_freeze):
             self.interpreter.model.layers[i].trainable = False
             frozen_layers.append(self.interpreter.model.layers[i].name)
         logger.info(f'Freezing layers {frozen_layers}')
-        return num_to_freeze
+        return self.num_to_freeze
 
     def reset(self):
         logger.info("Pilot reset called")
@@ -144,6 +144,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
         super().__init__(interpreter, input_shape, *args, **kwargs)
+        self.num_to_freeze = 4
 
     def use_lap_pct(self) -> bool:
         return True
@@ -188,6 +189,8 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         # and output shapes(), so we need the first tuple here
         input_dict = dict(zip(self.output_shapes()[0].keys(), values))
         angle, throttle = self.inference_from_dict(input_dict)
+        # throttle *= 1.05
+        #angle *= 1.02
         # fill new values into back of history list for next call
         self.mem_seq.popleft()
         self.mem_seq.append([angle, throttle])
@@ -878,17 +881,24 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
         lap_in = Input(shape=(1,), name='lap_pct_in')
         xl = lap_in
         for i in range(3):
-            xl = Dense(16, name=f'lap_{i}', activation='sigmoid')(xl)
+            xl = Dense(16, name=f'lap_{i}')(xl)
             xl = LeakyReLU(alpha=0.5)(xl)
-        concat_layers.append(xl)
+        lap_influencer = Model(inputs=lap_in, outputs=xl,
+                               name='Lap_Influencer')
+        lap_out = lap_influencer(lap_in)
+        concat_layers.append(lap_out)
         concat_name += '_lap'
         inputs.append(lap_in)
 
     x = Concatenate(name=concat_name)(concat_layers)
-    outputs = square_plus_output_layers(x, size, l2, None,
+    # outputs = square_plus_output_layers(x, size, l2, None,
+    #                                     pos_throttle=pos_throttle)
+    controller = square_plus_controller(x, size=size, l2=l2,
                                         pos_throttle=pos_throttle)
+    angle_throttle = controller(x)
     name = create_name(has_lap_pct, None, mem_length, True, None, size)
-    model = Model(inputs=inputs, outputs=outputs, name=name)
+    model = Model(inputs=inputs, outputs=angle_throttle, name=name)
+    model.output_names = controller.output_names
     return model
 
 

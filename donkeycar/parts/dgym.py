@@ -91,8 +91,8 @@ class DonkeyGymEnv(object):
         self.action = [steering, throttle, brake]
         game_over = self.done
         if self.done:
-            logger.info('Game Over')
             if self.respawn_on_game_over:
+                logger.info('Game Over')
                 self.env.reset()
                 self.done = False
 
@@ -154,11 +154,16 @@ class GymLapTimer:
         logger.info('All lap times:')
         pt = PrettyTable()
         pt.field_names = ["lap", "time (s)", "distance", "valid"]
+        valid_laps = []
         for info in self.lap_info:
             row = [info["lap"], f'{info["time"]: 4.2f}',
                    f'{info["distance"]: 5.3f}', info["valid"]]
             pt.add_row(row)
+            if info["valid"]:
+                valid_laps.append(info["time"])
         logger.info('\n' + str(pt))
+        logger.info('Three fastest laps: '
+                    + ",".join(f"{it:.2f}" for it in sorted(valid_laps)[:3]))
 
     def to_list(self):
         return self.lap_info

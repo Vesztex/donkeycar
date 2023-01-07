@@ -467,8 +467,8 @@ class KerasMemory(KerasLinear):
 
     def __str__(self) -> str:
         """ For printing model initialisation """
-        return super().__str__() \
-            + f'-L:{self.mem_length}-D:{self.mem_depth}'
+        return super().__str__() + f'-L:{self.mem_length}-D' + \
+            f':{self.mem_depth}-SS:{self.mem_start_speed}'
 
 
 class KerasInferred(KerasPilot):

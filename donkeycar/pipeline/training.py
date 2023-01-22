@@ -119,29 +119,29 @@ def train(cfg: Config, tub_paths: str, model: str = None,
 
     tubs = tub_paths.split(',')
     all_tub_paths = [os.path.expanduser(tub) for tub in tubs]
+    add_lap_pct = cfg.LAP_QUANTIFIER if kl.use_lap_pct() else None
     dataset = TubDataset(config=cfg, tub_paths=all_tub_paths,
                          seq_size=kl.seq_size(),
-                         add_lap_pct=kl.use_lap_pct())
-    training_records, validation_records \
+                         add_lap_pct=add_lap_pct)
+    train_records, val_records \
         = train_test_split(dataset.get_records(), shuffle=True,
                            test_size=(1. - cfg.TRAIN_TEST_SPLIT))
-    logger.info(f'Records # Training {len(training_records)}')
-    logger.info(f'Records # Validation {len(validation_records)}')
+    logger.info(f'Records # Training {len(train_records)}')
+    logger.info(f'Records # Validation {len(val_records)}')
     dataset.close()
 
     # We need augmentation in validation when using crop / trapeze
-
     if 'fastai_' in model_type:
         from donkeycar.parts.pytorch.torch_data \
             import TorchTubDataset, get_default_transform
         transform = get_default_transform(resize=False)
-        dataset_train = TorchTubDataset(cfg, training_records, transform=transform)
-        dataset_validate = TorchTubDataset(cfg, validation_records, transform=transform)
-        train_size = len(training_records)
-        val_size = len(validation_records)
+        dataset_train = TorchTubDataset(cfg, train_records, transform=transform)
+        dataset_validate = TorchTubDataset(cfg, val_records, transform=transform)
+        train_size = len(train_records)
+        val_size = len(val_records)
     else:
-        training_pipe = BatchSequence(kl, cfg, training_records, is_train=True)
-        validation_pipe = BatchSequence(kl, cfg, validation_records, is_train=False)
+        training_pipe = BatchSequence(kl, cfg, train_records, is_train=True)
+        validation_pipe = BatchSequence(kl, cfg, val_records, is_train=False)
         tune = tf.data.experimental.AUTOTUNE
         dataset_train = training_pipe.create_tf_data().prefetch(tune)
         dataset_validate = validation_pipe.create_tf_data().prefetch(tune)

@@ -1,5 +1,6 @@
 import os
 import time
+from collections import defaultdict
 from copy import copy
 from operator import itemgetter
 
@@ -147,20 +148,19 @@ class Tub(object):
     def calculate_lap_performance(self, use_lap_0=False):
         """
         Creates a dictionary of (session_id, lap) keys and int values
-        where 0 is the fastest loop and num_bins-1 is the slowest.
-        :param config:          donkey config to look up lap time pct bins
-        :param use_lap_0:    If the 0'th lap should be ignored. On the 
-                                real car lap zero shows up when the line is 
-                                crossed the first time hence the lap is 
-                                incomplete, but in the sim 0 indicates the 
-                                first complete lap, hence  
-        :return:                dictionary of type 
-                                ((session_id, lap, state_vector)
+        where 0 is the fastest lap and num_bins-1 is the slowest.
+
+        :param use_lap_0:   If the 0'th lap should be ignored. On the
+                            real car lap zero shows up when the line is
+                            crossed the first time hence the lap is
+                            incomplete, but in the sim 0 indicates the
+                            first complete lap
+        :return:            dict of type {(session_id, lap): state_vector}
         """
 
         sessions \
             = self.manifest.manifest_metadata['sessions']['all_full_ids']
-        session_lap_rank = {}
+        session_lap_rank = defaultdict(dict)
         logger.info(f'Calculating lap performance in tub {self.base_path}')
         for session_id in sessions:
             session_dict = self.manifest.metadata.get(session_id)
@@ -181,7 +181,7 @@ class Tub(object):
             num_laps = len(laps_sorted)
             for i, lap_i in enumerate(laps_sorted):
                 rel_i = (i + 1) / num_laps
-                session_lap_rank[(session_id, lap_i['lap'])] = rel_i
+                session_lap_rank[session_id][lap_i['lap']] = rel_i
             log_text = f'Session {session_id} with {num_laps} valid laps out ' \
                        f'of {len(lap_timer)}'
             if num_laps > 0:
@@ -195,6 +195,87 @@ class Tub(object):
         d = {(s_id, lap_timer_i['lap']): lap_timer_i['time'] for s_id, v in
              self.manifest.metadata.items() for lap_timer_i in v['laptimer']}
         return d
+
+    def calculate_aggregated_gyro(self, use_lap_0=False):
+        """
+        Creates a dictionary of (session_id, lap) keys and float values of
+        aggregated gyro_z values. Note, in the sim, thy gyro z is in the
+        middle coordinate, not the last.
+
+        :param use_lap_0:   If the 0'th lap should be ignored. On the
+                            real car lap zero shows up when the line is
+                            crossed the first time hence the lap is
+                            incomplete, but in the sim 0 indicates the
+                            first complete lap,
+        :return:            dict of type {(session_id, lap): float}
+
+        """
+        def calculate_gyro_pct(session_lap_gyro, this_session):
+            # normalise the gyro_z values by dividing by max value
+            gyro_data = session_lap_gyro[this_session]
+            values = gyro_data.values()
+            if not values:
+                logger.info(f'Skipping normalising of gyro data for session '
+                            f'{this_session}, because it is empty.')
+                return
+            logger. info(f'Normalising gyro data for session {this_session}')
+            gyro_max = max(values)
+            gyro_min = min(values)
+            for lap_i, gyro_z in gyro_data.items():
+                # because dicts are shallow copies this updates in-place
+                gyro_data[lap_i] = (gyro_z - gyro_min) / (gyro_max - gyro_min)
+
+        session_lap_gyro = dict()
+        logger.info(f'Calculating aggregated gyro in tub {self.base_path}')
+        prev_session = None
+        laps_filtered = []
+        # this loop assumes that all records for one session are continuous,
+        # i.e. if we iterate over all records then if a change to a new
+        # session happens only once for each session, see assert below
+        for record in self:
+            # skip over zero lap
+            lap = record['car/lap']
+            if not use_lap_0 and lap == 0:
+                continue
+
+            session_id = record['_session_id']
+            if prev_session != session_id:
+                # If new session found assert we don't have this session yet.
+                assert session_id not in session_lap_gyro, \
+                    f'Session {session_id} already found, unordered tub ' \
+                    f'detected'
+
+                session_dict = self.manifest.metadata.get(session_id)
+                assert session_dict, f"Missing metadata for session_id {session_id}"
+                lap_timer = session_dict.get('laptimer')
+                if not lap_timer:
+                    logger.warning(f"Missing or empty laptimer in session_id"
+                                   f" {session_id} metadata, skipping this id")
+                    continue
+                laps_filtered = [l['lap'] for l in lap_timer
+                                 if l.get('valid', True)]
+                logger.info(f'Finding {len(laps_filtered)} valid laps out of '
+                            f'{len(lap_timer)} in session {session_id}')
+                # Create a default dict entry for the session.
+                session_lap_gyro[session_id] = defaultdict(float)
+                if prev_session:
+                    # Only calculate the stats of the prev session at the
+                    # beginning of a new session
+                    calculate_gyro_pct(session_lap_gyro, prev_session)
+                # update current session to new session
+                prev_session = session_id
+
+            # jump over records of non-complete laps
+            if lap not in laps_filtered:
+                continue
+            # take the second coordinate here, this is gyro_z in sim
+            val = abs(record['car/gyro'][1])
+            session_lap_gyro[session_id][lap] += val
+
+        # Calculate the stats of the last
+        calculate_gyro_pct(session_lap_gyro, prev_session)
+
+        return session_lap_gyro
 
     def close(self):
         logger.info(f'Closing tub {self.base_path}')

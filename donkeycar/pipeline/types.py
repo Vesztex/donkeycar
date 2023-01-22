@@ -82,10 +82,12 @@ class TubRecord(object):
             return True
         session_id = self.underlying['_session_id']
         lap_i = self.underlying['car/lap']
-        # we won't get a result for the last lap as this is incomplete and
-        # doesn't have a time.
-        pct = session_lap_rank.get((session_id, lap_i))
-        self.underlying['lap_pct'] = pct
+        if session_lap_rank:
+            # we won't get a result for the last lap as this is incomplete and
+            # doesn't have a time.
+            pct = session_lap_rank.get(session_id).get(lap_i)
+            self.underlying['lap_pct'] = pct
+
         return pct is not None
 
     def __repr__(self) -> str:
@@ -99,7 +101,7 @@ class TubDataset(object):
 
     def __init__(self, config: Config, tub_paths: List[str],
                  seq_size: int = 0,
-                 add_lap_pct: bool = False) -> None:
+                 add_lap_pct: str = None) -> None:
         self.config = config
         self.tub_paths = tub_paths
         self.tubs: List[Tub] = [Tub(tub_path, read_only=True)
@@ -117,8 +119,11 @@ class TubDataset(object):
             logger.info(f'Loading tubs from paths {self.tub_paths}')
             for tub in self.tubs:
                 session_lap_rank = None
-                if self.add_lap_pct:
+                if self.add_lap_pct.lower() == 'time':
                     session_lap_rank = tub.calculate_lap_performance(
+                        self.config.USE_LAP_0)
+                elif self.add_lap_pct.lower() == 'gyro':
+                    session_lap_rank = tub.calculate_aggregated_gyro(
                         self.config.USE_LAP_0)
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)

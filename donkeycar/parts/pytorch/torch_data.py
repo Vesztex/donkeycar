@@ -6,7 +6,7 @@ from donkeycar.parts.tub_v2 import Tub
 from torchvision import transforms
 from typing import List, Any
 from donkeycar.pipeline.types import TubRecord, TubDataset
-from donkeycar.pipeline.sequence import TubSequence
+from donkeycar.pipeline.sequence import PipelineGenerator
 import pytorch_lightning as pl
 
 
@@ -64,7 +64,7 @@ class TorchTubDataset(IterableDataset):
         else:
             self.transform = get_default_transform()
 
-        self.sequence = TubSequence(records)
+        self.sequence = records
         self.pipeline = self._create_pipeline()
         self.len = len(records)
 
@@ -88,8 +88,9 @@ class TorchTubDataset(IterableDataset):
             return self.transform(img_arr)
 
         # Build pipeline using the transformations
-        pipeline = self.sequence.build_pipeline(x_transform=x_transform,
-                                                y_transform=y_transform)
+        pipeline = PipelineGenerator(self.sequence,
+                                     x_transform=x_transform,
+                                     y_transform=y_transform)
         return pipeline
 
     def __len__(self):

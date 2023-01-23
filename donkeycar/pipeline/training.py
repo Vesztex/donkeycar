@@ -11,8 +11,8 @@ from donkeycar.parts.keras import KerasPilot
 from donkeycar.parts.interpreter import keras_model_to_tflite, \
     saved_model_to_tensor_rt
 from donkeycar.pipeline.database import PilotDatabase
-from donkeycar.pipeline.sequence import TubRecord, TubSequence, TfmIterator
-from donkeycar.pipeline.types import TubDataset
+from donkeycar.pipeline.sequence import PipelineGenerator
+from donkeycar.pipeline.types import TubDataset, TubRecord
 from donkeycar.pipeline.augmentations import ImageAugmentation
 from donkeycar.utils import get_model_by_type, normalize_image, train_test_split
 import tensorflow as tf
@@ -34,7 +34,7 @@ class BatchSequence(object):
                  is_train: bool) -> None:
         self.model = model
         self.config = config
-        self.sequence = TubSequence(records)
+        self.records = records
         self.batch_size = self.config.BATCH_SIZE
         self.is_train = is_train
         self.augmentation = ImageAugmentation(config, 'AUGMENTATIONS')
@@ -57,7 +57,7 @@ class BatchSequence(object):
 
         return img_arr
 
-    def _create_pipeline(self) -> TfmIterator:
+    def _create_pipeline(self) -> PipelineGenerator:
         """ This can be overridden if more complicated pipelines are
             required """
         # 1. Initialise TubRecord -> x, y transformations
@@ -74,8 +74,8 @@ class BatchSequence(object):
             return y
 
         # 2. Build pipeline using the transformations
-        pipeline = self.sequence.build_pipeline(x_transform=get_x,
-                                                y_transform=get_y)
+        pipeline = PipelineGenerator(
+            self.records, x_transform=get_x, y_transform=get_y)
         return pipeline
 
     def create_tf_data(self) -> tf.data.Dataset:
@@ -119,7 +119,7 @@ def train(cfg: Config, tub_paths: str, model: str = None,
 
     tubs = tub_paths.split(',')
     all_tub_paths = [os.path.expanduser(tub) for tub in tubs]
-    add_lap_pct = cfg.LAP_QUANTIFIER if kl.use_lap_pct() else None
+    add_lap_pct = cfg.LAP_QUANTIFIER if kl.use_lap_pct() else ''
     dataset = TubDataset(config=cfg, tub_paths=all_tub_paths,
                          seq_size=kl.seq_size(),
                          add_lap_pct=add_lap_pct)

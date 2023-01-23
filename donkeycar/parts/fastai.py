@@ -18,13 +18,14 @@ import donkeycar as dk
 import torch
 from donkeycar.utils import normalize_image, linear_bin
 from donkeycar.pipeline.types import TubRecord, TubDataset
-from donkeycar.pipeline.sequence import TubSequence
+from donkeycar.pipeline.sequence import PipelineGenerator
 from donkeycar.parts.interpreter import FastAIInterpreter, Interpreter, KerasInterpreter
 from donkeycar.parts.pytorch.torch_data import TorchTubDataset, get_default_transform
 
 from fastai.vision.all import *
 from fastai.data.transforms import *
 from fastai import optimizer as fastai_optimizer
+from fastai.callback.tracker import EarlyStoppingCallback
 from torch.utils.data import IterableDataset, DataLoader
 
 from torchvision import transforms
@@ -175,26 +176,22 @@ class FastAiPilot(ABC):
                               every_epoch=False
                               )
         ]
-
         self.learner = Learner(dataLoader, model, loss_func=self.loss, path=Path(model_path).parent)
-
         logger.info(self.learner.summary())
         logger.info(self.learner.loss_func)
 
         lr_result = self.learner.lr_find()
         suggestedLr = float(lr_result[0])
-
         logger.info(f"Suggested Learning Rate {suggestedLr}")
-
         self.learner.fit_one_cycle(epochs, suggestedLr, cbs=callbacks)
-
         torch.save(self.learner.model, model_path)
 
         if show_plot:
             self.learner.recorder.plot_loss()
             plt.savefig(Path(model_path).with_suffix('.png'))
 
-        history = { "loss" : list(map((lambda x: x.item()), self.learner.recorder.losses)) }
+        history = {"loss": list(map((lambda x: x.item()),
+                                    self.learner.recorder.losses))}
         return history
 
     def __str__(self) -> str:

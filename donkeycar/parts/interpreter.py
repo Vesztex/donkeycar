@@ -247,9 +247,6 @@ class FastAIInterpreter(Interpreter):
         logger.info(self.model)
         self.model.eval()
 
-    def summary(self) -> None:
-        self.model.summary()
-
 
 class TfLite(Interpreter):
     """

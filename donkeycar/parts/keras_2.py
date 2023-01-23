@@ -170,7 +170,11 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
                    'mem_in': tf.TensorShape(2 * self.mem_length),
                    'lap_pct_in': tf.TensorShape(1)},
                   {'angle': tf.TensorShape([]),
-                   'throttle': tf.TensorShape([])})
+                   'throttle': tf.TensorShape([])},
+                    # this is for the weights
+                  # {'angle': tf.TensorShape([]),
+                  #  'throttle': tf.TensorShape([])}
+                  )
         return shapes
 
     def run(self, img_arr: np.ndarray, *other_arr: List[float]) -> \

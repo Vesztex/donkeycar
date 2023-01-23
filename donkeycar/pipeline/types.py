@@ -100,8 +100,7 @@ class TubDataset(object):
     """
 
     def __init__(self, config: Config, tub_paths: List[str],
-                 seq_size: int = 0,
-                 add_lap_pct: str = None) -> None:
+                 seq_size: int = 0, add_lap_pct: str = '') -> None:
         self.config = config
         self.tub_paths = tub_paths
         self.tubs: List[Tub] = [Tub(tub_path, read_only=True)
@@ -110,6 +109,7 @@ class TubDataset(object):
         self.train_filter = getattr(config, 'TRAIN_FILTER', None)
         self.add_lap_pct = add_lap_pct
         self.seq_size = seq_size
+        logger.info(f'Created TubDataset with add_lap_pct: {self.add_lap_pct}')
 
     def get_records(self) -> Union[List[TubRecord], List[List[TubRecord]]]:
         if not self.records:

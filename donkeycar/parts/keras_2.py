@@ -49,6 +49,10 @@ class KerasSquarePlus(KerasLinear):
         return linear_square_plus(self.input_shape, size=self.size,
                                   pos_throttle=self.use_speed)
 
+    # def compile(self):
+    #     self.interpreter.compile(optimizer=self.optimizer, loss='mse',
+    #                              weighted_metrics=['mse'])
+
     def y_transform(self, record: Union[TubRecord, List[TubRecord]]) \
             -> Dict[str, Union[float, List[float]]]:
         assert isinstance(record, TubRecord), 'TubRecord expected'
@@ -92,12 +96,17 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
         super().__init__(interpreter, input_shape, *args, **kwargs)
+        # because we have 2 inputs (img, mem) we need to freeze in1, in2, cnn
+        self.num_to_freeze = 3
 
     def create_model(self):
         return linear_square_plus_mem(self.input_shape, self.size,
                                       self.mem_length, self.mem_depth,
                                       has_lap_pct=False,
                                       pos_throttle=self.use_speed)
+
+    def use_lap_pct(self) -> bool:
+        return True
 
     def x_transform(
             self,
@@ -123,11 +132,19 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
         throttle = self._get_throttle(records[-1])
         return {'angle': angle, 'throttle': throttle}
 
+    def w_transform(self, records: Union[TubRecord, List[TubRecord]]) \
+            -> Dict[str, Union[float, List[float]]]:
+        assert isinstance(records, list), 'List[TubRecord] expected'
+        weight = records[-1].underlying['lap_pct']
+        return {'angle': weight, 'throttle': weight}
+
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
         img_shape = self.get_input_shape('img_in')[1:]
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'mem_in': tf.TensorShape(2 * self.mem_length)},
+                  {'angle': tf.TensorShape([]),
+                   'throttle': tf.TensorShape([])},
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])})
         return shapes

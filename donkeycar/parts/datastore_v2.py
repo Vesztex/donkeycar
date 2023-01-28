@@ -8,9 +8,6 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-
-logger = logging.getLogger(__name__)
-
 NEWLINE = '\n'
 NEWLINE_STRIP = '\r\n'
 
@@ -266,10 +263,12 @@ class Manifest(object):
             self.manifest_metadata['created_at'] = created_at
             if not self.base_path.exists():
                 self.base_path.mkdir(parents=True, exist_ok=True)
-                logger.info(f'Created a new datastore at'
+                logger.info(f'Creating a new datastore at'
                             f' {self.base_path.as_posix()}')
             self.seekeable = Seekable(self.manifest_path,
                                       read_only=self.read_only)
+            logger.info(f'Creating a new manifest at '
+                        f'{self.manifest_path.as_posix()}')
 
         if not has_catalogs:
             self._write_contents()

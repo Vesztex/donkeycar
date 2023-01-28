@@ -65,6 +65,8 @@ class BatchSequence(object):
             """ Extracting x from record for training"""
             out_dict = self.model.x_transform(record, self.image_processor)
             # apply the normalisation here on the fly to go from uint8 -> float
+            # this reduces the cached records size by a factor of 8 as they are
+            # stored as uint8 arrays and not float64
             out_dict['img_in'] = normalize_image(out_dict['img_in'])
             return out_dict
 
@@ -73,9 +75,18 @@ class BatchSequence(object):
             y = self.model.y_transform(record)
             return y
 
+        def get_w(record: TubRecord) -> Dict[str, Union[float, np.ndarray]]:
+            w = self.model.w_transform(record)
+            return w
+
         # 2. Build pipeline using the transformations
-        pipeline = PipelineGenerator(
-            self.records, x_transform=get_x, y_transform=get_y)
+        use_weights = getattr(self.config, 'LAP_QUANTIFIER', '').lower() \
+            == 'weight'
+        w_transform = get_w if use_weights else None
+        pipeline = PipelineGenerator(self.records,
+                                     x_transform=get_x,
+                                     y_transform=get_y,
+                                     w_transform=w_transform)
         return pipeline
 
     def create_tf_data(self) -> tf.data.Dataset:

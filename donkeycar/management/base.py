@@ -558,9 +558,13 @@ class Train(BaseCommand):
 
     def run(self, args):
         args = self.parse_args(args)
-        args.tub = ','.join(args.tub)
         my_cfg = args.myconfig
         cfg = load_config(args.config, my_cfg)
+        if args.tub:
+            args.tub = ','.join(args.tub)
+        else:
+            args.tub = cfg.DATA_PATH
+
         framework = args.framework if args.framework \
             else getattr(cfg, 'DEFAULT_AI_FRAMEWORK', 'tensorflow')
 

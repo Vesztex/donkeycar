@@ -1,4 +1,5 @@
 import copy
+import math
 import os
 from typing import Any, List, Optional, TypeVar, Iterator, Union, Iterable
 import logging
@@ -37,6 +38,16 @@ TubRecordDict = TypedDict(
         'lap_pct': Optional[float]
     }
 )
+
+
+# def softmax_plus(n):
+#     logn = max(math.log(n), 1)
+#     return [(1 / (i+1)) * logn for i in range(n)]
+
+
+def softmax_plus(n):
+    x = np.arange(n) * 20 / n
+    return n * np.exp(-x) / np.exp(-x).sum()
 
 
 class TubRecord(object):
@@ -107,7 +118,7 @@ class TubDataset(object):
                                 for tub_path in self.tub_paths]
         self.records: List[TubRecord] = list()
         self.train_filter = getattr(config, 'TRAIN_FILTER', None)
-        self.add_lap_pct = add_lap_pct
+        self.add_lap_pct = add_lap_pct.lower()
         self.seq_size = seq_size
         logger.info(f'Created TubDataset with add_lap_pct: {self.add_lap_pct}')
 
@@ -119,10 +130,12 @@ class TubDataset(object):
             logger.info(f'Loading tubs from paths {self.tub_paths}')
             for tub in self.tubs:
                 session_lap_rank = None
-                if self.add_lap_pct.lower() == 'time':
+                if self.add_lap_pct in ('time', 'weight'):
                     session_lap_rank = tub.calculate_lap_performance(
                         self.config.USE_LAP_0)
-                elif self.add_lap_pct.lower() == 'gyro':
+                    if self.add_lap_pct == 'weight':
+                        self.convert_to_weight(session_lap_rank)
+                elif self.add_lap_pct == 'gyro':
                     session_lap_rank = tub.calculate_aggregated_gyro(
                         self.config.USE_LAP_0)
                 for underlying in tub:
@@ -142,6 +155,16 @@ class TubDataset(object):
                 seq = Collator(self.seq_size, self.records)
                 self.records = list(seq)
         return self.records
+
+    @staticmethod
+    def convert_to_weight(session_lap_rank):
+        for session, lap_rank in session_lap_rank.items():
+            # lap_rank is ordered dictionary of lap number vs lap pct,
+            # we replace the value lap pct with a weight given by the order
+            num_laps = len(lap_rank)
+            weights = softmax_plus(num_laps)
+            for i_weight, key in enumerate(lap_rank.keys()):
+                lap_rank[key] = weights[i_weight]
 
     def close(self):
         for tub in self.tubs:

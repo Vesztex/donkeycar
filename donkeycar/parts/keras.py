@@ -234,10 +234,17 @@ class KerasPilot(ABC):
     def y_transform(self, record: Union[TubRecord, List[TubRecord]]) \
             -> Dict[str, Union[float, List[float]]]:
         """ Transforms the record into dictionary for y for training the
-        model to x,y. All model ouputs layer's names must be matched by
+        model to x,y. All model outputs layer's names must be matched by
         dictionary keys. """
-        raise NotImplementedError(f'{self} not ready yet for new training '
-                                  f'pipeline')
+        raise NotImplementedError(f'y_transform for {self} not implemented')
+
+    def w_transform(self, records: Union[TubRecord, List[TubRecord]]) \
+            -> Dict[str, Union[float, List[float]]]:
+        """ Transforms the record into dictionary for weights for training the
+        model to x,y. All model outputs layer's names must be matched by
+        dictionary keys, i.e the format of the dictionary here has to match
+        the output of y_transform. """
+        raise NotImplementedError(f'w_transform for {self} not implemented')
 
     def output_types(self) -> Tuple[Dict[str, np.typename], ...]:
         """ Used in tf.data, assume all types are doubles"""

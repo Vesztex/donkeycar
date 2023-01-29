@@ -166,7 +166,8 @@ class GymLapTimer:
         logger.info('Three fastest laps: '
                     + ",".join(f"{it:.2f}" for it in laps_sorted[:3]))
         logger.info(f'Mean lap time: {sum(laps_sorted)/len(laps_sorted):.2f}, '
-                    f'median lap time: {laps_sorted[int(len(laps_sorted)/2)]}')
+                    f'median lap time: '
+                    f'{laps_sorted[int(len(laps_sorted)/2)]:.2f}')
 
     def to_list(self):
         return self.lap_info

@@ -11,7 +11,7 @@ Usage:
     manage.py (stream)
     manage.py (led)
     manage.py (gym) [--model=<path_to_pilot>] [--type=<model_type>] [--no_tub]\
-        [--my_cfg=<path_to_myconfig.py>] [--respawn] [--verbose]
+        [--my_cfg=<path_to_myconfig.py>] [--respawn] [--random] [--verbose]
 
 Options:
     -h --help               Show this screen.
@@ -310,7 +310,7 @@ def led(cfg):
 
 
 def gym(cfg, model_path=None, model_type=None, no_tub=False,
-        respawn=False, verbose=False):
+        respawn=False, random=False, verbose=False):
     """
     Running donkey gym
     """
@@ -380,17 +380,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
             kl_inputs.append('car/imu')
 
         if kl.use_lap_pct():
-            if getattr(cfg, "LAP_QUANTIFIER") in ('LR', 'Time'):
-                print('Using lap quantifier')
-
-                class LR:
-                    def __init__(self):
-                        logger.info(f"Creating part LR: {cfg.LAP_PCT}")
-                    def run(self, state):
-                        return [cfg.LAP_PCT] if state is None else [state]
-
-                car.add(LR(), inputs=['user/state'], outputs=['lap_pct'])
-            else:
+            if random:
                 class LapPct:
                     lap = 0
                     lap_pct = cfg.LAP_PCT
@@ -407,6 +397,15 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
                         return [self.lap_pct]
 
                 car.add(LapPct(), inputs=['car/lap'], outputs=['lap_pct'])
+            else:
+                class LR:
+                    def __init__(self):
+                        logger.info(f"Creating part LR: {cfg.LAP_PCT}")
+                    def run(self, state):
+                        return [cfg.LAP_PCT] if state is None else [state]
+
+                car.add(LR(), inputs=['user/state'], outputs=['lap_pct'])
+
             kl_inputs.append('lap_pct')
 
         # add auto pilot and model reloader ------------------------------------
@@ -510,5 +509,9 @@ if __name__ == '__main__':
     elif args['led']:
         led(config)
     elif args['gym']:
-        gym(cfg=config, model_path=args['--model'], model_type=args['--type'],
-            no_tub=args['--no_tub'], verbose=args['--verbose'])
+        gym(cfg=config,
+            model_path=args['--model'],
+            model_type=args['--type'],
+            no_tub=args['--no_tub'],
+            random=args['--random'],
+            verbose=args['--verbose'])

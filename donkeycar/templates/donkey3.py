@@ -11,7 +11,7 @@ Usage:
     manage.py (stream)
     manage.py (led)
     manage.py (gym) [--model=<path_to_pilot>] [--type=<model_type>] [--no_tub]\
-        [--my_cfg=<path_to_myconfig.py>] [--verbose]
+        [--my_cfg=<path_to_myconfig.py>] [--respawn] [--verbose]
 
 Options:
     -h --help               Show this screen.
@@ -309,7 +309,8 @@ def led(cfg):
     car.start(rate_hz=40, max_loop_count=2000)
 
 
-def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
+def gym(cfg, model_path=None, model_type=None, no_tub=False,
+        respawn=False, verbose=False):
     """
     Running donkey gym
     """
@@ -326,6 +327,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     is_sim = sock.connect_ex((cfg.SIM_HOST, 9091)) == 0
     sock.close()
+    respawn = respawn or model_path is not None
     # respawn car at game over when driving with auto pilot
     cam = DonkeyGymEnv(cfg.DONKEY_SIM_PATH, host=cfg.SIM_HOST,
                        env_name=cfg.DONKEY_GYM_ENV_NAME, conf=cfg.GYM_CONF,
@@ -335,7 +337,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
                        record_lidar=cfg.SIM_RECORD_LIDAR,
                        delay=cfg.SIM_ARTIFICIAL_LATENCY,
                        new_sim=not is_sim,
-                       respawn_on_game_over=model_path is not None)
+                       respawn_on_game_over=respawn)
     threaded = True
     inputs = ['angle', 'throttle']
     outputs = [CAM_IMG, 'pos/pos', 'car/speed', 'pos/cte']
@@ -376,16 +378,37 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
             car.add(imu_prep, inputs=['car/accel', 'car/gyro'],
                     outputs=['car/imu'])
             kl_inputs.append('car/imu')
+
         if kl.use_lap_pct():
-            class LapPct:
-                def __init__(self):
-                    logger.info(f"Creating part LapPct: {cfg.LAP_PCT}")
+            if getattr(cfg, "LAP_QUANTIFIER") in ('LR', 'Time'):
+                print('Using lap quantifier')
 
-                def run(self):
-                    return [cfg.LAP_PCT]
+                class LR:
+                    def __init__(self):
+                        logger.info(f"Creating part LR: {cfg.LAP_PCT}")
+                    def run(self, state):
+                        return [cfg.LAP_PCT] if state is None else [state]
 
-            car.add(LapPct(), outputs=['lap_pct'])
+                car.add(LR(), inputs=['user/state'], outputs=['lap_pct'])
+            else:
+                class LapPct:
+                    lap = 0
+                    lap_pct = cfg.LAP_PCT
+                    def __init__(self):
+                        logger.info(f"Creating part LapPct: {self.lap_pct}")
+                    def run(self, lap):
+                        # trigger update in each new lap
+                        if lap != self.lap:
+                            self.lap_pct += 0.25
+                            if self.lap_pct > 1.0:
+                                self.lap_pct = cfg.LAP_PCT
+                            self.lap = lap
+                            logger.info(f"Setting lap pct to {self.lap_pct}")
+                        return [self.lap_pct]
+
+                car.add(LapPct(), inputs=['car/lap'], outputs=['lap_pct'])
             kl_inputs.append('lap_pct')
+
         # add auto pilot and model reloader ------------------------------------
         kl_outputs = ['pilot/angle', 'pilot/throttle']
         model_resetter = ModelResetter(kl)
@@ -398,7 +421,8 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
     ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT, mode=cfg.WEB_INIT_MODE)
     car.add(ctr,
             inputs=['cam/image_array', 'tub/num_records'],
-            outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
+            outputs=['user/angle', 'user/throttle', 'user/mode', 'recording',
+                     'buttons'],
             threaded=True)
 
     # Choose what inputs should change the car.
@@ -419,13 +443,28 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False, verbose=False):
                     'pilot/angle', 'pilot/throttle'],
             outputs=['angle', 'throttle'])
 
+    class ButtonReader:
+        state = 0
+        range = getattr(cfg, 'RL_RANGE', [0, 1])
+
+        def run(self, buttons={}):
+            for i in range(5):
+                if f'w{i+1}' in buttons and buttons[f'w{i+1}']:
+                    self.state = i / 4 * (self.range[1] - self.range[0]) \
+                                 + self.range[0]
+                    print(f'Switch state to {self.state}')
+            return self.state
+
+    car.add(ButtonReader(), inputs=['buttons'], outputs=['user/state'])
+
     # if we want to record a tub -----------------------------------------------
     record_on_ai = getattr(cfg, 'RECORD_DURING_AI', False)
     if (model_path is None or record_on_ai) and not no_tub:
         inputs = [CAM_IMG, 'user/angle', 'user/throttle', 'user/mode',
-                  'car/lap', 'car/distance', 'pos/pos', 'car/speed', 'pos/cte']
+                  'car/lap', 'car/distance', 'pos/pos', 'car/speed', 'pos/cte',
+                  'user/state']
         types = ['image_array', 'float', 'float', 'str', 'int', 'float',
-                 'vector', 'float', 'float']
+                 'vector', 'float', 'float', 'int']
         if cfg.SIM_RECORD_GYROACCEL:
             inputs += ['car/gyro', 'car/accel']
             types += ['vector', 'vector']

@@ -116,13 +116,11 @@ class LocalWebController(tornado.web.Application):
         self.recording = False
         self.recording_latch = None
         self.buttons = {}  # latched button values for processing
-
         self.port = port
 
         self.num_records = 0
         self.wsclients = []
         self.loop = None
-
 
         handlers = [
             (r"/", RedirectHandler, dict(url="/drive")),
@@ -186,12 +184,12 @@ class LocalWebController(tornado.web.Application):
             self.recording = recording
             changes["recording"] = self.recording
         if self.recording_latch is not None:
-            self.recording = self.recording_latch;
-            self.recording_latch = None;
-            changes["recording"] = self.recording;
+            self.recording = self.recording_latch
+            self.recording_latch = None
+            changes["recording"] = self.recording
 
         # Send record count to websocket clients
-        if (self.num_records is not None and self.recording is True):
+        if self.num_records is not None and self.recording is True:
             if self.num_records % 10 == 0:
                 changes['num_records'] = self.num_records
 
@@ -228,7 +226,7 @@ class DriveAPI(RequestHandler):
     def post(self):
         '''
         Receive post requests as user changes the angle
-        and throttle of the vehicle on a the index webpage
+        and throttle of the vehicle on the index webpage
         '''
         data = tornado.escape.json_decode(self.request.body)
 
@@ -241,6 +239,7 @@ class DriveAPI(RequestHandler):
         if data.get('recording') is not None:
             self.application.recording = data['recording']
         if data.get('buttons') is not None:
+            print('Received push')
             latch_buttons(self.application.buttons, data['buttons'])
 
 

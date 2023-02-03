@@ -561,12 +561,14 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> Union['KerasPilot', 'Fa
             mem_length=mem_length, mem_depth=mem_depth,
             mem_start_speed=mem_start_speed)
     elif used_model_type == 'sq_mem_lap':
+        throttle_mult = cfg.AI_THROTTLE_MULT
         kl = KerasSquarePlusMemoryLap(
             interpreter=interpreter, input_shape=input_shape, size=cfg.NN_SIZE,
             use_speed=cfg.USE_SPEED_FOR_MODEL,
             max_speed=cfg.MAX_SPEED,
             mem_length=mem_length, mem_depth=mem_depth,
-            mem_start_speed=mem_start_speed)
+            mem_start_speed=mem_start_speed,
+            throttle_mult=throttle_mult)
     else:
         known = [k + u for k in ('', 'tflite_', 'tensorrt_')
                  for u in used_model_type.mem]

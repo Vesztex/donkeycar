@@ -162,9 +162,11 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
                  *args, **kwargs):
         super().__init__(interpreter, input_shape, *args, **kwargs)
         self.num_to_freeze = 4
+        self.throttle_mult = kwargs.get('throttle_mult', 1.0)
 
     def use_lap_pct(self) -> bool:
         return True
+        # return False
 
     def create_model(self):
         return linear_square_plus_mem(self.input_shape, self.size,
@@ -176,7 +178,9 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
                     img_processor: Callable[[np.ndarray], np.ndarray]) \
             -> Dict[str, Union[float, np.ndarray]]:
         x_dict = super().x_transform(record, img_processor)
+        # TODO: this needs to be set by an environment
         lap_pct = np.array([record[-1].underlying['lap_pct']])
+        # lap_pct = np.array([record[-1].underlying.get('user/state', 0)])
         x_dict['lap_pct_in'] = lap_pct
         return x_dict
 
@@ -210,7 +214,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         # and output shapes(), so we need the first tuple here
         input_dict = dict(zip(self.output_shapes()[0].keys(), values))
         angle, throttle = self.inference_from_dict(input_dict)
-        # throttle *= 1.05
+        throttle *= self.throttle_mult
         #angle *= 1.02
         # fill new values into back of history list for next call
         self.mem_seq.popleft()

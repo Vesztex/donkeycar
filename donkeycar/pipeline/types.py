@@ -132,7 +132,8 @@ class TubDataset(object):
                 session_lap_rank = None
                 if self.add_lap_pct in ('time', 'weight'):
                     session_lap_rank = tub.calculate_lap_performance(
-                        self.config.USE_LAP_0)
+                        self.config.USE_LAP_0, num_buckets=4)
+                    logger.info(f'SessionLapRank: {session_lap_rank}')
                     if self.add_lap_pct == 'weight':
                         self.convert_to_weight(session_lap_rank)
                 elif self.add_lap_pct == 'gyro':

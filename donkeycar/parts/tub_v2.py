@@ -145,7 +145,7 @@ class Tub(object):
         self.manifest.write_metadata()
         logger.info(f'Generated lap times {res}')
 
-    def calculate_lap_performance(self, use_lap_0=False):
+    def calculate_lap_performance(self, use_lap_0=False, num_buckets=None):
         """
         Creates a dictionary of (session_id, lap) keys and int values
         where 0 is the fastest lap and num_bins-1 is the slowest.
@@ -155,6 +155,9 @@ class Tub(object):
                             crossed the first time hence the lap is
                             incomplete, but in the sim 0 indicates the
                             first complete lap
+        :param num_buckets: If given, buckets the laps into as many buckets
+                            and assigns the numbers i/num_buckets, i=1,...,
+                            num_buckets to each lap in that bucket.
         :return:            dict of type {(session_id, lap): state_vector}
         """
 
@@ -180,7 +183,10 @@ class Tub(object):
             laps_sorted = sorted(laps_filtered, key=itemgetter('time'))
             num_laps = len(laps_sorted)
             for i, lap_i in enumerate(laps_sorted):
-                rel_i = (i + 1) / num_laps
+                if num_buckets is None:
+                    rel_i = (i + 1) / num_laps
+                else:
+                    rel_i = int(i * num_buckets / num_laps + 1) / num_buckets
                 session_lap_rank[session_id][lap_i['lap']] = rel_i
             log_text = f'Session {session_id} with {num_laps} valid laps out ' \
                        f'of {len(lap_timer)}'

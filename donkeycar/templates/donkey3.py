@@ -327,33 +327,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     is_sim = sock.connect_ex((cfg.SIM_HOST, 9091)) == 0
     sock.close()
-    respawn = respawn or model_path is not None
-    # respawn car at game over when driving with auto pilot
-    cam = DonkeyGymEnv(cfg.DONKEY_SIM_PATH, host=cfg.SIM_HOST,
-                       env_name=cfg.DONKEY_GYM_ENV_NAME, conf=cfg.GYM_CONF,
-                       record_location=True,
-                       record_gyroaccel=cfg.SIM_RECORD_GYROACCEL,
-                       record_velocity=cfg.SIM_RECORD_VELOCITY,
-                       record_lidar=cfg.SIM_RECORD_LIDAR,
-                       delay=cfg.SIM_ARTIFICIAL_LATENCY,
-                       new_sim=not is_sim,
-                       respawn_on_game_over=respawn)
-    threaded = True
-    inputs = ['angle', 'throttle']
-    outputs = [CAM_IMG, 'pos/pos', 'car/speed', 'pos/cte']
-    if cfg.SIM_RECORD_GYROACCEL:
-        outputs += ['car/gyro', 'car/accel']
-    if cfg.SIM_RECORD_VELOCITY:
-        outputs += ['car/vel']
-    if cfg.SIM_RECORD_LIDAR:
-        outputs += ['lidar/dist_array']
-    outputs += ['last_lap_time', 'game_over']
 
-    car.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
-    car.add(GymOdometer(), inputs=['pos/pos'], outputs=['car/distance'])
-    lap_timer = GymLapTimer()
-    car.add(lap_timer, inputs=['last_lap_time', 'car/distance'],
-            outputs=['car/lap'])
 
 # load model if present ----------------------------------------------------
     if model_path is not None:
@@ -456,6 +430,34 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
 
     car.add(ButtonReader(), inputs=['buttons'], outputs=['user/state'])
 
+    respawn = respawn or model_path is not None
+    # respawn car at game over when driving with auto pilot
+    cam = DonkeyGymEnv(cfg.DONKEY_SIM_PATH, host=cfg.SIM_HOST,
+                       env_name=cfg.DONKEY_GYM_ENV_NAME, conf=cfg.GYM_CONF,
+                       record_location=True,
+                       record_gyroaccel=cfg.SIM_RECORD_GYROACCEL,
+                       record_velocity=cfg.SIM_RECORD_VELOCITY,
+                       record_lidar=cfg.SIM_RECORD_LIDAR,
+                       delay=cfg.SIM_ARTIFICIAL_LATENCY,
+                       new_sim=not is_sim,
+                       respawn_on_game_over=respawn)
+    threaded = True
+    inputs = ['angle', 'throttle']
+    outputs = [CAM_IMG, 'pos/pos', 'car/speed', 'pos/cte']
+    if cfg.SIM_RECORD_GYROACCEL:
+        outputs += ['car/gyro', 'car/accel']
+    if cfg.SIM_RECORD_VELOCITY:
+        outputs += ['car/vel']
+    if cfg.SIM_RECORD_LIDAR:
+        outputs += ['lidar/dist_array']
+    outputs += ['last_lap_time', 'game_over']
+
+    car.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
+    car.add(GymOdometer(), inputs=['pos/pos'], outputs=['car/distance'])
+    lap_timer = GymLapTimer()
+    car.add(lap_timer, inputs=['last_lap_time', 'car/distance'],
+            outputs=['car/lap'])
+
     # if we want to record a tub -----------------------------------------------
     record_on_ai = getattr(cfg, 'RECORD_DURING_AI', False)
     if (model_path is None or record_on_ai) and not no_tub:
@@ -513,5 +515,6 @@ if __name__ == '__main__':
             model_path=args['--model'],
             model_type=args['--type'],
             no_tub=args['--no_tub'],
+            respawn=args['--respawn'],
             random=args['--random'],
             verbose=args['--verbose'])

@@ -355,6 +355,28 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
     car.add(lap_timer, inputs=['last_lap_time', 'car/distance'],
             outputs=['car/lap'])
 
+    ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT, mode=cfg.WEB_INIT_MODE)
+    car.add(ctr,
+            inputs=['cam/image_array', 'tub/num_records'],
+            outputs=['user/angle', 'user/throttle', 'user/mode', 'recording',
+                     'buttons'],
+            threaded=True)
+
+    class ButtonReader:
+        state = [1.0, 1.0]
+        range = getattr(cfg, 'RL_RANGE', [0, 1])
+        def run(self, buttons={}):
+            for i in range(10):
+                if buttons.get(f'w{i+1}'):
+                    dim = int(i/5)
+                    self.state[dim] \
+                        = (i/4 - dim * 5/4) * (self.range[1] - self.range[0]) \
+                          + self.range[0]
+                    logger.info(f'Switch state to {self.state}')
+            return self.state
+
+    car.add(ButtonReader(), inputs=['buttons'], outputs=['user/state'])
+
 # load model if present ----------------------------------------------------
     if model_path is not None:
         logger.info("Using auto-pilot")
@@ -402,7 +424,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
                     def __init__(self):
                         logger.info(f"Creating part LR: {cfg.LAP_PCT}")
                     def run(self, state):
-                        return [cfg.LAP_PCT] if state is None else [state]
+                        return cfg.LAP_PCT if state is None else state
 
                 car.add(LR(), inputs=['user/state'], outputs=['lap_pct'])
 
@@ -416,13 +438,6 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
     else:
         # rename the usr throttle
         car.add(Renamer(), inputs=['user/throttle'], outputs=['throttle'])
-
-    ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT, mode=cfg.WEB_INIT_MODE)
-    car.add(ctr,
-            inputs=['cam/image_array', 'tub/num_records'],
-            outputs=['user/angle', 'user/throttle', 'user/mode', 'recording',
-                     'buttons'],
-            threaded=True)
 
     # Choose what inputs should change the car.
     class DriveMode:
@@ -442,20 +457,6 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
                     'pilot/angle', 'pilot/throttle'],
             outputs=['angle', 'throttle'])
 
-    class ButtonReader:
-        state = 0
-        range = getattr(cfg, 'RL_RANGE', [0, 1])
-
-        def run(self, buttons={}):
-            for i in range(5):
-                if f'w{i+1}' in buttons and buttons[f'w{i+1}']:
-                    self.state = i / 4 * (self.range[1] - self.range[0]) \
-                                 + self.range[0]
-                    print(f'Switch state to {self.state}')
-            return self.state
-
-    car.add(ButtonReader(), inputs=['buttons'], outputs=['user/state'])
-
     # if we want to record a tub -----------------------------------------------
     record_on_ai = getattr(cfg, 'RECORD_DURING_AI', False)
     if (model_path is None or record_on_ai) and not no_tub:
@@ -463,7 +464,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
                   'car/lap', 'car/distance', 'pos/pos', 'car/speed', 'pos/cte',
                   'user/state']
         types = ['image_array', 'float', 'float', 'str', 'int', 'float',
-                 'vector', 'float', 'float', 'int']
+                 'vector', 'float', 'float', 'vector']
         if cfg.SIM_RECORD_GYROACCEL:
             inputs += ['car/gyro', 'car/accel']
             types += ['vector', 'vector']
@@ -474,7 +475,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
             inputs += ['lidar/dist_array']
             types += ['nparray']
         if record_on_ai:
-            # rename ai output as user so we can use in training
+            # rename ai output as user, so we can use in training
             car.add(Renamer(), inputs=['pilot/angle'], outputs=['user/angle'])
             car.add(Renamer(), inputs=['pilot/throttle'],
                     outputs=['user/throttle'])

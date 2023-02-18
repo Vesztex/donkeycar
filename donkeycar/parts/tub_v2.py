@@ -179,21 +179,34 @@ class Tub(object):
                 del(lap_timer[0])
             # Remove laps that are not valid
             laps_filtered = [l for l in lap_timer if l.get('valid', True)]
-            # lap_timer is a list of dictionaries, sort here by time
-            laps_sorted = sorted(laps_filtered, key=itemgetter('time'))
-            num_laps = len(laps_sorted)
-            for i, lap_i in enumerate(laps_sorted):
-                if num_buckets is None:
-                    rel_i = (i + 1) / num_laps
-                else:
-                    rel_i = int(i * num_buckets / num_laps + 1) / num_buckets
-                session_lap_rank[session_id][lap_i['lap']] = rel_i
-            log_text = f'Session {session_id} with {num_laps} valid laps out ' \
-                       f'of {len(lap_timer)}'
-            if num_laps > 0:
-                log_text += f', min time: {laps_sorted[0]["time"]:5.2f}, ' \
-                            f'max time: {laps_sorted[-1]["time"]:5.2f} '
-            logger.info(log_text)
+            # lap_timer is a list of dictionaries, sort first by time and add
+            # the relative timing into first entry of session_lap_rank and
+            # then sort by distance and add this into the second entry
+            for sort_by in ('time', 'distance'):
+                laps_sorted = sorted(laps_filtered, key=itemgetter(sort_by))
+                num_laps = len(laps_sorted)
+                for i, lap_i in enumerate(laps_sorted):
+                    if num_buckets is None:
+                        rel_i = (i + 1) / num_laps
+                    else:
+                        rel_i = int(i * num_buckets/num_laps + 1) / num_buckets
+                    # put time sorting into first and distance sorting into
+                    # second entry of tuple
+                    if sort_by == 'time':
+                        # when we loop over time, set a list with second
+                        # entry being empty to be filled with distance ranks
+                        session_lap_rank[session_id][lap_i['lap']] \
+                            = [rel_i, None]
+                    else:
+                        # when we loop over distance, fill the empty entry
+                        session_lap_rank[session_id][lap_i['lap']][1] = rel_i
+                log_text = f'Session {session_id} with {num_laps} valid laps ' \
+                           f'out of {len(lap_timer)}'
+                if num_laps > 0:
+                    log_text \
+                        += f', min {sort_by}: {laps_sorted[0][sort_by]:5.2f}, '\
+                           f'max {sort_by}: {laps_sorted[-1][sort_by]:5.2f}'
+                logger.info(log_text)
         return session_lap_rank
 
     def all_lap_times(self):

@@ -145,8 +145,9 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
                    'mem_in': tf.TensorShape(2 * self.mem_length)},
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])},
-                  {'angle': tf.TensorShape([]),
-                   'throttle': tf.TensorShape([])})
+                  # {'angle': tf.TensorShape([]),
+                  #  'throttle': tf.TensorShape([])}
+                  )
         return shapes
 
     def reset(self):
@@ -179,7 +180,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
             -> Dict[str, Union[float, np.ndarray]]:
         x_dict = super().x_transform(record, img_processor)
         # TODO: this needs to be set by an environment
-        lap_pct = np.array([record[-1].underlying['lap_pct']])
+        lap_pct = np.array([record[-1].underlying['lap_pct']]).reshape((2,))
         # lap_pct = np.array([record[-1].underlying.get('user/state', 0)])
         x_dict['lap_pct_in'] = lap_pct
         return x_dict
@@ -189,7 +190,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         img_shape = self.get_input_shape('img_in')[1:]
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'mem_in': tf.TensorShape(2 * self.mem_length),
-                   'lap_pct_in': tf.TensorShape(1)},
+                   'lap_pct_in': tf.TensorShape(2)},
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])},
                     # this is for the weights
@@ -901,9 +902,9 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
     inputs = [img_in, mem_in]
     if has_lap_pct:
         # using leaky relu here with negative branch, so we get some
-        # extrapolation if we put smaller values than the minimum percentile
-        # we used in training
-        lap_in = Input(shape=(1,), name='lap_pct_in')
+        # extrapolation if we put smaller values than the minimum/maximum
+        # percentile we used in training
+        lap_in = Input(shape=(2,), name='lap_pct_in')
         xl = lap_in
         for i in range(3):
             xl = Dense(16, name=f'lap_{i}')(xl)

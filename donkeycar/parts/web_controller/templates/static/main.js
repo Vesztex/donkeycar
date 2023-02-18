@@ -27,6 +27,11 @@ var driveHandler = new function() {
             "w3": false,
             "w4": false,
             "w5": false,
+            "w6": false,
+            "w7": false,
+            "w8": false,
+            "w9": false,
+            "w10": false,
         }
     }
 

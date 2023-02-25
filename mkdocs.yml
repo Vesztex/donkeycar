@@ -1,6 +1,14 @@
 ---
 site_name: DocGarbanzo Car
-#theme: material
+theme: material
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
 
 repo_url: https://github.com/DocGarbanzo/donkeycar/
 edit_uri: edit/new_dev/docs

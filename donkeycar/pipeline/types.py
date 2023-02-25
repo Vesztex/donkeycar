@@ -5,6 +5,7 @@ from typing import Any, List, Optional, TypeVar, Iterator, Union, Iterable
 import logging
 import numpy as np
 from donkeycar.config import Config
+from donkeycar.parts.tub_statistics import TubStatistics
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.utils import load_image, load_pil_image
 from typing_extensions import TypedDict
@@ -129,15 +130,18 @@ class TubDataset(object):
             used_records = 0
             logger.info(f'Loading tubs from paths {self.tub_paths}')
             for tub in self.tubs:
+                tub_stat = TubStatistics(tub)
                 session_lap_rank = None
                 if self.add_lap_pct in ('time', 'weight'):
-                    session_lap_rank = tub.calculate_lap_performance(
+                    session_lap_rank = tub_stat.calculate_lap_performance(
                         self.config.USE_LAP_0, num_buckets=4)
+                    session_lap_rank = tub_stat.calculate_aggregated_gyro(
+                        self.config.USE_LAP_0, session_lap_rank)
                     logger.info(f'SessionLapRank: {session_lap_rank}')
                     if self.add_lap_pct == 'weight':
                         self.convert_to_weight(session_lap_rank)
                 elif self.add_lap_pct == 'gyro':
-                    session_lap_rank = tub.calculate_aggregated_gyro(
+                    session_lap_rank = tub_stat.calculate_aggregated_gyro(
                         self.config.USE_LAP_0)
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)

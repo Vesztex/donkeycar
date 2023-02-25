@@ -161,6 +161,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
                  interpreter: Interpreter = KerasInterpreter(),
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
+        self.lap_dim = kwargs.get('lap_dim', 3)
         super().__init__(interpreter, input_shape, *args, **kwargs)
         self.num_to_freeze = 4
         self.throttle_mult = kwargs.get('throttle_mult', 1.0)
@@ -173,14 +174,15 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         return linear_square_plus_mem(self.input_shape, self.size,
                                       self.mem_length, self.mem_depth,
                                       has_lap_pct=True,
-                                      pos_throttle=self.use_speed)
+                                      pos_throttle=self.use_speed,
+                                      lap_dim=self.lap_dim)
 
     def x_transform(self, record: Union[TubRecord, List[TubRecord]],
                     img_processor: Callable[[np.ndarray], np.ndarray]) \
             -> Dict[str, Union[float, np.ndarray]]:
         x_dict = super().x_transform(record, img_processor)
         # TODO: this needs to be set by an environment
-        lap_pct = np.array([record[-1].underlying['lap_pct']]).reshape((2,))
+        lap_pct = np.array([record[-1].underlying['lap_pct']]).reshape((self.lap_dim,))
         # lap_pct = np.array([record[-1].underlying.get('user/state', 0)])
         x_dict['lap_pct_in'] = lap_pct
         return x_dict
@@ -190,7 +192,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         img_shape = self.get_input_shape('img_in')[1:]
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'mem_in': tf.TensorShape(2 * self.mem_length),
-                   'lap_pct_in': tf.TensorShape(2)},
+                   'lap_pct_in': tf.TensorShape(self.lap_dim)},
                   {'angle': tf.TensorShape([]),
                    'throttle': tf.TensorShape([])},
                     # this is for the weights
@@ -888,7 +890,7 @@ def linear_square_plus_imu(input_shape=(120, 160, 3),
 
 def linear_square_plus_mem(input_shape=(120, 160, 3),
                            size='R', mem_length=3, mem_depth=0,
-                           has_lap_pct=False, pos_throttle=True):
+                           has_lap_pct=False, pos_throttle=True, lap_dim=3):
     l2 = 0.001
     drop2 = 0.1 #0.02 #0.1
     img_in = Input(shape=input_shape, name='img_in')
@@ -904,7 +906,7 @@ def linear_square_plus_mem(input_shape=(120, 160, 3),
         # using leaky relu here with negative branch, so we get some
         # extrapolation if we put smaller values than the minimum/maximum
         # percentile we used in training
-        lap_in = Input(shape=(2,), name='lap_pct_in')
+        lap_in = Input(shape=(lap_dim,), name='lap_pct_in')
         xl = lap_in
         for i in range(3):
             xl = Dense(16, name=f'lap_{i}')(xl)

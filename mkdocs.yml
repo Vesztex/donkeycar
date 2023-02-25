@@ -1,6 +1,6 @@
 ---
 site_name: DocGarbanzo Car
-theme: material
+#theme: material
 
 repo_url: https://github.com/DocGarbanzo/donkeycar/
 edit_uri: edit/new_dev/docs

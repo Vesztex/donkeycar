@@ -24,7 +24,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='donkeycar',
-      version="4.4.4-DG",
+      version="5.0.dev1+DocGarbanzo",
       long_description=long_description,
       description='Self driving library for python.',
       url='https://github.com/autorope/donkeycar',
@@ -65,25 +65,37 @@ setup(name='donkeycar',
               'adafruit-circuitpython-mpu6050',
               'adafruit-circuitpython-rplidar',
               'RPi.GPIO',
-              'imgaug',
               'tensorflow @ https://github.com/PINTO0309/Tensorflow-bin/releases/download/v2.9.0/tensorflow-2.9.0-cp39-none-linux_aarch64.whl'
+          ],
+          'nano45': [
+              'Adafruit_PCA9685',
+              'adafruit-circuitpython-ssd1306',
+              'adafruit-circuitpython-rplidar',
+              'Jetson.GPIO',
+              'albumentations',
+              'matplotlib',
+              'kivy-jetson',
+              'pyyaml',
+              'plotly'
           ],
           'nano': [
               'Adafruit_PCA9685',
               'adafruit-circuitpython-ssd1306',
               'adafruit-circuitpython-rplidar',
               'Jetson.GPIO',
+              'albumentations',
               'matplotlib',
-              'kivy-jetson==2.1',
+              'kivy',
               'pyyaml',
               'plotly'
           ],
           'pc': [
               'matplotlib',
               'kivy',
+              'pandas',
               'pyyaml',
               'plotly',
-              'imgaug'
+              'albumentations'
           ],
           'dev': [
               'pytest',
@@ -123,4 +135,4 @@ setup(name='donkeycar',
       ],
       keywords='selfdriving cars donkeycar diyrobocars',
       packages=find_packages(exclude=(['tests', 'docs', 'site', 'env'])),
-    )
+      )

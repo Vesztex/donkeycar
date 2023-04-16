@@ -106,7 +106,10 @@ def car_dir(tmpdir_factory, base_config, imu_fields) -> str:
         record['localizer/location'] = 3 * count // len(tub)
         tub_full.write_record(record)
         count += 1
-    return car_dir
+    yield car_dir
+    # this is run in tear down so we orderly close the tub
+    tub.close()
+    tub_full.close()
 
 
 # define the test data
@@ -203,31 +206,37 @@ def test_training_pipeline(config: Config, model_type: str,
     # this takes all batches into one list
     tf_batch = list(data_train.take(num_whole_batches).as_numpy_iterator())
     it = iter(training_records)
-    for xy_batch in tf_batch:
-        # extract x and y values from records, asymmetric in x and y b/c x
-        # requires image manipulations
-        batch_records = [next(it) for _ in range(config.BATCH_SIZE)]
-        # if we cache images then the normalisation here would not work, because
-        # the tf batch might already have taken the images out and written
-        # the uint8 images into the cache.
-        records_x = [kl.x_transform(r, normalize_image) for r in batch_records]
-        records_y = [kl.y_transform(r) for r in batch_records]
-        # from here all checks are symmetrical between x and y
-        for batch, o_type, records \
-                in zip(xy_batch, kl.output_types(), (records_x, records_y)):
-            # check batch dictionary have expected keys
-            assert batch.keys() == o_type.keys(), \
-                'batch keys need to match models output types'
-            # convert record values into arrays of batch size
-            values = defaultdict(list)
-            for r in records:
-                for k, v in r.items():
-                    values[k].append(v)
-            # now convert arrays of floats or numpy arrays into numpy arrays
-            np_dict = dict()
-            for k, v in values.items():
-                np_dict[k] = np.array(v)
-            # compare record values with values from tf.data
-            for k, v in batch.items():
-                assert np.isclose(v, np_dict[k]).all()
+    try:
+        for xy_batch in tf_batch:
+            # extract x and y values from records, asymmetric in x and y b/c x
+            # requires image manipulations
+            batch_records = [next(it) for _ in range(config.BATCH_SIZE)]
+            # if we cache images then the normalisation here would not work,
+            # because the tf batch might already have taken the images out and
+            # written the uint8 images into the cache.
+            records_x = [kl.x_transform(r, normalize_image)
+                         for r in batch_records]
+            records_y = [kl.y_transform(r) for r in batch_records]
+            # from here all checks are symmetrical between x and y
+            for batch, o_type, records \
+                    in zip(xy_batch, kl.output_types(), (records_x, records_y)):
+                # check batch dictionary have expected keys
+                assert batch.keys() == o_type.keys(), \
+                    'batch keys need to match models output types'
+                # convert record values into arrays of batch size
+                values = defaultdict(list)
+                for r in records:
+                    for k, v in r.items():
+                        values[k].append(v)
+                # now convert arrays of floats or numpy arrays into numpy arrays
+                np_dict = dict()
+                for k, v in values.items():
+                    np_dict[k] = np.array(v)
+                # compare record values with values from tf.data
+                for k, v in batch.items():
+                    assert np.isclose(v, np_dict[k]).all()
 
+    except Exception as e:
+        raise e
+    finally:
+        dataset.close()

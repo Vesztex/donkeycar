@@ -172,6 +172,7 @@ class TubDataset(object):
                 lap_rank[key] = weights[i_weight]
 
     def close(self):
+        logger.info(f'Closing TubDataset')
         for tub in self.tubs:
             tub.close()
 

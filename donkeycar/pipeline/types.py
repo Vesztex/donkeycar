@@ -1,7 +1,6 @@
 import copy
-import math
 import os
-from typing import Any, List, Optional, TypeVar, Iterator, Union, Iterable
+from typing import Any, List, Optional, Iterator, Union, Iterable
 import logging
 import numpy as np
 from donkeycar.config import Config
@@ -12,8 +11,6 @@ from typing_extensions import TypedDict
 
 
 logger = logging.getLogger(__name__)
-
-X = TypeVar('X', covariant=True)
 
 TubRecordDict = TypedDict(
     'TubRecordDict',
@@ -90,6 +87,8 @@ class TubRecord(object):
         return _image
 
     def extend(self, session_lap_rank):
+        # TODO: this needs to be updated to cope with new data format of
+        #  session_lap_rank
         if not session_lap_rank:
             return True
         session_id = self.underlying['_session_id']
@@ -131,18 +130,8 @@ class TubDataset(object):
             logger.info(f'Loading tubs from paths {self.tub_paths}')
             for tub in self.tubs:
                 tub_stat = TubStatistics(tub)
-                session_lap_rank = None
-                if self.add_lap_pct in ('time', 'weight'):
-                    session_lap_rank = tub_stat.calculate_lap_performance(
-                        self.config.USE_LAP_0, num_buckets=4)
-                    session_lap_rank = tub_stat.calculate_aggregated_gyro(
-                        self.config.USE_LAP_0, session_lap_rank)
-                    logger.info(f'SessionLapRank: {session_lap_rank}')
-                    if self.add_lap_pct == 'weight':
-                        self.convert_to_weight(session_lap_rank)
-                elif self.add_lap_pct == 'gyro':
-                    session_lap_rank = tub_stat.calculate_aggregated_gyro(
-                        self.config.USE_LAP_0)
+                session_lap_rank = tub_stat.calculate_lap_performance(
+                    self.config.USE_LAP_0, num_buckets=4)
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)
                     if self.train_filter and not self.train_filter(record):
@@ -191,6 +180,7 @@ class Collator(Iterable[List[TubRecord]]):
     def is_continuous(rec_1: TubRecord, rec_2: TubRecord) -> bool:
         """
         Checks if second record is next to first record
+
         :param rec_1:   first record
         :param rec_2:   second record
         :return:        if first record is followed by second record

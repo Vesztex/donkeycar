@@ -182,6 +182,8 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
             -> Dict[str, Union[float, np.ndarray]]:
         x_dict = super().x_transform(record, img_processor)
         # TODO: this needs to be set by an environment
+        # TODO: this needs to be updated to cope with new data format of
+        #  the record
         lap_pct = np.array([record[-1].underlying['lap_pct']]).reshape((self.lap_dim,))
         # lap_pct = np.array([record[-1].underlying.get('user/state', 0)])
         x_dict['lap_pct_in'] = lap_pct

@@ -87,19 +87,21 @@ class TubRecord(object):
         return _image
 
     def extend(self, session_lap_rank):
-        # TODO: this needs to be updated to cope with new data format of
-        #  session_lap_rank
         if not session_lap_rank:
             return True
         session_id = self.underlying['_session_id']
         lap_i = self.underlying['car/lap']
+
         if session_lap_rank:
             # we won't get a result for the last lap as this is incomplete and
             # doesn't have a time.
-            pct = session_lap_rank.get(session_id).get(lap_i)
-            self.underlying['lap_pct'] = pct
+            lap_i_dict = session_lap_rank.get(session_id).get(lap_i)
+            if lap_i_dict:
+                for key in 'time', 'distance', 'gyro_z_agg':
+                    val = lap_i_dict.get(key)
+                    self.underlying[f'lap_{key}_pct'] = val
 
-        return pct is not None
+        return lap_i_dict is not None
 
     def __repr__(self) -> str:
         return repr(self.underlying)

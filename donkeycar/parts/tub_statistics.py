@@ -141,6 +141,17 @@ class TubStatistics(object):
         not the last.
         """
 
+        def update_metadata(lap_gyro_map, session):
+            session_dict = self.tub.manifest.metadata.get(session)
+            assert session_dict, \
+                f"Missing metadata for session_id {session}"
+            lap_timer = session_dict.get('laptimer')
+            # update lap_timer here
+            for entry in lap_timer:
+                lap_i = entry['lap']
+                entry['gyro_z_agg'] = lap_gyro_map.get(lap_i)
+
+
         logger.info(f'Calculating aggregated gyro in tub {self.tub.base_path}')
         prev_session = None
         prev_lap = None
@@ -158,15 +169,7 @@ class TubStatistics(object):
                 # If new session found update the lap timer with the
                 # aggregated values
                 if prev_session is not None:
-
-                    session_dict = self.tub.manifest.metadata.get(prev_session)
-                    assert session_dict, \
-                        f"Missing metadata for session_id {prev_session}"
-                    lap_timer = session_dict.get('laptimer')
-                    # update lap_timer here
-                    for entry in lap_timer:
-                        lap_i = entry['lap']
-                        entry['gyro_z_agg'] = lap_gyro_map[lap_i]
+                    update_metadata(lap_gyro_map, prev_session)
 
                 # update current session to new session
                 prev_session = session_id
@@ -187,7 +190,8 @@ class TubStatistics(object):
             val = abs(record['car/gyro'][self.gyro_z_index])
             gyro_z_agg += val
 
-        # write back
-        self.tub.manifest.write_metadata()
+        # update for last lap
+        update_metadata(lap_gyro_map, prev_session)
+
 
 

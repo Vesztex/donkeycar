@@ -95,11 +95,11 @@ class TubRecord(object):
         if session_lap_rank:
             # we won't get a result for the last lap as this is incomplete and
             # doesn't have a time.
-            lap_i_dict = session_lap_rank.get(session_id).get(lap_i)
+            lap_i_dict = session_lap_rank[session_id].get(lap_i)
             if lap_i_dict:
-                for key in 'time', 'distance', 'gyro_z_agg':
-                    val = lap_i_dict.get(key)
-                    self.underlying[f'lap_{key}_pct'] = val
+                lap_pct = [lap_i_dict[key] for key
+                           in ('time', 'distance', 'gyro_z_agg')]
+                self.underlying['lap_pct'] = lap_pct
 
         return lap_i_dict is not None
 

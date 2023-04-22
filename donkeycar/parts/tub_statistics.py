@@ -151,7 +151,6 @@ class TubStatistics(object):
                 lap_i = entry['lap']
                 entry['gyro_z_agg'] = lap_gyro_map.get(lap_i)
 
-
         logger.info(f'Calculating aggregated gyro in tub {self.tub.base_path}')
         prev_session = None
         prev_lap = None

@@ -499,17 +499,18 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-def get_model_by_type(model_type: str, cfg: 'Config') -> Union['KerasPilot', 'FastAiPilot']:
-    '''
+def get_model_by_type(model_type: str, cfg: 'Config') \
+        -> Union['KerasPilot', 'FastAiPilot']:
+    """
     given the string model_type and the configuration settings in cfg
     create a Keras model and return it.
-    '''
+    """
     from donkeycar.parts.keras import KerasCategorical, KerasLinear, \
         KerasInferred, KerasIMU, KerasMemory, KerasBehavioral, KerasLocalizer, \
         KerasLSTM, Keras3D_CNN
     from donkeycar.parts.keras_2 import KerasSquarePlus, KerasSquarePlusImu, \
         KerasSquarePlusMemory, KerasSquarePlusMemoryLap
-    from donkeycar.parts.interpreter import KerasInterpreter, TfLite, TensorRT, \
+    from donkeycar.parts.interpreter import KerasInterpreter, TfLite, TensorRT,\
         FastAIInterpreter
 
     if model_type is None:

@@ -32,6 +32,9 @@ var driveHandler = new function() {
             "w8": false,
             "w9": false,
             "w10": false,
+        },
+        'sliders': {
+            "s1": 0,
         }
     }
 
@@ -152,12 +155,42 @@ var driveHandler = new function() {
       });
 
       $('#record_button').click(function () {
+        console.log('Pressed rec button');
         toggleRecording();
       });
 
       $('#brake_button').click(function() {
         toggleBrake();
       });
+
+      $('#s1').on('change', function () {
+        sv = document.getElementById('s1_value');
+        svf = parseFloat(sv.innerHTML)
+        console.log('s1 change detected: ' + svf);
+        state.sliders['s1'] = svf;
+        postDrive(["sliders"]);
+      });
+
+      $('#s2').on('change', function () {
+        sv = document.getElementById('s2_value');
+        svf = parseFloat(sv.innerHTML)
+        console.log('s2 change detected: ' + svf);
+        state.sliders['s2'] = svf;
+        postDrive(["sliders"]);
+      });
+
+      $('#s3').on('change', function () {
+        sv = document.getElementById('s3_value');
+        svf = parseFloat(sv.innerHTML)
+        console.log('s3 change detected: ' + svf);
+        state.sliders['s3'] = svf;
+        postDrive(["sliders"]);
+      });
+
+      $('#butt').click(function() {
+        console.log('Pressed butt button');
+      });
+
 
       $('input[type=radio][name=controlMode]').change(function() {
         if (this.value == 'joystick') {
@@ -193,6 +226,7 @@ var driveHandler = new function() {
         state.buttons[$(this).attr('id')] = false;
         postDrive(["buttons"]); // write it back to the server
       });
+
     };
 
 
@@ -324,7 +358,8 @@ var driveHandler = new function() {
       //drawLine(state.tele.user.angle, state.tele.user.throttle)
     };
 
-    const ALL_POST_FIELDS = ['angle', 'throttle', 'drive_mode', 'recording', 'buttons'];
+    const ALL_POST_FIELDS = ['angle', 'throttle', 'drive_mode', 'recording',
+    'buttons', 'sliders'];
 
     //
     // Set any changed properties to the server
@@ -332,7 +367,7 @@ var driveHandler = new function() {
     //
     var postDrive = function(fields=[]) {
 
-        if(fields.length === 0) {
+        if(fields.length == 0) {
             fields = ALL_POST_FIELDS;
         }
 
@@ -344,6 +379,7 @@ var driveHandler = new function() {
                 case 'drive_mode': data['drive_mode'] = state.driveMode; break;
                 case 'recording': data['recording'] = state.recording; break;
                 case 'buttons': data['buttons'] = state.buttons; break;
+                case 'sliders': data['sliders'] = state.sliders; break;
                 default: console.log(`Unexpected post field: '${field}'`); break;
             }
         });
@@ -730,4 +766,5 @@ function remap( x, oMin, oMax, nMin, nMax ){
 
 return result;
 }
+
 

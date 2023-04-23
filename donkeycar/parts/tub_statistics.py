@@ -119,11 +119,11 @@ class TubStatistics(object):
                     session_lap_rank[session_id][lap_i['lap']][sort_by] = rel_i
                 log_text = f'Session {session_id} with {num_laps} valid laps ' \
                            f'out of {len(lap_timer)}'
-            if num_laps > 0:
-                log_text \
-                    += f', min {sort_by}: {laps_sorted[0][sort_by]:5.2f}, '\
-                       f'max {sort_by}: {laps_sorted[-1][sort_by]:5.2f}'
-            logger.info(log_text)
+                if num_laps > 0:
+                    log_text \
+                        += f', min {sort_by}: {laps_sorted[0][sort_by]:5.2f}, '\
+                           f'max {sort_by}: {laps_sorted[-1][sort_by]:5.2f}'
+                logger.info(log_text)
 
         return session_lap_rank
 

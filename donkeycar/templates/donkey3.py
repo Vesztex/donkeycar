@@ -359,23 +359,8 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
     car.add(ctr,
             inputs=['cam/image_array', 'tub/num_records'],
             outputs=['user/angle', 'user/throttle', 'user/mode', 'recording',
-                     'buttons'],
+                     'buttons', 'sliders'],
             threaded=True)
-
-    class ButtonReader:
-        state = [1.0, 1.0]
-        range = getattr(cfg, 'RL_RANGE', [0, 1])
-        def run(self, buttons={}):
-            for i in range(10):
-                if buttons.get(f'w{i+1}'):
-                    dim = int(i/5)
-                    self.state[dim] \
-                        = (i/4 - dim * 5/4) * (self.range[1] - self.range[0]) \
-                          + self.range[0]
-                    logger.info(f'Switch state to {self.state}')
-            return self.state
-
-    car.add(ButtonReader(), inputs=['buttons'], outputs=['user/state'])
 
 # load model if present ----------------------------------------------------
     if model_path is not None:
@@ -420,13 +405,12 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
 
                 car.add(LapPct(), inputs=['car/lap'], outputs=['lap_pct'])
             else:
-                class LR:
-                    def __init__(self):
-                        logger.info(f"Creating part LR: {cfg.LAP_PCT}")
-                    def run(self, state):
-                        return cfg.LAP_PCT if state is None else state
+                class SliderSorter:
+                    def run(self, sliders):
+                        d = dict(sorted(sliders.items()))
+                        return d.values()
 
-                car.add(LR(), inputs=['user/state'], outputs=['lap_pct'])
+                car.add(SliderSorter(), inputs=['sliders'], outputs=['lap_pct'])
 
             kl_inputs.append('lap_pct')
 
@@ -446,11 +430,10 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
             if mode == 'user':
                 return user_angle, user_throttle
             elif mode == 'local_angle':
-                return pilot_angle if pilot_angle else 0.0, user_throttle
+                return pilot_angle or 0.0, user_throttle
             else:
-                return pilot_angle if pilot_angle else 0.0, \
-                       pilot_throttle * cfg.AI_THROTTLE_MULT \
-                       if pilot_throttle else 0.0
+                return pilot_angle or 0.0, pilot_throttle or 0.0
+                       #pilot_throttle * cfg.AI_THROTTLE_MULT \
 
     car.add(DriveMode(),
             inputs=['user/mode', 'user/angle', 'user/throttle',

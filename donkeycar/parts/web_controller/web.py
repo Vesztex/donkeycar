@@ -116,6 +116,7 @@ class LocalWebController(tornado.web.Application):
         self.recording = False
         self.recording_latch = None
         self.buttons = {}  # latched button values for processing
+        self.sliders = {'s1': 1.0, 's2': 1.0, 's3': 1.0}
         self.port = port
 
         self.num_records = 0
@@ -166,9 +167,7 @@ class LocalWebController(tornado.web.Application):
         :param mode: default user/mode
         :param recording: default recording mode
         """
-        self.img_arr = img_arr
         self.num_records = num_records
-
         #
         # enforce defaults if they are not none.
         #
@@ -208,7 +207,8 @@ class LocalWebController(tornado.web.Application):
             logger.debug(str(changes))
             self.loop.add_callback(lambda: self.update_wsclients(changes))
 
-        return self.angle, self.throttle, self.mode, self.recording, buttons
+        return self.angle, self.throttle, self.mode, self.recording, buttons,\
+            self.sliders
 
     def run(self, img_arr=None, num_records=0, mode=None, recording=None):
         return self.run_threaded(img_arr, num_records, mode, recording)
@@ -241,6 +241,9 @@ class DriveAPI(RequestHandler):
         if data.get('buttons') is not None:
             print('Received push')
             latch_buttons(self.application.buttons, data['buttons'])
+        if data.get('sliders') is not None:
+            print(data['sliders'])
+            self.application.sliders.update(data['sliders'])
 
 
 class WsTest(RequestHandler):
@@ -293,6 +296,8 @@ class WebSocketDriveAPI(tornado.websocket.WebSocketHandler):
             self.application.recording_latch = self.application.recording
         if data.get('buttons') is not None:
             latch_buttons(self.application.buttons, data['buttons'])
+        if data.get('sliders') is not None:
+            self.application.sliders.update(data['sliders'])
 
     def on_close(self):
         logger.info("Client disconnected")

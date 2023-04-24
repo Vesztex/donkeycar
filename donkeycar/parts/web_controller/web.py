@@ -109,6 +109,7 @@ class LocalWebController(tornado.web.Application):
 
         this_dir = os.path.dirname(os.path.realpath(__file__))
         self.static_file_path = os.path.join(this_dir, 'templates', 'static')
+        self.img_arr = None
         self.angle = 0.0
         self.throttle = 0.0
         self.mode = mode
@@ -167,6 +168,7 @@ class LocalWebController(tornado.web.Application):
         :param mode: default user/mode
         :param recording: default recording mode
         """
+        self.img_arr = img_arr
         self.num_records = num_records
         #
         # enforce defaults if they are not none.

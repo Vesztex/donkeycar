@@ -357,7 +357,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
 
     ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT, mode=cfg.WEB_INIT_MODE)
     car.add(ctr,
-            inputs=['cam/image_array', 'tub/num_records'],
+            inputs=[CAM_IMG, 'tub/num_records'],
             outputs=['user/angle', 'user/throttle', 'user/mode', 'recording',
                      'buttons', 'sliders'],
             threaded=True)
@@ -388,27 +388,38 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
 
         if kl.use_lap_pct():
             if random:
+                # class LapPct:
+                #     lap = 0
+                #     lap_pct = cfg.LAP_PCT
+                #     def __init__(self):
+                #         logger.info(f"Creating part LapPct: {self.lap_pct}")
+                #     def run(self, lap):
+                #         # trigger update in each new lap
+                #         if lap != self.lap and random == True:
+                #             self.lap_pct += 0.25
+                #             if self.lap_pct > 1.0:
+                #                 self.lap_pct = cfg.LAP_PCT
+                #             self.lap = lap
+                #             logger.info(f"Setting lap pct to {self.lap_pct}")
+                #         return [self.lap_pct]
+
                 class LapPct:
-                    lap = 0
-                    lap_pct = cfg.LAP_PCT
-                    def __init__(self):
-                        logger.info(f"Creating part LapPct: {self.lap_pct}")
-                    def run(self, lap):
-                        # trigger update in each new lap
-                        if lap != self.lap:
-                            self.lap_pct += 0.25
-                            if self.lap_pct > 1.0:
-                                self.lap_pct = cfg.LAP_PCT
-                            self.lap = lap
-                            logger.info(f"Setting lap pct to {self.lap_pct}")
-                        return [self.lap_pct]
+                    def run(self, dummy):
+                        return cfg.LAP_PCT
 
                 car.add(LapPct(), inputs=['car/lap'], outputs=['lap_pct'])
             else:
                 class SliderSorter:
+                    lap_pct = cfg.LAP_PCT
+
                     def run(self, sliders):
-                        d = dict(sorted(sliders.items()))
-                        return d.values()
+                        if sliders:
+                            d = dict(sorted(sliders.items()))
+                            new_lap_pct = list(d.values())
+                            if new_lap_pct != self.lap_pct:
+                                logger.info(f'Updating lap_pct {new_lap_pct}')
+                            self.lap_pct = new_lap_pct
+                        return self.lap_pct
 
                 car.add(SliderSorter(), inputs=['sliders'], outputs=['lap_pct'])
 

@@ -35,6 +35,8 @@ var driveHandler = new function() {
         },
         'sliders': {
             "s1": 0,
+            "s2": 0,
+            "s3": 0,
         }
     }
 
@@ -155,7 +157,6 @@ var driveHandler = new function() {
       });
 
       $('#record_button').click(function () {
-        console.log('Pressed rec button');
         toggleRecording();
       });
 
@@ -186,11 +187,6 @@ var driveHandler = new function() {
         state.sliders['s3'] = svf;
         postDrive(["sliders"]);
       });
-
-      $('#butt').click(function() {
-        console.log('Pressed butt button');
-      });
-
 
       $('input[type=radio][name=controlMode]').change(function() {
         if (this.value == 'joystick') {
@@ -766,5 +762,4 @@ function remap( x, oMin, oMax, nMin, nMax ){
 
 return result;
 }
-
 

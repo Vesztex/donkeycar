@@ -162,9 +162,13 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
         self.lap_dim = kwargs.get('lap_dim', 3)
-        super().__init__(interpreter, input_shape, *args, **kwargs)
-        self.num_to_freeze = 4
         self.throttle_mult = kwargs.get('throttle_mult', 1.0)
+        super().__init__(interpreter, input_shape, *args, **kwargs)
+        # needs to come after base class ctor otherwise gets overwritten
+        self.num_to_freeze = 7
+
+    def __str__(self) -> str:
+        return super().__str__() + f"-tm:{self.throttle_mult}"
 
     def use_lap_pct(self) -> bool:
         return True
@@ -217,7 +221,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         input_dict = dict(zip(self.output_shapes()[0].keys(), values))
         angle, throttle = self.inference_from_dict(input_dict)
         throttle *= self.throttle_mult
-        #angle *= 1.02
+        angle *= self.throttle_mult
         # fill new values into back of history list for next call
         self.mem_seq.popleft()
         self.mem_seq.append([angle, throttle])

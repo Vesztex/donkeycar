@@ -71,10 +71,15 @@ class TubStatistics(object):
         self.tub.manifest.write_metadata()
         logger.info(f'Generated lap times {res}')
 
-    def calculate_lap_performance(self, use_lap_0=False, num_buckets=None):
+    def calculate_lap_performance(self, use_lap_0=False, num_buckets=None,
+                                  compress=False):
         """
-        Creates a dictionary of (session_id, lap) keys and int values
-        where 0 is the fastest lap and num_bins-1 is the slowest.
+        Creates a dictionary of dictionaries of dictionaries with quantiles
+        of sorting criteria to call like d['session_id'][lap_i]['time'] =
+        0.2. Depending on the numbers of buckets, say for example 5, 0.2
+        would be returned for the fastest 20% of laps and 1.0 would be the
+        returned for the slowest 20%. We can also get info on 'distance' and
+        'gyro_z_agg' which stands for aggregated gyro_z values of the whole lap.
 
         :param use_lap_0:   If the 0'th lap should be ignored. On the
                             real car lap zero shows up when the line is
@@ -84,14 +89,35 @@ class TubStatistics(object):
         :param num_buckets: If given, buckets the laps into as many buckets
                             and assigns the numbers i/num_buckets, i=1,...,
                             num_buckets to each lap in that bucket.
-        :return:            dict of type {(session_id, lap): state_vector}
+        :param compress:    If True, return a dictionary with a single entry
+                            where all sessions are compressed into one
+
+        :return:            dict of type
+                            {sess_id: {lap_i: {'time': ti,...,'distance': di }}}
         """
+        def rank_laps(laps_filtered, num_buckets, session_lap_rank):
+            num_laps = len(laps_filtered)
+            num_buckets = num_buckets or num_laps
+            for sort_by in ('time', 'distance', 'gyro_z_agg'):
+                laps_sorted = sorted(laps_filtered, key=itemgetter(sort_by))
+                session_ids = set()
+                for i, lap_i in enumerate(laps_sorted):
+                    rel_i = int(i * num_buckets / num_laps + 1) / num_buckets
+                    session_id = lap_i['session_id']
+                    session_lap_rank[session_id][lap_i['lap']][sort_by] = rel_i
+                    session_ids.add(session_id)
+                log_text = f'Session {session_ids} with {num_laps} valid laps'
+                if num_laps > 0:
+                    log_text \
+                        += f', min {sort_by}: {laps_sorted[0][sort_by]:5.2f}, '\
+                           f'max {sort_by}: {laps_sorted[-1][sort_by]:5.2f}'
+                logger.info(log_text)
 
         self._calculate_aggregated_gyro()
+        logger.info(f'Calculating lap performance in tub {self.tub.base_path}')
         sessions \
             = self.tub.manifest.manifest_metadata['sessions']['all_full_ids']
-        session_lap_rank = defaultdict(lambda: defaultdict(dict))
-        logger.info(f'Calculating lap performance in tub {self.tub.base_path}')
+        session_lap_data = list()
         for session_id in sessions:
             session_dict = self.tub.manifest.metadata.get(session_id)
             assert session_dict, f"Missing metadata for session_id {session_id}"
@@ -104,26 +130,21 @@ class TubStatistics(object):
             # entry, but check before removal.
             if not use_lap_0 and lap_timer[0]['lap'] == 0:
                 del(lap_timer[0])
-            # Remove laps that are not valid
-            laps_filtered = [l for l in lap_timer if l.get('valid', True)]
+            # Remove laps that are not valid and add in session id
+            laps_filtered = [l | {'session_id': session_id} for l in lap_timer
+                             if l.get('valid', True)]
             # lap_timer is a list of dictionaries, sort by time, distance and
             # gyro_z aggregated respectively and record the quantile bins for
             # each of these values per lap in the session_lap_rank dict.
-            num_laps = len(laps_filtered)
-            for sort_by in ('time', 'distance', 'gyro_z_agg'):
-                laps_sorted = sorted(laps_filtered, key=itemgetter(sort_by))
-                for i, lap_i in enumerate(laps_sorted):
-                    if num_buckets is None:
-                        num_buckets = num_laps
-                    rel_i = int(i * num_buckets/num_laps + 1) / num_buckets
-                    session_lap_rank[session_id][lap_i['lap']][sort_by] = rel_i
-                log_text = f'Session {session_id} with {num_laps} valid laps ' \
-                           f'out of {len(lap_timer)}'
-                if num_laps > 0:
-                    log_text \
-                        += f', min {sort_by}: {laps_sorted[0][sort_by]:5.2f}, '\
-                           f'max {sort_by}: {laps_sorted[-1][sort_by]:5.2f}'
-                logger.info(log_text)
+            session_lap_data.append(laps_filtered)
+
+        # Now we could compress all data per session_id into a single rank
+        if compress:
+            session_lap_data = [[e for ld in session_lap_data for e in ld]]
+
+        session_lap_rank = defaultdict(lambda: defaultdict(dict))
+        for laps_data in session_lap_data:
+            rank_laps(laps_data, num_buckets, session_lap_rank)
 
         return session_lap_rank
 

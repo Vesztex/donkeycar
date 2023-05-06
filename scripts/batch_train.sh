@@ -1,49 +1,45 @@
 #!/bin/bash
-# shell script to run training over a set of tubs for all 3 models
+# shell script to run training and simulation
 
 # enforces Ctrl-C to stop the asynchronous processes
 trap "kill 0" EXIT
 
-# define tubs using shell wildcard expansion
-tub_range=46-62
-tubs='data/tub_{42..62}_*'
-#exclude='aug'
-
-# use transfer
-use_transfer=1
-
 # iterations
-iter=2
-
-# dry run?
-dry=1
+iter=10
 
 # define repeatedly used variables
-type=square_plus_imu.tflite
-model_name=pilot_speed_imu_norm
+model_name="pilot_recursive"
+model_full="models/${model_name}.savedmodel"
+model_full_tflite="models/${model_name}.tflite"
 
-for size in s m l; do
-  # build the argument of the train job
-  model_full_name="${model_name}_${size}_${tub_range}"
-  model_arg="models/${model_full_name}.tflite"
-  transfer_arg="models/${model_full_name}.h5"
-  command_args="--type $type --model $model_arg --nn_size $size --tub $tubs"
-  if [ $use_transfer = 1 ]; then
-      command_args="${command_args}  --transfer $transfer_arg";
-  fi
-  if [ $dry = 1 ]; then
-      command_args="${command_args}  --dry";
-  fi
-  if [ -n "$exclude" ] ; then
-      command_args="${command_args}  --exclude $exclude";
-  fi
-  # run training iteratively
-  for (( i=0; i<iter; i++)); do
-      echo "Command args $command_args"
-      train.py $command_args
-  done
+clear_tub_command="rm -rf data_recursive"
+copy_tub_command="cp -r data data_recursive"
+drive_command="manage.py gym --type tflite_sq_mem_lap --model $model_full_tflite --random"
+train_command="donkey train --model $model_full --type sq_mem_lap --transfer $model_full"
 
+for (( i=0; i<iter; i++)); do
+  echo "%%%%%%%%%%%%%%%%%-------*-*-*--------%%%%%%%%%%%%%%%"
+  echo "Iteration $i start"
+  echo $clear_tub_command
+  $clear_tub_command
+  echo $copy_tub_command
+  $copy_tub_command
+  echo $drive_command
+  $drive_command
+  echo $train_command
+  $train_command
+
+  model_name_i="${model_name}_${i}"
+  # model_full_i="models/${model_name_i}.savedmodel"
+  model_full_tflite_i="models/${model_name_i}.tflite"
+
+  # cp $model_full $model_full_i
+  cp $model_full_tflite $model_full_tflite_i
+  echo "Iteration $i finished"
+  echo "----------------------------------------------------"
+  date
 done
-train.py convert
+
+systemctl suspend
 
 exit 0

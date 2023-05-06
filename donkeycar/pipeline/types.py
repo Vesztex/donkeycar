@@ -133,7 +133,7 @@ class TubDataset(object):
             for tub in self.tubs:
                 tub_stat = TubStatistics(tub)
                 session_lap_rank = tub_stat.calculate_lap_performance(
-                    self.config.USE_LAP_0, num_buckets=4)
+                    self.config.USE_LAP_0, num_buckets=4, compress=True)
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)
                     if self.train_filter and not self.train_filter(record):

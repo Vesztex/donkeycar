@@ -185,7 +185,7 @@ class KerasInterpreter(Interpreter):
         self.model.load_weights(model_path, by_name=by_name)
 
     def summary(self) -> None:
-        self.model.summary(expand_nested=True)
+        self.model.summary(expand_nested=True, show_trainable=True)
 
     @staticmethod
     def expand_and_convert(arr):

@@ -165,7 +165,7 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         self.throttle_mult = kwargs.get('throttle_mult', 1.0)
         super().__init__(interpreter, input_shape, *args, **kwargs)
         # needs to come after base class ctor otherwise gets overwritten
-        self.num_to_freeze = 7
+        self.num_to_freeze = 4
 
     def __str__(self) -> str:
         return super().__str__() + f"-tm:{self.throttle_mult}"

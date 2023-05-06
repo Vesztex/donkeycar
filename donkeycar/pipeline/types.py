@@ -120,9 +120,12 @@ class TubDataset(object):
                                 for tub_path in self.tub_paths]
         self.records: List[TubRecord] = list()
         self.train_filter = getattr(config, 'TRAIN_FILTER', None)
+        self.compress = getattr(config, 'COMPRESS_SESSIONS_FOR_LAP_STATS', True)
+        self.num_bins = getattr(config, 'NUM_BINS_FOR_LAP_STATS', None)
         self.add_lap_pct = add_lap_pct.lower()
         self.seq_size = seq_size
-        logger.info(f'Created TubDataset with add_lap_pct: {self.add_lap_pct}')
+        logger.info(f'Created TubDataset with add_lap_pct: {self.add_lap_pct} '
+                    f'compress: {self.compress} num bins {self.num_bins}')
 
     def get_records(self) -> Union[List[TubRecord], List[List[TubRecord]]]:
         if not self.records:
@@ -133,7 +136,8 @@ class TubDataset(object):
             for tub in self.tubs:
                 tub_stat = TubStatistics(tub)
                 session_lap_rank = tub_stat.calculate_lap_performance(
-                    self.config.USE_LAP_0, num_buckets=4, compress=True)
+                    self.config.USE_LAP_0, num_bins=self.num_bins,
+                    compress=self.compress)
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)
                     if self.train_filter and not self.train_filter(record):

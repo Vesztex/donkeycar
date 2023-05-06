@@ -49,6 +49,8 @@ LAP_PCT_L = 0.25
 LAP_PCT_R = 1.0
 # Default to aggressive time, distance, gyro_z quantiles
 LAP_PCT = [0.1, 0.25, 0.0]
+COMPRESS_SESSIONS_FOR_LAP_STATS = True
+NUM_BINS_FOR_LAP_STATS = 4
 
 # AUTOPILOT
 AI_THROTTLE_MULT = 1.0

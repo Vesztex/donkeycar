@@ -71,7 +71,7 @@ class TubStatistics(object):
         self.tub.manifest.write_metadata()
         logger.info(f'Generated lap times {res}')
 
-    def calculate_lap_performance(self, use_lap_0=False, num_buckets=None,
+    def calculate_lap_performance(self, use_lap_0=False, num_bins=None,
                                   compress=False):
         """
         Creates a dictionary of dictionaries of dictionaries with quantiles
@@ -86,7 +86,7 @@ class TubStatistics(object):
                             crossed the first time hence the lap is
                             incomplete, but in the sim 0 indicates the
                             first complete lap
-        :param num_buckets: If given, buckets the laps into as many buckets
+        :param num_bins: If given, buckets the laps into as many buckets
                             and assigns the numbers i/num_buckets, i=1,...,
                             num_buckets to each lap in that bucket.
         :param compress:    If True, return a dictionary with a single entry
@@ -144,7 +144,7 @@ class TubStatistics(object):
 
         session_lap_rank = defaultdict(lambda: defaultdict(dict))
         for laps_data in session_lap_data:
-            rank_laps(laps_data, num_buckets, session_lap_rank)
+            rank_laps(laps_data, num_bins, session_lap_rank)
 
         return session_lap_rank
 

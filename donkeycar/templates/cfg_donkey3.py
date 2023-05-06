@@ -103,6 +103,10 @@ MEM_START_SPEED = 0.5
 # Default to fastest quarter or laps
 LAP_PCT = 0.25
 
+# Stats setting for lap model
+COMPRESS_SESSIONS_FOR_LAP_STATS = True
+NUM_BINS_FOR_LAP_STATS = 4
+
 # Augmentations and Transformations
 AUGMENTATIONS = []
 TRANSFORMATIONS = []

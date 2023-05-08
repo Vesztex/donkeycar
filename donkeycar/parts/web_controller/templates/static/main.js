@@ -164,26 +164,26 @@ var driveHandler = new function() {
         toggleBrake();
       });
 
-      $('#s1').on('change', function () {
-        sv = document.getElementById('s1_value');
+      $('#v1').on('change', function () {
+        sv = document.getElementById('v1_value');
         svf = parseFloat(sv.innerHTML)
-        console.log('s1 change detected: ' + svf);
+        console.log('v1 change detected: ' + svf);
         state.sliders['s1'] = svf;
         postDrive(["sliders"]);
       });
 
-      $('#s2').on('change', function () {
-        sv = document.getElementById('s2_value');
+      $('#v2').on('change', function () {
+        sv = document.getElementById('v2_value');
         svf = parseFloat(sv.innerHTML)
-        console.log('s2 change detected: ' + svf);
+        console.log('v2 change detected: ' + svf);
         state.sliders['s2'] = svf;
         postDrive(["sliders"]);
       });
 
-      $('#s3').on('change', function () {
-        sv = document.getElementById('s3_value');
+      $('#v3').on('change', function () {
+        sv = document.getElementById('v3_value');
         svf = parseFloat(sv.innerHTML)
-        console.log('s3 change detected: ' + svf);
+        console.log('v3 change detected: ' + svf);
         state.sliders['s3'] = svf;
         postDrive(["sliders"]);
       });

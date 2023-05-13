@@ -21,6 +21,8 @@ Options:
 from docopt import docopt
 import logging
 import socket
+from random import random
+
 import donkeycar as dk
 import donkeycar.parts
 from donkeycar.parts.tub_v2 import TubWiper, TubWriter
@@ -40,6 +42,40 @@ logger = logging.getLogger(__name__)
 class Renamer:
     def run(self, data):
         return data
+
+
+class LapPct:
+    def __init__(self, cfg):
+        self.count = 0
+        self.lap = 0
+        self.lap_pct = cfg.LAP_PCT
+        assert isinstance(self.lap_pct, list) and len(self.lap_pct) == 3, \
+            "Lap pct must be list of len 3"
+        logger.info(f"Creating part LapPct: {self.lap_pct}")
+
+    def run(self, lap, game_over):
+        # trigger update in each new lap
+        # if lap != self.lap or game_over:
+        if self.count % 40 == 0:
+            self.lap_pct = [-1, random(), random()]
+            self.lap = lap
+            logger.info(f"Setting lap pct to {self.lap_pct}")
+        self.count += 1
+        return self.lap_pct
+
+
+class SliderSorter:
+    def __init__(self, cfg):
+        self.lap_pct = cfg.LAP_PCT
+
+    def run(self, sliders):
+        if sliders:
+            d = dict(sorted(sliders.items()))
+            new_lap_pct = list(d.values())
+            if new_lap_pct != self.lap_pct:
+                logger.info(f'Updating lap_pct {new_lap_pct}')
+            self.lap_pct = new_lap_pct
+        return self.lap_pct
 
 
 # define some strings that are used in the vehicle data flow
@@ -109,6 +145,14 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     if fpv:
         streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)
         car.add(streamer, inputs=[CAM_IMG], threaded=True)
+    else:
+        ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT,
+                                 mode=cfg.WEB_INIT_MODE)
+        car.add(ctr,
+                inputs=[CAM_IMG, 'tub/num_records'],
+                outputs=['ctr/user/angle', 'ctr/user/throttle', 'ctr/user/mode',
+                         'ctr/recording', 'ctr/buttons', 'ctr/sliders'],
+                threaded=True)
 
     # create the RC receiver with 3 channels------------------------------------
     rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
@@ -141,6 +185,14 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
             car.add(imu_prep, inputs=['car/accel', 'car/gyro'],
                     outputs=['car/imu'])
             kl_inputs.append('car/imu')
+        elif kl.use_lap_pct():
+            if random:
+                car.add(LapPct(cfg), inputs=['car/lap', 'game_over'],
+                        outputs=['lap_pct'])
+            else:
+                car.add(SliderSorter(cfg), inputs=['ctr/sliders'],
+                        outputs=['lap_pct'])
+            kl_inputs.append('lap_pct')
         # add auto pilot and model reloader ------------------------------------
         kl_outputs = ['pilot/angle', 'pilot/throttle']
         car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
@@ -388,47 +440,11 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
 
         if kl.use_lap_pct():
             if random:
-                from random import random
-                class LapPct:
-                    count = 0
-                    lap = 0
-                    lap_pct = cfg.LAP_PCT
-                    assert isinstance(lap_pct, list) and len(lap_pct) == 3, \
-                        "Lap pct must be list of len 3"
-
-                    def __init__(self):
-                        logger.info(f"Creating part LapPct: {self.lap_pct}")
-
-                    def run(self, lap, game_over):
-                        # trigger update in each new lap
-                        # if lap != self.lap or game_over:
-                        if self.count % 40 == 0:
-                            self.lap_pct = [-1, random(), random()]
-                            self.lap = lap
-                            logger.info(f"Setting lap pct to {self.lap_pct}")
-                        self.count += 1
-                        return self.lap_pct
-                #
-                # class LapPct:
-                #     def run(self, dummy):
-                #         return cfg.LAP_PCT
-
-                car.add(LapPct(), inputs=['car/lap', 'game_over'],
+                car.add(LapPct(cfg), inputs=['car/lap', 'game_over'],
                         outputs=['lap_pct'])
             else:
-                class SliderSorter:
-                    lap_pct = cfg.LAP_PCT
-
-                    def run(self, sliders):
-                        if sliders:
-                            d = dict(sorted(sliders.items()))
-                            new_lap_pct = list(d.values())
-                            if new_lap_pct != self.lap_pct:
-                                logger.info(f'Updating lap_pct {new_lap_pct}')
-                            self.lap_pct = new_lap_pct
-                        return self.lap_pct
-
-                car.add(SliderSorter(), inputs=['sliders'], outputs=['lap_pct'])
+                car.add(SliderSorter(cfg), inputs=['sliders'],
+                        outputs=['lap_pct'])
 
             kl_inputs.append('lap_pct')
 

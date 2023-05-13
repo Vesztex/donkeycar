@@ -25,14 +25,18 @@ def profile(model_path, model_type):
 
     # generate random array in the right shape in [0,1)
     img = np.random.randint(0, 255, size=(h, w, ch))
+    lap_pct = [0.0, 0.5, 0.5]
 
     # make a timer obj
     timer = FPSTimer()
+    args = (img,)
+    if 'lap' in model_type:
+        args = (img, lap_pct)
 
     try:
         while True:
             # run inferencing
-            model.run(img)
+            model.run(*args)
             # time
             timer.on_frame()
 
@@ -42,4 +46,4 @@ def profile(model_path, model_type):
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    profile(model_path = args['--model'], model_type = args['--type'])
+    profile(model_path=args['--model'], model_type=args['--type'])

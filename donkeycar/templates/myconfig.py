@@ -9,7 +9,7 @@
 # """
 
 # IMAGE
-IMAGE_W = 196
+IMAGE_W = 192
 IMAGE_H = 144
 
 # VEHICLE

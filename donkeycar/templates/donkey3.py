@@ -347,12 +347,12 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
         outputs += ['car/vel']
     if cfg.SIM_RECORD_LIDAR:
         outputs += ['lidar/dist_array']
-    outputs += ['last_lap_time', 'game_over']
+    outputs += ['last_lap_time', 'lap_count', 'game_over']
 
     car.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
     car.add(GymOdometer(), inputs=['pos/pos'], outputs=['car/distance'])
     lap_timer = GymLapTimer()
-    car.add(lap_timer, inputs=['last_lap_time', 'car/distance'],
+    car.add(lap_timer, inputs=['lap_count', 'last_lap_time', 'car/distance'],
             outputs=['car/lap'])
 
     ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT, mode=cfg.WEB_INIT_MODE)
@@ -388,26 +388,33 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
 
         if kl.use_lap_pct():
             if random:
-                # class LapPct:
-                #     lap = 0
-                #     lap_pct = cfg.LAP_PCT
-                #     def __init__(self):
-                #         logger.info(f"Creating part LapPct: {self.lap_pct}")
-                #     def run(self, lap):
-                #         # trigger update in each new lap
-                #         if lap != self.lap and random == True:
-                #             self.lap_pct += 0.25
-                #             if self.lap_pct > 1.0:
-                #                 self.lap_pct = cfg.LAP_PCT
-                #             self.lap = lap
-                #             logger.info(f"Setting lap pct to {self.lap_pct}")
-                #         return [self.lap_pct]
-
+                from random import random
                 class LapPct:
-                    def run(self, dummy):
-                        return cfg.LAP_PCT
+                    count = 0
+                    lap = 0
+                    lap_pct = cfg.LAP_PCT
+                    assert isinstance(lap_pct, list) and len(lap_pct) == 3, \
+                        "Lap pct must be list of len 3"
 
-                car.add(LapPct(), inputs=['car/lap'], outputs=['lap_pct'])
+                    def __init__(self):
+                        logger.info(f"Creating part LapPct: {self.lap_pct}")
+
+                    def run(self, lap, game_over):
+                        # trigger update in each new lap
+                        # if lap != self.lap or game_over:
+                        if self.count % 40 == 0:
+                            self.lap_pct = [-1, random(), random()]
+                            self.lap = lap
+                            logger.info(f"Setting lap pct to {self.lap_pct}")
+                        self.count += 1
+                        return self.lap_pct
+                #
+                # class LapPct:
+                #     def run(self, dummy):
+                #         return cfg.LAP_PCT
+
+                car.add(LapPct(), inputs=['car/lap', 'game_over'],
+                        outputs=['lap_pct'])
             else:
                 class SliderSorter:
                     lap_pct = cfg.LAP_PCT

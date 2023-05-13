@@ -111,6 +111,7 @@ class DonkeyGymEnv(object):
             outputs.append(self.info['lidar'])
         if self.record_laps:
             outputs.append(self.info.get('last_lap_time', 0.0))
+            outputs.append(self.info.get('lap_count', 0))
             outputs.append(game_over)
         if len(outputs) == 1:
             return self.frame
@@ -125,31 +126,29 @@ class DonkeyGymEnv(object):
 
 class GymLapTimer:
     def __init__(self):
-        self.current_lap = 0
+        self.lap_count = 0
         self.last_lap_time = 0.0
         self.last_lap_distance = 0.0
         self.lap_info = []
         logger.info("Create GymLapTimer")
 
-    def run(self, last_lap_time, distance):
-        if last_lap_time != self.last_lap_time:
+    def run(self, lap_count, last_lap_time, distance):
+        if lap_count != self.lap_count:
             # invalid loops in the sim have lap time = 0.0
             is_valid = last_lap_time > 0.1
             lap_length = distance - self.last_lap_distance
             logger.info(f'Recorded {"in" if not is_valid else ""}valid lap'
-                        f' {self.current_lap} in '
+                        f' {self.lap_count} in '
                         f'{last_lap_time:.2f}s of length {lap_length:.2f}m')
             # store current values
             self.last_lap_time = last_lap_time
             self.last_lap_distance = distance
-
-            info = dict(lap=self.current_lap, time=last_lap_time,
+            info = dict(lap=self.lap_count, time=last_lap_time,
                         distance=lap_length, valid=is_valid)
             self.lap_info.append(info)
-            # update current lap and reset valid lap
-            self.current_lap += 1
+            self.lap_count = lap_count
 
-        return self.current_lap
+        return self.lap_count
 
     def shutdown(self):
         logger.info('All lap times:')

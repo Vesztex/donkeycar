@@ -20,10 +20,12 @@ class TubStatistics(object):
 
         :param tub:             input tub
         :param gyro_z_index:    z coordinate in 3d gyro vector (this is 1 in
-                                sim)
+                                sim and 2 in car)
         """
         self.tub = tub
         self.gyro_z_index = gyro_z_index
+        logger.info(f'Creating TubStatistics with gyro_z index {gyro_z_index}'
+                    f' assuming use {"gym" if gyro_z_index==1 else "real"}')
 
     def generate_laptimes_from_records(self, overwrite=False):
         session_id = None
@@ -210,7 +212,11 @@ class TubStatistics(object):
             val = abs(record['car/gyro'][self.gyro_z_index])
             gyro_z_agg += val
 
-        # update for last lap
+        # update for last lap, because we didn't go through the if lap !=
+        # prev_lap part any more and hence need to update the map with the
+        # last lap info
+        lap_gyro_map[lap] = gyro_z_agg
+
         update_metadata(lap_gyro_map, prev_session)
 
 

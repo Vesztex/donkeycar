@@ -113,7 +113,7 @@ class TubDataset(object):
     """
 
     def __init__(self, config: Config, tub_paths: List[str],
-                 seq_size: int = 0, add_lap_pct: str = '') -> None:
+                 seq_size: int = 0, add_lap_pct: bool = False) -> None:
         self.config = config
         self.tub_paths = tub_paths
         self.tubs: List[Tub] = [Tub(tub_path, read_only=True)
@@ -122,7 +122,7 @@ class TubDataset(object):
         self.train_filter = getattr(config, 'TRAIN_FILTER', None)
         self.compress = getattr(config, 'COMPRESS_SESSIONS_FOR_LAP_STATS', True)
         self.num_bins = getattr(config, 'NUM_BINS_FOR_LAP_STATS', None)
-        self.add_lap_pct = add_lap_pct.lower()
+        self.add_lap_pct = add_lap_pct
         self.seq_size = seq_size
         logger.info(f'Created TubDataset with add_lap_pct: {self.add_lap_pct} '
                     f'compress: {self.compress} num bins {self.num_bins}')
@@ -133,11 +133,14 @@ class TubDataset(object):
             non_ext_records = 0
             used_records = 0
             logger.info(f'Loading tubs from paths {self.tub_paths}')
+            session_lap_rank = None
             for tub in self.tubs:
-                tub_stat = TubStatistics(tub)
-                session_lap_rank = tub_stat.calculate_lap_performance(
-                    self.config.USE_LAP_0, num_bins=self.num_bins,
-                    compress=self.compress)
+                if self.add_lap_pct:
+                    tub_stat = TubStatistics(
+                        tub, getattr(self.config, "GYRO_Z_INDEX", 2))
+                    session_lap_rank = tub_stat.calculate_lap_performance(
+                        self.config.USE_LAP_0, num_bins=self.num_bins,
+                        compress=self.compress)
                 for underlying in tub:
                     record = TubRecord(self.config, tub.base_path, underlying)
                     if self.train_filter and not self.train_filter(record):

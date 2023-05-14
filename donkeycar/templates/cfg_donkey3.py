@@ -66,6 +66,7 @@ LAP_TIMER_GPIO = 16
 # IMU VALUES
 IMU_ACCEL_NORM = 20
 IMU_GYRO_NORM = 250
+GYRO_Z_INDEX = 2
 
 
 # TRAINING
@@ -112,8 +113,8 @@ AUGMENTATIONS = []
 TRANSFORMATIONS = []
 # Settings for brightness and blur, use 'MULTIPLY' and/or 'BLUR' in
 # AUGMENTATIONS
-AUG_MULTIPLY_RANGE = (0.5, 3.0)
-AUG_BLUR_RANGE = (0.0, 3.0)
+AUG_BRIGHTNESS_RANGE = 0.2  # this is interpreted as [-0.2, 0.2]
+AUG_BLUR_RANGE = (0, 3)
 # Number of pixels to crop, requires 'CROP' in TRANSFORMATIONS to be set
 ROI_CROP_TOP = 45
 ROI_CROP_BOTTOM = 0

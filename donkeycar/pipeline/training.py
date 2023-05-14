@@ -134,7 +134,7 @@ def train(cfg: Config, tub_paths: str, model: str = None,
 
     tubs = tub_paths.split(',')
     all_tub_paths = [os.path.expanduser(tub) for tub in tubs]
-    add_lap_pct = cfg.LAP_QUANTIFIER if kl.use_lap_pct() else ''
+    add_lap_pct = kl.use_lap_pct()
     dataset = TubDataset(config=cfg, tub_paths=all_tub_paths,
                          seq_size=kl.seq_size(),
                          add_lap_pct=add_lap_pct)

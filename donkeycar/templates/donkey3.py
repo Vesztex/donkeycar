@@ -145,14 +145,6 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     if fpv:
         streamer = FrameStreamer(cfg.PC_HOSTNAME, cfg.FPV_PORT)
         car.add(streamer, inputs=[CAM_IMG], threaded=True)
-    else:
-        ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT,
-                                 mode=cfg.WEB_INIT_MODE)
-        car.add(ctr,
-                inputs=[CAM_IMG, 'tub/num_records'],
-                outputs=['ctr/user/angle', 'ctr/user/throttle', 'ctr/user/mode',
-                         'ctr/recording', 'ctr/buttons', 'ctr/sliders'],
-                threaded=True)
 
     # create the RC receiver with 3 channels------------------------------------
     rc_steering = RCReceiver(cfg.STEERING_RC_GPIO, invert=True)
@@ -186,10 +178,19 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
                     outputs=['car/imu'])
             kl_inputs.append('car/imu')
         elif kl.use_lap_pct():
+            random = False
             if random:
                 car.add(LapPct(cfg), inputs=['car/lap', 'game_over'],
                         outputs=['lap_pct'])
             else:
+                ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT,
+                                         mode=cfg.WEB_INIT_MODE)
+                car.add(ctr,
+                        inputs=[CAM_IMG, 'tub/num_records'],
+                        outputs=['ctr/user/angle', 'ctr/user/throttle',
+                                 'ctr/user/mode',
+                                 'ctr/recording', 'ctr/buttons', 'ctr/sliders'],
+                        threaded=True)
                 car.add(SliderSorter(cfg), inputs=['ctr/sliders'],
                         outputs=['lap_pct'])
             kl_inputs.append('lap_pct')

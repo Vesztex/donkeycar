@@ -191,6 +191,7 @@ class TubStatistics(object):
                 # If new session found update the lap timer with the
                 # aggregated values
                 if prev_session is not None:
+                    lap_gyro_map[prev_lap] = gyro_z_agg
                     update_metadata(lap_gyro_map, prev_session)
 
                 # update current session to new session

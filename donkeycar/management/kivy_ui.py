@@ -768,7 +768,7 @@ class OverlayImage(FullImage):
             lap_pct = getattr(config, 'LAP_PCT_L', config.LAP_PCT) if \
                 self.is_left else getattr(config, 'LAP_PCT_R', config.LAP_PCT)
             # lap_pct needs to be passed as array, as this is the run interface
-            args = (aug_img_arr, [lap_pct])
+            args = (aug_img_arr, lap_pct)
         else:
             args = (aug_img_arr,)
         output = (0, 0)

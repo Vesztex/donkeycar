@@ -70,21 +70,19 @@ class PilotDatabase:
         self.entries.append(entry)
 
     def delete_entry(self, pilot_name):
-        to_delete_entry = None
-        for entry in self.entries:
-            if entry['Name'] == pilot_name:
-                to_delete_entry = entry
-        if to_delete_entry:
-            full_path = os.path.join(self.cfg.MODELS_PATH, pilot_name)
-            model_versions = glob.glob(f'{full_path}.*')
-            logger.info(f'Deleting {",".join(model_versions)}')
-            for model_version in model_versions:
-                if os.path.isdir(model_version):
-                    shutil.rmtree(model_version, ignore_errors=True)
-                else:
-                    os.remove(model_version)
-            self.entries.remove(to_delete_entry)
-            self.write()
+        to_delete_entry = self.get_entry(pilot_name)
+        if not to_delete_entry:
+            return
+        full_path = os.path.join(self.cfg.MODELS_PATH, pilot_name)
+        model_versions = glob.glob(f'{full_path}.*')
+        logger.info(f'Deleting {",".join(model_versions)}')
+        for model_version in model_versions:
+            if os.path.isdir(model_version):
+                shutil.rmtree(model_version, ignore_errors=True)
+            else:
+                os.remove(model_version)
+        self.entries.remove(to_delete_entry)
+        self.write()
 
     def get_entry(self, pilot_name):
         for entry in self.entries:

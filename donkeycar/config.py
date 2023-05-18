@@ -24,6 +24,14 @@ class Config:
             if key.isupper():
                 setattr(self, key, getattr(obj, key))
 
+    def from_dict(self, d, keys=[]):
+        msg = 'Overwriting config with '
+        for k, v in d.items():
+            if k.isupper():
+                if k in keys or not keys:
+                    setattr(self, k, v)
+                    msg += f'{k}, '
+
     def __str__(self):
         result = []
         for key in dir(self):

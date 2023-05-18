@@ -17,6 +17,7 @@ Options:
     -h --help               Show this screen.
     --my_cfg=myconfig.py    overwrite config file name [default: myconfig.py]
 """
+import os.path
 
 from docopt import docopt
 import logging
@@ -35,6 +36,7 @@ from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
 from donkeycar.parts.web_controller.web import LocalWebController
 from donkeycar.pipeline.augmentations import ImageAugmentation
+from donkeycar.pipeline.database import PilotDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +161,15 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         logger.info("Using auto-pilot")
         if not model_type:
             model_type = 'tflite_linear'
+
+        # load model database to overwrite some configs parameters with the
+        # values that were used in the trained model
+        overwrite = ['TRANSFORMATIONS', 'ROI_CROP_BOTTOM', 'ROI_CROP_LEFT',
+                     'ROI_CROP_RIGHT', 'ROI_CROP_TOP', 'SEQUENCE_LENGTH']
+        db = PilotDatabase(cfg)
+        model_basename = os.path.basename(model_path)
+        cfg_train_dict = db.get_entry(model_basename)
+        cfg.from_dict(cfg_train_dict, overwrite)
 
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)

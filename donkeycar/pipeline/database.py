@@ -86,6 +86,12 @@ class PilotDatabase:
             self.entries.remove(to_delete_entry)
             self.write()
 
+    def get_entry(self, pilot_name):
+        for entry in self.entries:
+            if entry['Name'] == pilot_name:
+                return entry
+        return None
+
     def to_df_tubgrouped(self):
         def sorted_string(comma_separated_string):
             """ Return sorted list of comma separated string list"""

@@ -1180,11 +1180,10 @@ class ModeSwitch:
             # increase the active loop count
             self._active_loop_count += 1
             if self._active_loop_count >= self._min_loops:
-                # action command
+                # increase internal mode by one
                 self._current_mode += 1
                 # if we run over the end set back to mode 0
-                if self._current_mode == self._num_modes:
-                    self._current_mode = 0
+                self._current_mode %= self._num_modes
                 # reset the loop tracker
                 self._active_loop_count = 0
                 logger.info(f"Switched to mode {self._current_mode}")

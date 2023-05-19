@@ -219,7 +219,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         # if driving w/ ai switch between user throttle or pilot throttle by
         # pressing channel 3 on the remote control we have 2 modes,
         # pilot/steering + user/speed, or pilot/steering + pilot/speed
-        mode_switch = ModeSwitch(num_modes=2, min_loops=1)
+        mode_switch = ModeSwitch(num_modes=2, min_loops=2)
         car.add(mode_switch, inputs=['user/wiper_on'], outputs=['user/mode'])
 
         # This part dispatches between user or ai depending on the switch state

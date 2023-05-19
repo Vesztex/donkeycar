@@ -36,6 +36,7 @@ from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
 from donkeycar.parts.web_controller.web import LocalWebController
 from donkeycar.pipeline.augmentations import ImageAugmentation
+from donkeycar.parts.image_transformations import ImageTransformations
 from donkeycar.pipeline.database import PilotDatabase
 
 logger = logging.getLogger(__name__)
@@ -175,11 +176,11 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         kl.load(model_path)
         kl_inputs = [CAM_IMG]
         # Add image transformations like crop or trapezoidal mask
-        if hasattr(cfg, 'TRANSFORMATIONS') and cfg.TRANSFORMATIONS:
-            outputs = ['cam/image_array_aug']
-            car.add(ImageAugmentation(cfg, 'TRANSFORMATIONS'),
-                    inputs=kl_inputs, outputs=outputs)
-            kl_inputs = outputs
+        if hasattr(cfg, 'TRANSFORMATIONS') and cfg.TRANSFORMATIONS or \
+                hasattr(cfg, 'POST_TRANSFORMATIONS') and cfg.POST_TRANSFORMATIONS:
+            car.add(ImageTransformations(cfg, 'TRANSFORMATIONS',
+                                         'POST_TRANSFORMATIONS'),
+                    inputs=[CAM_IMG], outputs=[CAM_IMG])
         # imu transformation and addition AI input -----------------------------
         use_imu = 'imu' in model_path
         if use_imu:

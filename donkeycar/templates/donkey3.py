@@ -167,7 +167,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         overwrite = ['TRANSFORMATIONS', 'ROI_CROP_BOTTOM', 'ROI_CROP_LEFT',
                      'ROI_CROP_RIGHT', 'ROI_CROP_TOP', 'SEQUENCE_LENGTH']
         db = PilotDatabase(cfg)
-        model_basename = os.path.basename(model_path)
+        model_basename = os.path.splitext(os.path.basename(model_path))[0]
         cfg_train_dict = db.get_entry(model_basename)
         cfg.from_dict(cfg_train_dict, overwrite)
 

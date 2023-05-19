@@ -1157,7 +1157,7 @@ class ModeSwitch:
     each continuous activation. A new mode switch requires to release of the
     input trigger.
     """
-    def __init__(self, num_modes=1, min_loops=0):
+    def __init__(self, num_modes=1, min_loops=2):
         """
         :param int num_modes: number of modes
         :param int min_loops: min number of active loops before state is changed
@@ -1167,6 +1167,7 @@ class ModeSwitch:
         self._current_mode = 0
         self._active_loop_count = 0
         self._min_loops = min_loops
+        assert min_loops > 0, "ModeSwitch equires min loops > 0"
         logger.info(f'ModeSwitch of {num_modes} modes created')
 
     def run(self, is_active):
@@ -1179,15 +1180,12 @@ class ModeSwitch:
         if is_active:
             # increase the active loop count
             self._active_loop_count += 1
-            if self._active_loop_count >= self._min_loops:
+            if self._active_loop_count == self._min_loops:
                 # increase internal mode by one
                 self._current_mode += 1
                 # if we run over the end set back to mode 0
                 self._current_mode %= self._num_modes
-                # reset the loop tracker
-                self._active_loop_count = 0
                 logger.info(f"Switched to mode {self._current_mode}")
-
         else:
             # trigger released, reset active loop count
             self._active_loop_count = 0

@@ -1150,9 +1150,9 @@ class ModeSwitch:
     Donkey part which allows to cycle through a number of states, every time an
     input signal is received. This is useful if for example we want to cycle
     through different behaviours in the drive mode when we only have an RC or
-    similar controller with a single buttong but no web controller. When
+    similar controller with a single button but no web controller. When
     pressing that button we can cycle through different states, like drive w/
-    auto pilot or w/o, etc.
+    autopilot or w/o, etc.
     As run gets called in the vehicle loop the mode switch runs only once for
     each continuous activation. A new mode switch requires to release of the
     input trigger.

@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
-
+from copy import copy
 from tempfile import gettempdir
+
+import pytest
+
 from donkeycar.templates import complete
 import donkeycar as dk
 import os
@@ -34,3 +37,40 @@ def test_custom_templates():
         assert (cfg is not None)
         mcfg = dk.load_config(os.path.join(path, 'myconfig.py'))
         assert (mcfg is not None)
+
+
+@pytest.fixture
+def overwrite():
+    return dict(ROI_CROP_TOP=88, TRANSFORMATIONS=['CROP'], SEQUENCE_LENGTH=8)
+
+
+sub_set = [[], [0], [2], [0, 1]]
+
+
+@pytest.mark.parametrize('sub_set', sub_set)
+def test_config_overwrite(overwrite, sub_set):
+    path = default_template(d2_path(gettempdir()))
+    cfg = dk.load_config(os.path.join(path, 'config.py'))
+    cfg_orig = copy(cfg)
+
+    # check overwrite values are different
+    for k, v in overwrite.items():
+        assert getattr(cfg, k) != v, \
+            "Config and overwrite values should be different"
+
+    # select keys that should be used in overwrite
+    use = [list(overwrite.keys())[i] for i in sub_set]
+
+    # now overwrite
+    cfg.from_dict(overwrite, use)
+    # note, if use is empty all keys of overwrite will be used hence update
+    # the list for checking if [] was passed
+    use_effective = use or overwrite.keys()
+    # check all values present in overwrite have been overwritten
+    for k, v in cfg.__dict__.items():
+        if k in use_effective:
+            assert v == overwrite[k], \
+                "Config and overwrite values should be same"
+        else:
+            assert v == cfg_orig.__dict__[k], \
+                "Config and original config values should be same"

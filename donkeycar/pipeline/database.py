@@ -88,6 +88,8 @@ class PilotDatabase:
         for entry in self.entries:
             if entry['Name'] == pilot_name:
                 return entry
+        logger.warning(f'Could not find pilot {pilot_name}, known pilots:'
+                       f'{",".join(self.get_pilot_names())}')
         return None
 
     def to_df_tubgrouped(self):
@@ -142,3 +144,6 @@ class PilotDatabase:
         pilot_text = pilot_df.to_string(formatters=self.formatter())
         pilot_names = pilot_df['Name'].tolist() if not pilot_df.empty else []
         return pilot_text, tub_text, pilot_names
+
+    def get_pilot_names(self):
+        return [entry['Name'] for entry in self.entries]

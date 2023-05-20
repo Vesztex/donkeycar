@@ -525,8 +525,12 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
 
 
 def benchmark(cfg, model_path):
+    from donkeycar.parts.camera import MockCamera
     car = dk.vehicle.Vehicle()
     car_frequency = cfg.DRIVE_LOOP_HZ
+    cam = MockCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H, image_d=3)
+    car.add(cam, outputs=[CAM_IMG], threaded=True)
+
     overwrite = ['TRANSFORMATIONS', 'ROI_CROP_BOTTOM', 'ROI_CROP_LEFT',
                  'ROI_CROP_RIGHT', 'ROI_CROP_TOP', 'SEQUENCE_LENGTH']
     model_prefix_map = {'.tflite': 'tflite_', '.trt': 'tensorrt_',

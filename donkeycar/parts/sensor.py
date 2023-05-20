@@ -160,11 +160,11 @@ class LapTimer:
                         self.lap_count += 1
                 # reset lo counter
                 self.count_lo = 0
-            # Sleep for 0.5 ms. At 5m/s car makes 2.5mm / 0.5ms. At that speed
+            # Sleep for 0.5 ms. At 5m/s car makes 5mm / 1ms. At that speed
             # trigger determines how many cm the car has to be in the
             # absorption area of the IR signal (by default 5). This scales
             # down w/ the speed.
-            time.sleep(0.0005)
+            time.sleep(0.001)
 
     def run_threaded(self, distance):
         """

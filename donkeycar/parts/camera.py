@@ -77,6 +77,7 @@ class PiCamera(BaseCamera):
         # keep looping infinitely until the thread is stopped
         while self.on:
             self.run()
+            time.sleep(0)
 
     def shutdown(self):
         # indicate that the thread should be stopped

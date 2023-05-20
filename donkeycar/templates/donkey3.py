@@ -538,6 +538,10 @@ def benchmark(cfg, model_path):
     cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
                    image_d=cfg.IMAGE_DEPTH)
     car.add(cam, outputs=[CAM_IMG], threaded=True)
+    odo = Odometer(gpio=cfg.ODOMETER_GPIO,
+                   tick_per_meter=cfg.TICK_PER_M,
+                   weight=0.025)
+    car.add(odo, outputs=['car/speed', 'car/inst_speed', 'car/distance'])
 
     model_type = update_from_database(cfg, model_path, "")
     kl = dk.utils.get_model_by_type(model_type, cfg)

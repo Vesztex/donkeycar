@@ -40,8 +40,6 @@ from donkeycar.pipeline.augmentations import ImageAugmentation
 from donkeycar.parts.image_transformations import ImageTransformations
 from donkeycar.pipeline.database import PilotDatabase
 
-logging.basicConfig(filename='logs/log.txt')
-
 
 logger = logging.getLogger(__name__)
 

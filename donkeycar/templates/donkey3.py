@@ -12,6 +12,7 @@ Usage:
     manage.py (led)
     manage.py (gym) [--model=<path_to_pilot>] [--type=<model_type>] [--no_tub]\
         [--my_cfg=<path_to_myconfig.py>] [--respawn] [--random] [--verbose]
+    manage.py (bench) [--model=<path_to_pilot>]
 
 Options:
     -h --help               Show this screen.
@@ -56,7 +57,7 @@ class LapPct:
             "Lap pct must be list of len 3"
         logger.info(f"Creating part LapPct: {self.lap_pct}")
 
-    def run(self, lap, game_over):
+    def run(self, lap, game_over=None):
         # trigger update in each new lap
         # if lap != self.lap or game_over:
         if self.count % 40 == 0:
@@ -523,6 +524,43 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
 
 
+def benchmark(cfg, model_path):
+    car = dk.vehicle.Vehicle()
+    car_frequency = cfg.DRIVE_LOOP_HZ
+    overwrite = ['TRANSFORMATIONS', 'ROI_CROP_BOTTOM', 'ROI_CROP_LEFT',
+                 'ROI_CROP_RIGHT', 'ROI_CROP_TOP', 'SEQUENCE_LENGTH']
+    model_prefix_map = {'.tflite': 'tflite_', '.trt': 'tensorrt_',
+                        '.savedmodel': '', 'h5': ''}
+    db = PilotDatabase(cfg)
+    model_basename, model_ext \
+        = os.path.splitext(os.path.basename(model_path))
+    pilot_entry = db.get_entry(model_basename)
+    if pilot_entry:
+        logger.info(f'Found {model_basename} in database')
+        cfg_train_dict = pilot_entry['Config']
+        cfg.from_dict(cfg_train_dict, overwrite)
+        model_type = model_prefix_map[model_ext] + pilot_entry['Type']
+
+    kl = dk.utils.get_model_by_type(model_type, cfg)
+    kl.load(model_path)
+    kl_inputs = [CAM_IMG]
+    # Add image transformations like crop or trapezoidal mask
+    if hasattr(cfg, 'TRANSFORMATIONS') and cfg.TRANSFORMATIONS or \
+            hasattr(cfg, 'POST_TRANSFORMATIONS') and cfg.POST_TRANSFORMATIONS:
+        car.add(ImageTransformations(cfg, 'TRANSFORMATIONS',
+                                     'POST_TRANSFORMATIONS'),
+                inputs=[CAM_IMG], outputs=[CAM_IMG])
+
+    if kl.use_lap_pct():
+        car.add(LapPct(cfg), inputs=['car/lap'], outputs=['lap_pct'])
+        kl_inputs.append('lap_pct')
+    # add auto pilot and model reloader ------------------------------------
+    kl_outputs = ['pilot/angle', 'pilot/throttle']
+    car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
+    # run the vehicle
+    car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
+
+
 if __name__ == '__main__':
     args = docopt(__doc__)
     my_cfg = args.get('--my_cfg')
@@ -551,3 +589,5 @@ if __name__ == '__main__':
             respawn=args['--respawn'],
             random=args['--random'],
             verbose=args['--verbose'])
+    elif args['bench']:
+        benchmark(cfg=config, model_path=args['--model'])

@@ -82,6 +82,28 @@ class SliderSorter:
         return self.lap_pct
 
 
+def update_from_database(cfg, model_path, model_type):
+    """ Load model database to overwrite some configs parameters with the
+        values that were used in the trained model and also imply model_type
+        from the trained model. """
+
+    overwrite = ['TRANSFORMATIONS', 'ROI_CROP_BOTTOM', 'ROI_CROP_LEFT',
+                 'ROI_CROP_RIGHT', 'ROI_CROP_TOP', 'SEQUENCE_LENGTH']
+    model_prefix_map = {'.tflite': 'tflite_', '.trt': 'tensorrt_',
+                        '.savedmodel': '', 'h5': ''}
+    db = PilotDatabase(cfg)
+    model_basename, model_ext \
+        = os.path.splitext(os.path.basename(model_path))
+    pilot_entry = db.get_entry(model_basename)
+    if pilot_entry:
+        logger.info(f'Found {model_basename} in database')
+        cfg_train_dict = pilot_entry['Config']
+        cfg.from_dict(cfg_train_dict, overwrite)
+        model_type = model_prefix_map[model_ext] + pilot_entry['Type']
+
+    return model_type
+
+
 # define some strings that are used in the vehicle data flow
 CAM_IMG = 'cam/image_array'
 
@@ -161,22 +183,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     # load model if present ----------------------------------------------------
     if model_path is not None:
         logger.info("Using auto-pilot")
-        # load model database to overwrite some configs parameters with the
-        # values that were used in the trained model
-        overwrite = ['TRANSFORMATIONS', 'ROI_CROP_BOTTOM', 'ROI_CROP_LEFT',
-                     'ROI_CROP_RIGHT', 'ROI_CROP_TOP', 'SEQUENCE_LENGTH']
-        model_prefix_map = {'.tflite': 'tflite_', '.trt': 'tensorrt_',
-                            '.savedmodel': '', 'h5': ''}
-        db = PilotDatabase(cfg)
-        model_basename, model_ext \
-            = os.path.splitext(os.path.basename(model_path))
-        pilot_entry = db.get_entry(model_basename)
-        if pilot_entry:
-            logger.info(f'Found {model_basename} in database')
-            cfg_train_dict = pilot_entry['Config']
-            cfg.from_dict(cfg_train_dict, overwrite)
-            model_type = model_prefix_map[model_ext] + pilot_entry['Type']
-
+        model_type = update_from_database(cfg, model_path, model_type)
         kl = dk.utils.get_model_by_type(model_type, cfg)
         kl.load(model_path)
         kl_inputs = [CAM_IMG]
@@ -531,20 +538,7 @@ def benchmark(cfg, model_path):
     cam = MockCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H, image_d=3)
     car.add(cam, outputs=[CAM_IMG], threaded=True)
 
-    overwrite = ['TRANSFORMATIONS', 'ROI_CROP_BOTTOM', 'ROI_CROP_LEFT',
-                 'ROI_CROP_RIGHT', 'ROI_CROP_TOP', 'SEQUENCE_LENGTH']
-    model_prefix_map = {'.tflite': 'tflite_', '.trt': 'tensorrt_',
-                        '.savedmodel': '', 'h5': ''}
-    db = PilotDatabase(cfg)
-    model_basename, model_ext \
-        = os.path.splitext(os.path.basename(model_path))
-    pilot_entry = db.get_entry(model_basename)
-    if pilot_entry:
-        logger.info(f'Found {model_basename} in database')
-        cfg_train_dict = pilot_entry['Config']
-        cfg.from_dict(cfg_train_dict, overwrite)
-        model_type = model_prefix_map[model_ext] + pilot_entry['Type']
-
+    model_type = update_from_database(cfg, model_path, model_type)
     kl = dk.utils.get_model_by_type(model_type, cfg)
     kl.load(model_path)
     kl_inputs = [CAM_IMG]
@@ -556,7 +550,15 @@ def benchmark(cfg, model_path):
                 inputs=[CAM_IMG], outputs=[CAM_IMG])
 
     if kl.use_lap_pct():
-        car.add(LapPct(cfg), inputs=['car/lap'], outputs=['lap_pct'])
+        ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT,
+                                 mode=cfg.WEB_INIT_MODE)
+        car.add(ctr,
+                inputs=[CAM_IMG, 'tub/num_records'],
+                outputs=['ctr/user/angle', 'ctr/user/throttle',
+                         'ctr/user/mode',
+                         'ctr/recording', 'ctr/buttons', 'ctr/sliders'],
+                threaded=True)
+        car.add(SliderSorter(cfg), inputs=['ctr/sliders'], outputs=['lap_pct'])
         kl_inputs.append('lap_pct')
     # add auto pilot and model reloader ------------------------------------
     kl_outputs = ['pilot/angle', 'pilot/throttle']

@@ -532,10 +532,11 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
 
 
 def benchmark(cfg, model_path):
-    from donkeycar.parts.camera import MockCamera
+    from donkeycar.parts.camera import PiCamera
     car = dk.vehicle.Vehicle()
     car_frequency = cfg.DRIVE_LOOP_HZ
-    cam = MockCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H, image_d=3)
+    cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
+                   image_d=cfg.IMAGE_DEPTH)
     car.add(cam, outputs=[CAM_IMG], threaded=True)
 
     model_type = update_from_database(cfg, model_path, "")

@@ -145,6 +145,7 @@ class LapTimer:
                 # assume when seeing enough consecutive lo this was a real
                 # signal and the sensor went back to high
                 if self.count_lo > self.trigger:
+                    logger.info('Lap timer triggered')
                     now = time.time()
                     dt = now - self.last_time
                     # only count lap if more than min_time passed
@@ -164,7 +165,7 @@ class LapTimer:
             # trigger determines how many cm the car has to be in the
             # absorption area of the IR signal (by default 5). This scales
             # down w/ the speed.
-            time.sleep(0.001)
+            time.sleep(0.002)
 
     def run_threaded(self, distance):
         """

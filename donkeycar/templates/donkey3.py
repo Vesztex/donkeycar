@@ -538,7 +538,7 @@ def benchmark(cfg, model_path):
     cam = MockCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H, image_d=3)
     car.add(cam, outputs=[CAM_IMG], threaded=True)
 
-    model_type = update_from_database(cfg, model_path, model_type)
+    model_type = update_from_database(cfg, model_path, "")
     kl = dk.utils.get_model_by_type(model_type, cfg)
     kl.load(model_path)
     kl_inputs = [CAM_IMG]

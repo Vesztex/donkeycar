@@ -183,6 +183,7 @@ class Vehicle:
             traceback.print_exc()
         finally:
             self.stop()
+            logging.shutdown()
 
     def update_parts(self):
         '''

@@ -40,7 +40,10 @@ from donkeycar.pipeline.augmentations import ImageAugmentation
 from donkeycar.parts.image_transformations import ImageTransformations
 from donkeycar.pipeline.database import PilotDatabase
 
-logging.basicConfig(filename='./logs/log.txt', force=True)
+logging.basicConfig(handlers=[logging.FileHandler(filename='./logs/log.txt'),
+                              logging.StreamHandler()],
+                    format="%(asctime)s [%(levelname)s] %(message)s",
+                    force=True)
 
 logger = logging.getLogger(__name__)
 

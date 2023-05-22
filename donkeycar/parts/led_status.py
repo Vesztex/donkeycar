@@ -160,7 +160,7 @@ class LEDStatus:
         :param delay:   How long in s
         :param color:   rgb tuple in [0, 4095]
         :param num:     How often
-        :param short:   If short on long off or vice versa
+        :param short:   If short time on and long time off or vice versa
         :return:        None
         """
         on_time = delay

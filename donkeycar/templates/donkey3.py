@@ -42,7 +42,7 @@ from donkeycar.pipeline.database import PilotDatabase
 
 logging.basicConfig(handlers=[logging.FileHandler(filename='./logs/log.txt'),
                               logging.StreamHandler()],
-                    format="%(asctime)s [%(levelname)s] %(message)s",
+                    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
                     force=True)
 
 logger = logging.getLogger(__name__)
@@ -589,6 +589,7 @@ def benchmark(cfg, model_path):
 
 
 if __name__ == '__main__':
+    logger.info(f'Starting run of {__file__}')
     args = docopt(__doc__)
     my_cfg = args.get('--my_cfg')
     config = dk.load_config(myconfig=my_cfg)
@@ -618,3 +619,4 @@ if __name__ == '__main__':
             verbose=args['--verbose'])
     elif args['bench']:
         benchmark(cfg=config, model_path=args['--model'])
+    logger.info(f'Ending run of {__file__}')

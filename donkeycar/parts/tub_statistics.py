@@ -179,45 +179,44 @@ class TubStatistics(object):
         prev_lap = None
         gyro_z_agg = 0
         lap_gyro_map = {}
-        # this loop assumes that all records for one session are continuous,
-        # i.e. if we iterate over all records then if a change to a new
-        # session happens only once for each session, see assert below
+        count = 0   # counts the number of records in each lap
         for record in self.tub:
-            # skip over zero lap
             lap = record['car/lap']
             session_id = record['_session_id']
 
             if session_id != prev_session:
-                # If new session found update the lap timer with the
-                # aggregated values
+                # If new session found update the map with the value of the
+                # last lap of the prev session and update the lap timer of
+                # the previous session
                 if prev_session is not None:
-                    lap_gyro_map[prev_lap] = gyro_z_agg
+                    lap_gyro_map[prev_lap] = gyro_z_agg / count
                     update_metadata(lap_gyro_map, prev_session)
 
                 # update current session to new session
                 prev_session = session_id
-
                 # reset lap / gyro map
                 lap_gyro_map.clear()
                 prev_lap = None
+                count = 0
 
             if lap != prev_lap:
+                # only update map if we haven't started a fresh session
                 if prev_lap is not None:
-                    # add aggregated gyro value to map
-                    lap_gyro_map[prev_lap] = gyro_z_agg
-                    # zero the aggregation value
-                    gyro_z_agg = 0
-                # update the lap
+                    # add aggregated normalised gyro value to map
+                    lap_gyro_map[prev_lap] = gyro_z_agg / count
+                # zero the aggregation value and update lap
+                gyro_z_agg = 0
+                count = 0
                 prev_lap = lap
 
             val = abs(record['car/gyro'][self.gyro_z_index])
             gyro_z_agg += val
+            count += 1
 
         # update for last lap, because we didn't go through the if lap !=
         # prev_lap part any more and hence need to update the map with the
         # last lap info
-        lap_gyro_map[lap] = gyro_z_agg
-
+        lap_gyro_map[lap] = gyro_z_agg / count
         update_metadata(lap_gyro_map, prev_session)
 
 

@@ -27,6 +27,7 @@ from random import random
 
 import donkeycar as dk
 import donkeycar.parts
+from donkeycar.parts.actuator import EStop
 from donkeycar.parts.tub_v2 import TubWiper, TubWriter
 from donkeycar.parts.file_watcher import FileWatcher
 from donkeycar.parts.keras_2 import ModelLoader, ModelResetter
@@ -276,6 +277,9 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
                            min_pulse=cfg.THROTTLE_REVERSE_PWM)
     # feed signal which is either rc (user) or ai
     throttle_input = 'pid/throttle' if use_pid else 'throttle'
+    car.add(EStop(car_frequency),
+            inputs=[throttle_input, 'user/mode'],
+            outputs=[throttle_input])
     car.add(throttle, inputs=[throttle_input], threaded=True)
 
     # if we want to record a tub -----------------------------------------------

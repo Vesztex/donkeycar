@@ -382,6 +382,35 @@ class PWMThrottle:
         self.running = False
 
 
+class EStop:
+    """ Runs full brake for 0.5s if it is triggered once """
+    def __init__(self, car_freq: int = 40, brake: float = -0.75):
+        self.car_freq = car_freq
+        self.brake = brake
+        self.count = 0
+        self.is_triggerd = False
+        self.last_user_mode = 0
+
+    def run(self, in_throttle: float, user_mode: int = 0):
+        # E-stop gets triggered when user mode is shifted from 1 to 0
+        trigger = user_mode == 0 and self.last_user_mode == 1
+        self.last_user_mode = user_mode
+        # if triggered and not activated, activate the brake
+        if trigger and self.count == 0:
+            self.count = 1
+            logger.warning('E-Stop hit!')
+        # if not activated return input throttle
+        if self.count == 0:
+            return in_throttle
+        # this only runs if brake activated (i.e. self.count > 0)
+        if self.count < self.car_freq / 2:
+            self.count += 1
+            return self.brake
+        else:
+            logger.info('E-Stop released')
+            self.count = 0
+            return in_throttle
+
 #
 # This seems redundant.  If it's really emulating and PCA9685, then
 # why don't we just use that code?

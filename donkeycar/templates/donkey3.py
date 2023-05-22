@@ -40,8 +40,13 @@ from donkeycar.pipeline.augmentations import ImageAugmentation
 from donkeycar.parts.image_transformations import ImageTransformations
 from donkeycar.pipeline.database import PilotDatabase
 
-logging.basicConfig(handlers=[logging.FileHandler(filename='./logs/log.txt'),
-                              logging.StreamHandler()],
+
+file_handler = logging.handlers.RotatingFileHandler(
+    filename='./logs/log.txt', mode='a',
+    maxBytes=1000000, backupCount=10)
+file_handler.doRollover()
+
+logging.basicConfig(handlers=[file_handler, logging.StreamHandler()],
                     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
                     force=True)
 

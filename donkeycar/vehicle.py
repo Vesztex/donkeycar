@@ -228,7 +228,8 @@ class Vehicle:
         count = max(self.loop_count, 1)
         logger.info(f'Ran {self.loop_count} vehicle loops with '
                     f'{100.0 * self.loop_exceed / count:.2f}% ' 
-                    f'exceeding loop time. Average excess time '
+                    f'exceeding loop time.')
+        logger.info(f'Average excess time '
                     f'{1000.0 * self.excess_time / count:.1f}ms, average loop '
                     f'time {1000.0 * self.run_time / count:.1f}ms.')
 

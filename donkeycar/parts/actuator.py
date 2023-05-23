@@ -383,7 +383,7 @@ class PWMThrottle:
 
 
 class EStop:
-    """ Runs full brake for 0.5s if it is triggered once """
+    """ Runs full brake for 2s if it is triggered once """
     def __init__(self, car_freq: int = 40, brake: float = -0.75):
         self.car_freq = car_freq
         self.brake = brake
@@ -403,7 +403,7 @@ class EStop:
         if self.count == 0:
             return in_throttle
         # this only runs if brake activated (i.e. self.count > 0)
-        if self.count < self.car_freq / 2:
+        if self.count < 2 * self.car_freq:
             self.count += 1
             return self.brake
         else:

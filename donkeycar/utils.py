@@ -537,6 +537,7 @@ def get_model_by_type(model_type: str, cfg: 'Config') \
     mem_length = getattr(cfg, 'SEQUENCE_LENGTH', 3)
     mem_depth = getattr(cfg, 'MEM_DEPTH', 0)
     mem_start_speed = getattr(cfg, 'MEM_START_SPEED', 0)
+    offset = getattr(cfg, 'TRAIN_OFFSET', 0)
 
     if used_model_type == "linear":
         kl = KerasLinear(interpreter=interpreter, input_shape=input_shape)
@@ -584,7 +585,8 @@ def get_model_by_type(model_type: str, cfg: 'Config') \
             use_speed=cfg.USE_SPEED_FOR_MODEL,
             max_speed=cfg.MAX_SPEED,
             mem_length=mem_length, mem_depth=mem_depth,
-            mem_start_speed=mem_start_speed)
+            mem_start_speed=mem_start_speed,
+            offset=offset)
     elif used_model_type == 'sq_mem_lap':
         throttle_mult = cfg.AI_THROTTLE_MULT
         kl = KerasSquarePlusMemoryLap(
@@ -593,6 +595,7 @@ def get_model_by_type(model_type: str, cfg: 'Config') \
             max_speed=cfg.MAX_SPEED,
             mem_length=mem_length, mem_depth=mem_depth,
             mem_start_speed=mem_start_speed,
+            offset=offset,
             throttle_mult=throttle_mult)
     else:
         known = [k + u for k in ('', 'tflite_', 'tensorrt_')

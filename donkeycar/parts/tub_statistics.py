@@ -219,5 +219,33 @@ class TubStatistics(object):
         lap_gyro_map[lap] = gyro_z_agg / count
         update_metadata(lap_gyro_map, prev_session)
 
-
-
+    def _calculate_laptimer_index(self):
+        """
+        Updates lap_timer in tub metadata with start and end index of
+        records in that lap
+        """
+        logger.info(f'Calculating laptimer index in tub {self.tub.base_path}')
+        prev_lap = None
+        prev_session = None
+        for record in self.tub:
+            idx = record['_index']
+            lap = record['car/lap']
+            session_id = record['_session_id']
+            if lap != prev_lap:
+                session_dict = self.tub.manifest.metadata.get(session_id)
+                assert session_dict, \
+                    f"Missing metadata for session_id {session_id}"
+                lap_timer = session_dict['laptimer']
+                lap_timer_i = lap_timer[lap]
+                assert lap_timer_i['lap'] == lap, \
+                    f"Inconsistent laptimer in session {session_id}"
+                lap_timer_i['start_index'] = idx
+                if prev_session is not None:
+                    if prev_session != session_id:
+                        prev_dict = self.tub.manifest.metadata[prev_session]
+                        plt = prev_dict['laptimer']
+                    else:
+                        plt = lap_timer
+                    if prev_lap is not None:
+                        plt[prev_lap]['end_index'] = idx - 1
+                prev_lap = lap

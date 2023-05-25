@@ -98,6 +98,7 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
         super().__init__(interpreter, input_shape, *args, **kwargs)
         # because we have 2 inputs (img, mem) we need to freeze in1, in2, cnn
         self.num_to_freeze = 3
+        self.offset = kwargs.get('offset', 0)
 
     def create_model(self):
         return linear_square_plus_mem(self.input_shape, self.size,
@@ -119,7 +120,7 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
         assert len(record) == self.mem_length + 1, \
             f"Record list of length {self.mem_length} required but " \
             f"{len(record)} was passed"
-        img_arr = record[-1].image(processor=img_processor)
+        img_arr = record[-(1 + self.offset)].image(processor=img_processor)
         mem = [[r.underlying['user/angle'], self._get_throttle(r)]
                for r in record[:-1]]
         mem_arr = np.array(mem).reshape((2 * self.mem_length,))
@@ -154,6 +155,9 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
         super().reset()
         logger.info(f"Resetting with start speed {self.mem_start_speed}")
         self.mem_seq = deque([[0.0, self.mem_start_speed]] * self.mem_length)
+
+    def __str__(self) -> str:
+        return super().__str__() + f'-os:{self.offset}'
 
 
 class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):

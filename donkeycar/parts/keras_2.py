@@ -13,6 +13,7 @@ from tensorflow.keras import Model, Input
 from tensorflow.keras.layers import Dense, Concatenate, Conv2D, \
     BatchNormalization, Dropout, Flatten, Reshape, UpSampling2D, \
     Conv2DTranspose, LSTM, MaxPooling2D, TimeDistributed as TD, LeakyReLU
+from tensorflow.python.keras.layers import Activation
 
 from donkeycar.parts.interpreter import Interpreter, KerasInterpreter
 from donkeycar.parts.keras import KerasLinear, XY, KerasMemory
@@ -95,10 +96,10 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
                  interpreter: Interpreter = KerasInterpreter(),
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
+        self.offset = kwargs.get('offset', 0)
         super().__init__(interpreter, input_shape, *args, **kwargs)
         # because we have 2 inputs (img, mem) we need to freeze in1, in2, cnn
         self.num_to_freeze = 3
-        self.offset = kwargs.get('offset', 0)
 
     def create_model(self):
         return linear_square_plus_mem(self.input_shape, self.size,
@@ -788,28 +789,31 @@ def linear_square_plus_cnn(img_in, size='R', l2=0.001, is_seq=False):
     # build CNN layers with data as above and batch norm, pooling & dropout
     for i, f, k, s in zip(range(len(filters)), filters, kernels, strides):
         conv = Conv2D(filters=f, kernel_size=k, strides=s, padding='same',
-                      activation='relu', name='conv' + str(i))
+                      use_bias=False, name='conv' + str(i))
         norm = BatchNormalization(name='batch_norm' + str(i))
+        act = Activation('relu', name='act' + str(i))
         pool = MaxPooling2D(pool_size=(2, 2), padding='same',
                             name='pool' + str(i))
         dropout = Dropout(rate=drop, name='drop' + str(i))
         if is_seq:
             x = TD(conv, name='td_conv' + str(i))(x)
             x = TD(norm, name='td_norm' + str(i))(x)
+            x = TD(act, name='td_act' + str(i))(x)
             x = TD(pool, name='td_pool' + str(i))(x)
             x = TD(dropout, name='td_drop' + str(i))(x)
         else:
             x = conv(x)
+            x = norm(x)
+            x = act(x)
             if size != 'R':
-                x = norm(x)
                 x = pool(x)
-                x = dropout(x)
             else:
                 if i < 3:
                     x = pool(x)
                 elif i == 3:
                     x = MaxPooling2D(pool_size=(3, 3), padding='same',
                                      name='pool' + str(i))(x)
+            x = dropout(x)
 
     # flatten and pack into latent vector:
     flat = Flatten(name='flattened')

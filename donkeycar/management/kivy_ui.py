@@ -1049,36 +1049,35 @@ class TrainScreen(Screen):
         except ValueError:
             val = input
 
-        att = self.ids.cfg_spinner.text.split(':')[0]
+        att = self.ids.cfg_spinner.text
         setattr(self.config, att, val)
-        self.ids.cfg_spinner.values = self.value_list()
         self.ids.status.text = f'Setting {att} to {val} of type ' \
                                f'{type(val).__name__}'
 
-    def value_list(self):
+    def keys(self):
         if self.config:
-            return [f'{k}: {v}' for k, v in self.config.__dict__.items()]
+            return [str(k) for k in self.config.__dict__.keys()]
         else:
-            return ['select']
+            return []
 
     def on_config(self, obj, config):
         if self.config and self.ids:
-            self.ids.cfg_spinner.values = self.value_list()
+            self.ids.cfg_spinner.values = self.keys()
             self.reload_database()
 
     def reload_database(self):
         if self.config:
             self.database = PilotDatabase(self.config)
 
-    def on_database(self, obj, database):
+    def on_database(self, obj=None, database=None):
         group_tubs = self.ids.check.state == 'down'
         pilot_txt, tub_txt, pilot_names = self.database.pretty_print(group_tubs)
         self.ids.scroll_tubs.text = tub_txt
         self.ids.scroll_pilots.text = pilot_txt
         self.ids.transfer_spinner.values \
             = ['Choose transfer model'] + pilot_names
-        self.ids.delete_spinner.values \
-            = ['Pilot'] + pilot_names
+        self.ids.select_spinner.values \
+            = pilot_names
 
 
 class CarScreen(Screen):

@@ -548,13 +548,14 @@
             spacing: layout_pad_x
             MySpinner:
                 id: cfg_spinner
-                text: 'select'
-                values: root.value_list()
+                text_autoupdate: True
+                values: root.keys()
             TextInput:
                 id: cfg_overwrite
                 multiline: False
-                text: 'New value'
-                on_text_validate: root.set_config_attribute(self.text)
+                text: str(getattr(root.config, cfg_spinner.text, ''))
+                on_text_validate:
+                    root.set_config_attribute(self.text)
         Label:
             size_hint_y: None
             height: common_height
@@ -604,14 +605,27 @@
             padding: layout_pad_xy
             spacing: layout_pad_x
             MySpinner:
-                id: delete_spinner
+                size_hint_x: 1.5
+                id: select_spinner
                 text_autoupdate: True
+                on_text:
+                    comment.text = root.database.get_entry(select_spinner.text)['Comment']
             Button:
+                size_hint_x: 0.75
                 id: delete_btn
                 on_press:
-                    root.database.delete_entry(delete_spinner.text)
+                    root.database.delete_entry(select_spinner.text)
                     root.reload_database()
                 text: 'Delete pilot'
+            Button:
+                size_hint_x: 0.75
+                id: update_comment
+                text: 'Update comment'
+                on_press:
+                    root.database.get_entry(select_spinner.text)['Comment'] = comment.text
+                    root.database.write()
+                    root.on_database()
+
         BoxLayout:
             size_hint_y: None
             height: layout_height

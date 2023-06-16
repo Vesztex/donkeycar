@@ -6,7 +6,7 @@ steering triggers.
 
 Usage:
     manage.py (drive) [--pid] [--no_cam] [--model=<path_to_pilot>] [--web]\
-        [--fpv] [--no_tub] [--verbose] [--type=<model_type>]
+        [--fpv] [--no_tub] [--verbose] [--type=<model_type>] [--old]
     manage.py (calibrate)
     manage.py (stream)
     manage.py (led)
@@ -120,7 +120,7 @@ CAM_IMG = 'cam/image_array'
 
 
 def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
-          web=False, fpv=False, no_tub=False, verbose=False):
+          web=False, fpv=False, no_tub=False, old=False, verbose=False):
     """
     Construct a working robotic vehicle from many parts. Each part runs as a job
     in the Vehicle loop, calling either its run or run_threaded method depending
@@ -305,6 +305,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
                  'int',
                  'vector',
                  'vector']
+        # for backward compatibility remove user/wiper_on which was not in
+        # old tub
+        if old:
+            del inputs[4], types[4]
         tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs,
                                types=types, lap_timer=lap)
         car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],
@@ -612,7 +616,8 @@ if __name__ == '__main__':
               fpv=args['--fpv'],
               no_tub=args['--no_tub'],
               verbose=args['--verbose'],
-              model_type=args['--type'])
+              model_type=args['--type'],
+              old=args['--old'])
     elif args['calibrate']:
         calibrate(config)
     elif args['stream']:

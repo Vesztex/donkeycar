@@ -403,7 +403,7 @@ class EStop:
         if self.count == 0:
             return in_throttle
         # this only runs if brake activated (i.e. self.count > 0)
-        if self.count < 2 * self.car_freq:
+        if self.count < 5 * self.car_freq:
             self.count += 1
             return self.brake
         else:

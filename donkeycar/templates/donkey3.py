@@ -291,24 +291,18 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         car.add(rec_cond, inputs=rec_inputs, outputs=['recording'])
 
         # add tub to save data
-        inputs = [CAM_IMG,
-                  'user/angle', 'user/throttle', 'user/mode', 'user/wiper_on',
-                  'pilot/angle', 'pilot/throttle',
-                  'car/speed', 'car/inst_speed', 'car/distance', 'car/m_in_lap',
-                  'car/lap',
-                  'car/accel',
-                  'car/gyro']
-        types = ['image_array',
-                 'float', 'float', 'int', 'bool',
-                 'float', 'float',
-                 'float', 'float', 'float', 'float',
-                 'int',
-                 'vector',
-                 'vector']
+        inputs = [CAM_IMG, 'user/angle', 'user/throttle', 'pilot/angle',
+                  'pilot/throttle', 'user/wiper_on', 'user/mode',
+                  'car/speed', 'car/inst_speed', 'car/distance',
+                  'car/m_in_lap', 'car/lap', 'car/accel', 'car/gyro']
+        types = ['image_array', 'float', 'float', 'float',
+                 'float', 'bool', 'int',
+                 'float', 'float', 'float',
+                 'float', 'int', 'vector', 'vector']
         # for backward compatibility remove user/wiper_on which was not in
         # old tub
         if old:
-            del inputs[4], types[4]
+            del inputs[5], types[5]
         tub_writer = TubWriter(base_path=cfg.DATA_PATH, inputs=inputs,
                                types=types, lap_timer=lap)
         car.add(tub_writer, inputs=inputs, outputs=["tub/num_records"],

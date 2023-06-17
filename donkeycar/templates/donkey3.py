@@ -120,7 +120,7 @@ CAM_IMG = 'cam/image_array'
 
 
 def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
-          web=False, fpv=False, no_tub=False, old=False, verbose=False):
+          web=False, fpv=False, no_tub=False, old=True, verbose=False):
     """
     Construct a working robotic vehicle from many parts. Each part runs as a job
     in the Vehicle loop, calling either its run or run_threaded method depending

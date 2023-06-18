@@ -161,14 +161,14 @@ def train(cfg: Config, tub_paths: str, model: str = None,
         dataset_train = training_pipe.create_tf_data().prefetch(tune)
         dataset_validate = validation_pipe.create_tf_data().prefetch(tune)
 
-        ds_train = tf.data.Dataset.range(2).interleave(
-            lambda _: dataset_train,
-            num_parallel_calls=tf.data.AUTOTUNE
-        )
-        ds_validate = tf.data.Dataset.range(2).interleave(
-            lambda _: dataset_validate,
-            num_parallel_calls=tf.data.AUTOTUNE
-        )
+        # ds_train = tf.data.Dataset.range(2).interleave(
+        #     lambda _: dataset_train,
+        #     num_parallel_calls=tf.data.AUTOTUNE
+        # )
+        # ds_validate = tf.data.Dataset.range(2).interleave(
+        #     lambda _: dataset_validate,
+        #     num_parallel_calls=tf.data.AUTOTUNE
+        # )
 
         train_size = len(training_pipe)
         val_size = len(validation_pipe)

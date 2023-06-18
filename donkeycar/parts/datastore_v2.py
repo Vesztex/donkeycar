@@ -359,8 +359,19 @@ class Manifest(object):
 
     def _read_contents(self):
         self.seekeable.seek_line_start(1)
-        self.inputs = json.loads(self.seekeable.readline())
-        self.types = json.loads(self.seekeable.readline())
+        manifest_inputs = json.loads(self.seekeable.readline())
+        manifest_types = json.loads(self.seekeable.readline())
+        if not self.inputs and not self.types:
+            self.inputs = manifest_inputs
+            self.types = manifest_types
+        else:
+            assert self.inputs == manifest_inputs \
+                and self.types == manifest_types, \
+                    f'Trying to create a tub with different inputs/types than ' \
+                    f'the stored tub. This is only allowed when new tub ' \
+                    f'specifies no inputs. New inputs: {self.inputs} vs ' \
+                    f'stored inputs: {manifest_inputs}, new types {self.types}'\
+                    f' vs stored types: {manifest_types}'
         self.metadata = json.loads(self.seekeable.readline())
         self.manifest_metadata = json.loads(self.seekeable.readline())
         # Catalog metadata

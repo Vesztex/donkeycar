@@ -760,8 +760,8 @@ class ModelResetter:
             self.pilot.reset()
 
 
-def linear_square_plus_cnn(img_in, size='R', l2=0.001, is_seq=False):
-    drop = 0.02
+def linear_square_plus_cnn(img_in, size='R', l2=0.01, is_seq=False):
+    drop = 0.1
     x = img_in
     # This makes the picture square in 1 steps (assuming 3x4 input) in all
     # following layers
@@ -805,14 +805,15 @@ def linear_square_plus_cnn(img_in, size='R', l2=0.001, is_seq=False):
             x = conv(x)
             x = norm(x)
             x = act(x)
-            if size != 'R':
-                x = pool(x)
-            else:
-                if i < 3:
-                    x = pool(x)
-                elif i == 3:
-                    x = MaxPooling2D(pool_size=(3, 3), padding='same',
-                                     name='pool' + str(i))(x)
+            # if size != 'R':
+            #     x = pool(x)
+            # else:
+            #     if i < 3:
+            #         x = pool(x)
+            #     elif i == 3:
+            #         x = MaxPooling2D(pool_size=(3, 3), padding='same',
+            #                          name='pool' + str(i))(x)
+            x = pool(x)
             x = dropout(x)
 
     # flatten and pack into latent vector:

@@ -161,6 +161,15 @@ def train(cfg: Config, tub_paths: str, model: str = None,
         dataset_train = training_pipe.create_tf_data().prefetch(tune)
         dataset_validate = validation_pipe.create_tf_data().prefetch(tune)
 
+        ds_train = tf.data.Dataset.range(2).interleave(
+            lambda _: dataset_train,
+            num_parallel_calls=tf.data.AUTOTUNE
+        )
+        ds_validate = tf.data.Dataset.range(2).interleave(
+            lambda _: dataset_validate,
+            num_parallel_calls=tf.data.AUTOTUNE
+        )
+
         train_size = len(training_pipe)
         val_size = len(validation_pipe)
 
@@ -169,10 +178,10 @@ def train(cfg: Config, tub_paths: str, model: str = None,
     logger.info(f'Train with image caching: '
                 f'{getattr(cfg, "CACHE_IMAGES", True)}')
     history = kl.train(model_path=model_path,
-                       train_data=dataset_train,
+                       train_data=ds_train,
                        train_steps=train_size,
                        batch_size=cfg.BATCH_SIZE,
-                       validation_data=dataset_validate,
+                       validation_data=ds_validate,
                        validation_steps=val_size,
                        epochs=cfg.MAX_EPOCHS,
                        verbose=cfg.VERBOSE_TRAIN,

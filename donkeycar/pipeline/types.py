@@ -6,7 +6,8 @@ import numpy as np
 from donkeycar.config import Config
 from donkeycar.parts.tub_statistics import TubStatistics
 from donkeycar.parts.tub_v2 import Tub
-from donkeycar.utils import load_image, load_pil_image
+from donkeycar.utils import load_image, load_pil_image, binary_to_img, \
+    img_to_arr, img_to_binary, arr_to_binary
 from typing_extensions import TypedDict
 
 
@@ -69,21 +70,44 @@ class TubRecord(object):
         :return:            Image
         """
         if self._image is None:
-            image_path = self.underlying['cam/image_array']
-            full_path = os.path.join(self.base_path, 'images', image_path)
-
-            if as_nparray:
-                _image = load_image(full_path, cfg=self.config)
-            else:
-                # If you just want the raw Image
-                _image = load_pil_image(full_path, cfg=self.config)
-            if processor:
-                _image = processor(_image)
-            # only cache images if config does not forbid it
-            if self._cache_images:
-                self._image = _image
+            _image = self._extract_image(as_nparray, processor)
         else:
-            _image = self._image
+            _image = self._image if self._cache_images \
+                else img_to_arr(binary_to_img(self._image))
+        return _image
+
+    def _extract_image(self, as_nparray, processor):
+        image_path = self.underlying['cam/image_array']
+        full_path = os.path.join(self.base_path, 'images', image_path)
+        if as_nparray:
+            # if caching is true, load the full numpy uint8 array and cache
+            if self._cache_images:
+                _image = load_image(full_path, cfg=self.config)
+                self._image = _image
+            # if caching is false, load the jpeg binary and cache binary
+            else:
+                with open(full_path, 'rb') as f:
+                    _image = f.read()
+                    # save binary
+                    self._image = _image
+                    # but return numpy
+                    _image = img_to_arr(binary_to_img(_image))
+        else:
+            # If you just want the raw Image
+            _image = load_pil_image(full_path, cfg=self.config)
+        if processor:
+            # _image is now either numpy or PIL, so processing applies always
+            _image = processor(_image)
+            if as_nparray:
+                # if numpy and caching, cache the processed image
+                if self._cache_images:
+                    self._image = _image
+                # if numpy and no caching, cache binary image, but return numpy
+                else:
+                    self._image = arr_to_binary(_image)
+        # cache PIL image, processed or not
+        if not as_nparray and self._cache_images:
+            self._image = _image
         return _image
 
     def extend(self, session_lap_rank):

@@ -116,7 +116,7 @@ TRANSFORMATIONS = []
 AUG_BRIGHTNESS_RANGE = 0.2  # this is interpreted as [-0.2, 0.2]
 AUG_BLUR_RANGE = (0, 3)
 # Number of pixels to crop, requires 'CROP' in TRANSFORMATIONS to be set
-ROI_CROP_TOP = 45
+ROI_CROP_TOP = 50
 ROI_CROP_BOTTOM = 0
 ROI_CROP_RIGHT = 0
 ROI_CROP_LEFT = 0

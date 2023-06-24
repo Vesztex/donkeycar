@@ -2,7 +2,7 @@ import logging
 from typing import List
 from donkeycar.config import Config
 from donkeycar.parts import cv as cv_parts
-
+from donkeycar.utils import EqMemorizedString
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +20,10 @@ class ImageTransformations:
         self.transformations = [image_transformer(name, config) for name in
                                 transformations]
         logger.info(f'Creating ImageTransformations {transformations}')
-    
+
     def run(self, image):
         """
-        Run the list of tranformers on the image
+        Run the list of transformers on the image
         and return transformed image.
         """
         for transformer in self.transformations:
@@ -41,23 +41,15 @@ def image_transformer(name: str, config):
     #
     # masking transformations
     #
+    name = EqMemorizedString(name)
     if "TRAPEZE" == name:
-        return cv_parts.ImgTrapezoidalMask(
-            config.ROI_TRAPEZE_UL,
-            config.ROI_TRAPEZE_UR,
-            config.ROI_TRAPEZE_LL,
-            config.ROI_TRAPEZE_LR,
-            config.ROI_TRAPEZE_MIN_Y,
-            config.ROI_TRAPEZE_MAX_Y
-        )
+        return cv_parts.ImgTrapezoidalMask(config.ROI_TRAPEZE_UL,
+            config.ROI_TRAPEZE_UR, config.ROI_TRAPEZE_LL, config.ROI_TRAPEZE_LR,
+            config.ROI_TRAPEZE_MIN_Y, config.ROI_TRAPEZE_MAX_Y)
 
     elif "CROP" == name:
-        return cv_parts.ImgCropMask(
-            config.ROI_CROP_LEFT,
-            config.ROI_CROP_TOP,
-            config.ROI_CROP_RIGHT,
-            config.ROI_CROP_BOTTOM
-        )
+        return cv_parts.ImgCropMask(config.ROI_CROP_LEFT, config.ROI_CROP_TOP,
+            config.ROI_CROP_RIGHT, config.ROI_CROP_BOTTOM)
     #
     # color space transformations
     #
@@ -107,16 +99,17 @@ def image_transformer(name: str, config):
         return cv_parts.ImageScale(config.SCALE_WIDTH, config.SCALE_HEIGHT)
     elif name.startswith("CUSTOM"):
         return custom_transformer(name, config)
+    elif name == "GAMMANORM":
+        return cv_parts.ImgGammaNormaliser(config.GAMMA_NORM_VALUE)
     else:
-        msg = f"{name} is not a valid augmentation"
+        msg = f"{name} is not a valid transformation. Use one of:" \
+              f" {name.mem_as_str()}"
         logger.error(msg)
         raise ValueError(msg)
 
 
-def custom_transformer(name:str,
-                       config:Config,
-                       file_path:str=None,
-                       class_name:str=None) -> object:
+def custom_transformer(name: str, config: Config, file_path: str = None,
+                       class_name: str = None) -> object:
     """
     Instantiate a custom image transformer.  A custome transformer
     is a class whose constructor takes a Config object to get its
@@ -157,12 +150,14 @@ def custom_transformer(name:str,
     if file_path is None:
         file_path = getattr(config, name + "_MODULE", None)
     if file_path is None:
-        raise ValueError(f"No module file path declared for custom image transformer: {name}")
+        raise ValueError(
+            f"No module file path declared for custom image transformer: {name}")
     if class_name is None:
         class_name = getattr(config, name + "_CLASS", None)
     if class_name is None:
-        raise ValueError(f"No class declared for custom image transformer: {name}")
-    
+        raise ValueError(
+            f"No class declared for custom image transformer: {name}")
+
     import os
     import sys
     import importlib.util
@@ -174,16 +169,18 @@ def custom_transformer(name:str,
     # create a module name by pulling out base file name
     # and appending to a custom namespace
     #
-    namespace = "custom.transformation." + os.path.split(file_path)[1].split('.')[0]
+    namespace = "custom.transformation." + \
+                os.path.split(file_path)[1].split('.')[0]
     module = sys.modules.get(namespace)
     if module:
         # already loaded
         logger.info(f"Found cached custom transformation module: {namespace}")
     else:
-        logger.info(f"Loading custom transformation module {namespace} at {file_path}")
+        logger.info(
+            f"Loading custom transformation module {namespace} at {file_path}")
 
         # dynamically load from python file
-        spec=importlib.util.spec_from_file_location(namespace, file_path)
+        spec = importlib.util.spec_from_file_location(namespace, file_path)
         if spec:
             # creates a new module based on spec
             module = importlib.util.module_from_spec(spec)
@@ -195,15 +192,21 @@ def custom_transformer(name:str,
                 # when a module is imported or reloaded.
                 spec.loader.exec_module(module)
             else:
-                logger.error(f"Failed to dynamically load custom transformation module {namespace} at {file_path} from spec")
+                logger.error(
+                    f"Failed to dynamically load custom transformation module "
+                    f"{namespace} at {file_path} from spec")
         else:
-            logger.error(f"Failed to dynamically load custom transformation spec {namespace} from {file_path}")
+            logger.error(
+                f"Failed to dynamically load custom transformation spec "
+                f"{namespace} from {file_path}")
 
     if module:
         # get the class from the module
         my_class = getattr(module, class_name, None)
         if my_class is None:
-            raise ValueError(f"Cannot find class {class_name} in module {namespace} at {file_path}")
+            raise ValueError(
+                f"Cannot find class {class_name} in module {namespace} at "
+                f"{file_path}")
 
         #
         # instantiate the an instance of the class.
@@ -211,5 +214,5 @@ def custom_transformer(name:str,
         #
         return my_class(config)
     else:
-        raise ValueError(f"Unable to load custom tranformation module at {file_path}")
-
+        raise ValueError(
+            f"Unable to load custom transformation module at {file_path}")

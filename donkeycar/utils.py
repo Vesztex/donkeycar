@@ -18,6 +18,7 @@ import time
 import signal
 import logging
 from typing import List, Any, Tuple, Union
+from collections import UserString
 
 from PIL import Image
 import numpy as np
@@ -27,15 +28,16 @@ logger = logging.getLogger(__name__)
 ONE_BYTE_SCALE = 1.0 / 255.0
 
 
-class EqMemorizedString:
+class EqMemorizedString(UserString):
     """ String that remembers what it was compared against """
+
     def __init__(self, string):
-        self.string = string
+        super().__init__(string)
         self.mem = set()
 
     def __eq__(self, other):
         self.mem.add(other)
-        return self.string == other
+        return super().__eq__(other)
 
     def mem_as_str(self):
         return ', '.join(self.mem)

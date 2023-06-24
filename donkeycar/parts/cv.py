@@ -42,7 +42,8 @@ class ImgGRAY2RGB:
         try:
             img_arr = cv2.cvtColor(img_arr, cv2.COLOR_GRAY2RGB)
         except:
-            logger.error(F"Unable to convert greyscale image of shape {img_arr.shape} to RGB")
+            logger.error(F"Unable to convert greyscale image of shape "
+                         F"{img_arr.shape} to RGB")
             return None
 
     def shutdown(self):
@@ -57,7 +58,9 @@ class ImgGRAY2BGR:
         try:
             img_arr = cv2.cvtColor(img_arr, cv2.COLOR_GRAY2BGR)
         except:
-            logger.error(F"Unable to convert greyscale image of shape {img_arr.shape} to RGB")
+            logger.error(
+                F"Unable to convert greyscale image of shape {img_arr.shape} "
+                F"to RGB")
             return None
 
     def shutdown(self):
@@ -231,7 +234,8 @@ class ImageScale:
             return None
 
         try:
-            return cv2.resize(img_arr, (0,0), fx=self.scale, fy=self.scale_height)
+            return cv2.resize(img_arr, (0, 0), fx=self.scale,
+                              fy=self.scale_height)
         except:
             logger.error("Unable to scale image")
             return None
@@ -241,7 +245,7 @@ class ImageScale:
 
 
 class ImageResize:
-    def __init__(self, width:int, height:int) -> None:
+    def __init__(self, width: int, height: int) -> None:
         if width is None or width <= 0:
             raise ValueError("ImageResize: width must be > 0")
         if height is None or height <= 0:
@@ -280,22 +284,22 @@ class ImageRotateBound:
         # center
         (h, w) = image.shape[:2]
         (cX, cY) = (w // 2, h // 2)
-    
+
         # grab the rotation matrix (applying the negative of the
         # angle to rotate clockwise), then grab the sine and cosine
         # (i.e., the rotation components of the matrix)
         M = cv2.getRotationMatrix2D((cX, cY), -self.rot_deg, 1.0)
         cos = np.abs(M[0, 0])
         sin = np.abs(M[0, 1])
-    
+
         # compute the new bounding dimensions of the image
         nW = int((h * sin) + (w * cos))
         nH = int((h * cos) + (w * sin))
-    
+
         # adjust the rotation matrix to take into account translation
         M[0, 2] += (nW / 2) - cX
         M[1, 2] += (nH / 2) - cY
-    
+
         # perform the actual rotation and return the image
         return cv2.warpAffine(image, M, (nW, nH))
 
@@ -305,10 +309,11 @@ class ImageRotateBound:
 
 class ImgCanny:
 
-    def __init__(self, low_threshold=60, high_threshold=110, aperture_size=3, l2gradient=False):
+    def __init__(self, low_threshold=60, high_threshold=110, aperture_size=3,
+                 l2gradient=False):
         self.low_threshold = low_threshold
         self.high_threshold = high_threshold
-        self.aperture_size = aperture_size   # 3, 5 or 7
+        self.aperture_size = aperture_size  # 3, 5 or 7
         self.l2gradient = l2gradient
 
     def run(self, img_arr):
@@ -316,9 +321,7 @@ class ImgCanny:
             return None
 
         try:
-            return cv2.Canny(img_arr,
-                             self.low_threshold,
-                             self.high_threshold,
+            return cv2.Canny(img_arr, self.low_threshold, self.high_threshold,
                              apertureSize=self.aperture_size,
                              L2gradient=self.l2gradient)
         except:
@@ -332,16 +335,15 @@ class ImgCanny:
 class ImgGaussianBlur:
 
     def __init__(self, kernel_size=5, kernel_y=None):
-        self.kernel_size = (kernel_size, kernel_y if kernel_y is not None else kernel_size)
-        
+        self.kernel_size = (
+        kernel_size, kernel_y if kernel_y is not None else kernel_size)
+
     def run(self, img_arr):
         if img_arr is None:
             return None
 
         try:
-            return cv2.GaussianBlur(img_arr,
-                                    self.kernel_size, 
-                                    0)
+            return cv2.GaussianBlur(img_arr, self.kernel_size, 0)
         except:
             logger.error("Unable to apply gaussian blur to image.")
             return None
@@ -353,8 +355,9 @@ class ImgGaussianBlur:
 class ImgSimpleBlur:
 
     def __init__(self, kernel_size=5, kernel_y=None):
-        self.kernel_size = (kernel_size, kernel_y if kernel_y is not None else kernel_size)
-        
+        self.kernel_size = (
+        kernel_size, kernel_y if kernel_y is not None else kernel_size)
+
     def run(self, img_arr):
         if img_arr is None:
             return None
@@ -369,8 +372,50 @@ class ImgSimpleBlur:
         pass
 
 
+class ImgGamma:
+    def __init__(self, gamma=0.5):
+        # build a lookup table mapping the pixel values [0, 255] to
+        # their adjusted gamma values
+        self.invGamma = 1.0 / gamma
+        self.table = self.make_table()
+
+    def run(self, img_arr):
+        img_arr_gamma = cv2.LUT(img_arr, self.table)
+        return img_arr_gamma
+
+    def make_table(self):
+        return np.array([((i / 255.0) ** self.invGamma) * 255
+                        for i in np.arange(0, 256)]).astype("uint8")
+
+
+class ImgGammaNormaliser(ImgGamma):
+    def __init__(self, norm=0.3):
+        self.norm = norm
+        logger.info(f'Creating ImgGammaNormaliser with norm {self.norm:.3f}')
+        # don't run base class ctor
+
+    def run(self, img_arr):
+        b = self._image_brightness(img_arr) / 255
+        self.invGamma = np.log(self.norm) / np.log(b)
+        self.table = self.make_table()
+        img_arr_norm = super().run(img_arr)
+        logger.debug(f"Input brightness {b:.2f}, output brightness "
+                     f"{self._image_brightness(img_arr_norm) / 255:.2f}, "
+                     f"target {self.norm}")
+        return img_arr_norm
+
+    def _image_brightness(self, img_arr):
+        n = 1
+        for i in img_arr.shape:
+            n *= i
+        avg = img_arr.sum() / n
+        return avg
+
+
+
 class ImgTrapezoidalMask:
-    def __init__(self, left, right, bottom_left, bottom_right, top, bottom, fill=[255,255,255]) -> None:
+    def __init__(self, left, right, bottom_left, bottom_right, top, bottom,
+                 fill=[255, 255, 255]) -> None:
         """
         Apply a trapezoidal mask to an image, keeping image in
         the trapezoid and turns everything else the fill color
@@ -401,15 +446,11 @@ class ImgTrapezoidalMask:
             key = str(image.shape)
             if self.masks.get(key) is None:
                 mask = np.zeros(image.shape, dtype=np.int32)
-                points = [
-                    [self.top_left, self.top],
-                    [self.top_right, self.top],
+                points = [[self.top_left, self.top], [self.top_right, self.top],
                     [self.bottom_right, self.bottom],
-                    [self.bottom_left, self.bottom]
-                ]
-                cv2.fillConvexPoly(mask,
-                                    np.array(points, dtype=np.int32),
-                                    self.fill)
+                    [self.bottom_left, self.bottom]]
+                cv2.fillConvexPoly(mask, np.array(points, dtype=np.int32),
+                                   self.fill)
                 mask = np.asarray(mask, dtype='bool')
                 self.masks[key] = mask
 
@@ -417,13 +458,14 @@ class ImgTrapezoidalMask:
             transformed = np.multiply(image, mask)
 
         return transformed
-    
+
     def shutdown(self):
         self.masks = {}  # free cached masks
 
 
 class ImgCropMask:
-    def __init__(self, left=0, top=0, right=0, bottom=0, fill=[255, 255, 255]) -> None:
+    def __init__(self, left=0, top=0, right=0, bottom=0,
+                 fill=[255, 255, 255]) -> None:
         """
         Apply a mask to top and/or bottom of image.
         """
@@ -455,19 +497,16 @@ class ImgCropMask:
             if self.masks.get(key) is None:
                 height, width, depth = image_shape(image)
                 top = self.top if self.top is not None else 0
-                bottom = (height - self.bottom) if self.bottom is not None else height
+                bottom = (
+                            height - self.bottom) if self.bottom is not None else height
                 left = self.left if self.left is not None else 0
-                right = (width - self.right) if self.right is not None else width
+                right = (
+                            width - self.right) if self.right is not None else width
                 mask = np.zeros(image.shape, dtype=np.int32)
-                points = [
-                    [left, top],
-                    [right, top],
-                    [right, bottom],
-                    [left, bottom]
-                ]
-                cv2.fillConvexPoly(mask,
-                                    np.array(points, dtype=np.int32),
-                                    self.fill)
+                points = [[left, top], [right, top], [right, bottom],
+                    [left, bottom]]
+                cv2.fillConvexPoly(mask, np.array(points, dtype=np.int32),
+                                   self.fill)
                 mask = np.asarray(mask, dtype='bool')
                 self.masks[key] = mask
 
@@ -486,6 +525,7 @@ class ArrowKeyboardControls:
     good enough for a little testing.
     requires that you have an CvImageView open and it has focus.
     '''
+
     def __init__(self):
         self.left = 2424832
         self.right = 2555904
@@ -505,19 +545,20 @@ class ArrowKeyboardControls:
 class Pipeline:
     def __init__(self, steps):
         self.steps = steps
-    
+
     def run(self, val):
         for step in self.steps:
             f = step['f']
             args = step['args']
             kwargs = step['kwargs']
-            
+
             val = f(val, *args, **kwargs)
         return val
 
 
 class CvImgFromFile(object):
-    def __init__(self, file_path, image_w=None, image_h=None, image_d=None, copy=False):
+    def __init__(self, file_path, image_w=None, image_h=None, image_d=None,
+                 copy=False):
         """
         Part to load image from file and output as RGB image
         """
@@ -526,13 +567,15 @@ class CvImgFromFile(object):
 
         image = cv2.imread(file_path)
         if image is None:
-            raise ValueError(f"CvImage file_path did not resolve to a readable image file: {file_path}")
-        
+            raise ValueError(
+                f"CvImage file_path did not resolve to a readable image file: {file_path}")
+
         #
         # resize if there are overrides
         #
         height, width, depth = image_shape(image)
-        if (image_h is not None and image_h != height) or (image_w is not None and image_w != width):
+        if (image_h is not None and image_h != height) or (
+                image_w is not None and image_w != width):
             if image_h is not None:
                 height = image_h
             if image_w is not None:
@@ -562,7 +605,8 @@ class CvImgFromFile(object):
 
 
 class CvCam(object):
-    def __init__(self, image_w=160, image_h=120, image_d=3, iCam=0, warming_secs=5):
+    def __init__(self, image_w=160, image_h=120, image_d=3, iCam=0,
+                 warming_secs=5):
         self.width = image_w
         self.height = image_h
         self.depth = image_d
@@ -597,7 +641,8 @@ class CvCam(object):
             if self.frame is not None:
                 width, height = self.frame.shape[:2]
                 if width != self.width or height != self.height:
-                    self.frame = cv2.resize(self.frame, (self.width, self.height))
+                    self.frame = cv2.resize(self.frame,
+                                            (self.width, self.height))
 
     def update(self):
         '''
@@ -638,55 +683,56 @@ class CvImageView(object):
 if __name__ == "__main__":
     import argparse
     import sys
-    
+
     # parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--camera", type=int, default=0,
-                        help = "index of camera if using multiple cameras")
+                        help="index of camera if using multiple cameras")
     parser.add_argument("-wd", "--width", type=int, default=160,
-                        help = "width of image to capture")
+                        help="width of image to capture")
     parser.add_argument("-ht", "--height", type=int, default=120,
-                        help = "height of image to capture")
+                        help="height of image to capture")
     parser.add_argument("-f", "--file", type=str,
-                        help = "path to image file to user rather that a camera")
-    parser.add_argument("-a", "--aug", required=True, type=str.upper, 
-                        choices=['CROP', 'TRAPEZE',
-                                 "RGB2HSV", "HSV2RGB", "RGB2BGR", "BGR2RGB", "BGR2HSV", "HSV2BRG",
-                                 "RGB2GREY", "BGR2GREY", "HSV2GREY",
-                                 "CANNY",
-                                 "BLUR", "GBLUR",
-                                 "RESIZE", "SCALE"],
-                        help = "augmentation to apply")
+                        help="path to image file to user rather that a camera")
+    parser.add_argument("-a", "--aug", required=True, type=str.upper,
+                        choices=['CROP', 'TRAPEZE', "RGB2HSV", "HSV2RGB",
+                                 "RGB2BGR", "BGR2RGB", "BGR2HSV", "HSV2BRG",
+                                 "RGB2GREY", "BGR2GREY", "HSV2GREY", "CANNY",
+                                 "BLUR", "GBLUR", "RESIZE", "SCALE"],
+                        help="augmentation to apply")
     parser.add_argument("-l", "--left", type=int, default=0,
                         help="top left horizontal pixel index, defaults to zero")
     parser.add_argument("-lb", "--left-bottom", type=int, default=None,
-                    help="bottom, left horizontal pixel index, defaults to zero")
+                        help="bottom, left horizontal pixel index, defaults to zero")
     parser.add_argument("-r", "--right", type=int, default=None,
                         help="top, right horizontal pixel index, defaults to image width")
     parser.add_argument("-rb", "--right-bottom", type=int, default=None,
-                    help="bottom, right horizontal pixel index, defaults to image width")
+                        help="bottom, right horizontal pixel index, defaults to image width")
     parser.add_argument("-t", "--top", type=int, default=0,
                         help="top vertical pixel index, defaults to 0")
     parser.add_argument("-b", "--bottom", type=int, default=None,
-                    help="bottom vertical pixel index, defaults to image height")
+                        help="bottom vertical pixel index, defaults to image height")
     parser.add_argument("-cl", "--canny-low", type=int, default=60,
                         help="Canny edge detection low threshold value of intensity gradient.")
     parser.add_argument("-ch", "--canny-high", type=int, default=110,
                         help="Canny edge detection high threshold value of intensity gradient.")
-    parser.add_argument("-ca", "--canny-aperture", type=int, choices=[3, 5, 7], default=3,
-                        help="Canny edge detect aperture in pixels")
-    parser.add_argument("-gk", "--guassian-kernel", type=int, choices=[3, 5, 7, 9], default=3,
+    parser.add_argument("-ca", "--canny-aperture", type=int, choices=[3, 5, 7],
+                        default=3, help="Canny edge detect aperture in pixels")
+    parser.add_argument("-gk", "--guassian-kernel", type=int,
+                        choices=[3, 5, 7, 9], default=3,
                         help="Guassian blue kernel size in pixels")
-    parser.add_argument("-gky", "--guassian-kernel-y", type=int, choices=[3, 5, 7, 9],
+    parser.add_argument("-gky", "--guassian-kernel-y", type=int,
+                        choices=[3, 5, 7, 9],
                         help="Guassian blue kernel y size in pixels, defaults to a square kernel")
-    parser.add_argument("-bk", "--blur-kernel", type=int, choices=[3, 5, 7, 9], default=3,
-                        help="Guassian blue kernel size in pixels")
-    parser.add_argument("-bky", "--blur-kernel-y", type=int, choices=[3, 5, 7, 9],
+    parser.add_argument("-bk", "--blur-kernel", type=int, choices=[3, 5, 7, 9],
+                        default=3, help="Guassian blue kernel size in pixels")
+    parser.add_argument("-bky", "--blur-kernel-y", type=int,
+                        choices=[3, 5, 7, 9],
                         help="Simple blur kernel y size in pixels, defaults to a square kernel")
     parser.add_argument("-sw", "--scale", type=float,
-                        help = "scale factor for image width")
-    parser.add_argument("-sh", "--scale-height", type=float, 
-                        help = "scale factor for image height.  Defaults to scale")
+                        help="scale factor for image width")
+    parser.add_argument("-sh", "--scale-height", type=float,
+                        help="scale factor for image height.  Defaults to scale")
 
     #
     # setup augmentations
@@ -695,7 +741,7 @@ if __name__ == "__main__":
 
     # Read arguments from command line
     args = parser.parse_args()
-    
+
     image_source = None
     help = []
     if args.file is None:
@@ -718,7 +764,6 @@ if __name__ == "__main__":
         if args.height is None or args.height < 120:
             help.append("-ht/--height must be >= 120")
 
-
     if len(help) > 0:
         parser.print_help()
         for h in help:
@@ -733,7 +778,8 @@ if __name__ == "__main__":
     height = None
     depth = 3
     if args.file is not None:
-        image_source = CvImgFromFile(args.file, image_w=args.width, image_h=args.height, copy=True)
+        image_source = CvImgFromFile(args.file, image_w=args.width,
+                                     image_h=args.height, copy=True)
         height, width, depth = image_shape(image_source.run())
     else:
         width = args.width
@@ -746,7 +792,7 @@ if __name__ == "__main__":
     #
     # masking tranformations
     #
-    if "TRAPEZE" == transformation or "CROP" == transformation: 
+    if "TRAPEZE" == transformation or "CROP" == transformation:
         #
         # masking transformations
         #
@@ -757,13 +803,11 @@ if __name__ == "__main__":
                 args.left_bottom if args.left_bottom is not None else 0,
                 args.right_bottom if args.right_bottom is not None else width,
                 args.top if args.top is not None else 0,
-                args.bottom if args.bottom is not None else height
-            )
+                args.bottom if args.bottom is not None else height)
         else:
-            transformer = ImgCropMask(
-                args.left if args.left is not None else 0, 
-                args.top if args.top is not None else 0, 
-                args.right if args.right is not None else 0, 
+            transformer = ImgCropMask(args.left if args.left is not None else 0,
+                args.top if args.top is not None else 0,
+                args.right if args.right is not None else 0,
                 args.bottom if args.bottom is not None else 0)
     #
     # color space transformations
@@ -788,12 +832,14 @@ if __name__ == "__main__":
         transformer = ImgHSV2GRAY()
     elif "CANNY" == transformation:
         # canny edge detection
-        transformer = ImgCanny(args.canny_low, args.canny_high, args.canny_aperture)
+        transformer = ImgCanny(args.canny_low, args.canny_high,
+                               args.canny_aperture)
     # 
     # blur transformations
     #
     elif "GBLUR" == transformation:
-        transformer = ImgGaussianBlur(args.guassian_kernel, args.guassian_kernel_y)
+        transformer = ImgGaussianBlur(args.guassian_kernel,
+                                      args.guassian_kernel_y)
     elif "BLUR" == transformation:
         transformer = ImgSimpleBlur(args.blur_kernel, args.blur_kernel_y)
     # 
@@ -811,7 +857,7 @@ if __name__ == "__main__":
     window_name = 'hsv_range_picker'
     cv2.namedWindow(window_name)
 
-    while(1):
+    while (1):
 
         frame = image_source.run()
 
@@ -828,7 +874,7 @@ if __name__ == "__main__":
         k = cv2.waitKey(5) & 0xFF
         if k == ord('q') or k == ord('Q'):  # 'Q' or 'q'
             break
-    
+
     if cap is not None:
         cap.release()
 

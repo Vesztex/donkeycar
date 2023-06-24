@@ -37,7 +37,6 @@ from donkeycar.parts.transform import SimplePidController, \
 from donkeycar.parts.sensor import Odometer, LapTimer
 from donkeycar.parts.controller import WebFpv
 from donkeycar.parts.web_controller.web import LocalWebController
-from donkeycar.pipeline.augmentations import ImageAugmentation
 from donkeycar.parts.image_transformations import ImageTransformations
 from donkeycar.pipeline.database import PilotDatabase
 
@@ -98,8 +97,9 @@ def update_from_database(cfg, model_path, model_type):
         values that were used in the trained model and also imply model_type
         from the trained model. """
 
-    overwrite = ['TRANSFORMATIONS', 'ROI_CROP_BOTTOM', 'ROI_CROP_LEFT',
-                 'ROI_CROP_RIGHT', 'ROI_CROP_TOP', 'SEQUENCE_LENGTH']
+    overwrite = ['TRANSFORMATIONS', 'POST_TRANSFORMATIONS', 'ROI_CROP_BOTTOM',
+                 'ROI_CROP_LEFT', 'ROI_CROP_RIGHT', 'ROI_CROP_TOP',
+                 'SEQUENCE_LENGTH']
     model_prefix_map = {'.tflite': 'tflite_', '.trt': 'tensorrt_',
                         '.savedmodel': '', 'h5': ''}
     db = PilotDatabase(cfg)
@@ -471,7 +471,7 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
         # Add image transformations like crop or trapezoidal mask
         if hasattr(cfg, 'TRANSFORMATIONS') and cfg.TRANSFORMATIONS:
             outputs = ['cam/image_array_aug']
-            car.add(ImageAugmentation(cfg, 'TRANSFORMATIONS'),
+            car.add(ImageTransformations(cfg, 'TRANSFORMATIONS'),
                     inputs=kl_inputs, outputs=outputs)
             kl_inputs = outputs
         # imu transformation and addition AI input -----------------------------

@@ -799,7 +799,7 @@ class TransformationPopup(Popup):
     transformations = \
         ["TRAPEZE", "CROP", "RGB2BGR", "BGR2RGB", "RGB2HSV", "HSV2RGB",
          "BGR2HSV", "HSV2BGR", "RGB2GRAY", "RBGR2GRAY", "HSV2GRAY", "GRAY2RGB",
-         "GRAY2BGR", "CANNY", "BLUR", "RESIZE", "SCALE"]
+         "GRAY2BGR", "CANNY", "BLUR", "RESIZE", "SCALE", "GAMMANORM"]
     transformations_obj = ObjectProperty()
     selected = ListProperty()
 

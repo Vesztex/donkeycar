@@ -109,9 +109,11 @@ COMPRESS_SESSIONS_FOR_LAP_STATS = True
 NUM_BINS_FOR_LAP_STATS = 4
 
 # Augmentations and Transformations
-AUGMENTATIONS = []
+AUGMENTATIONS = ["BRIGHTNESS", "BLUR"]
 TRANSFORMATIONS = []
-# Settings for brightness and blur, use 'MULTIPLY' and/or 'BLUR' in
+POST_TRANSFORMATIONS = ["GAMMANORM"]
+
+# Settings for brightness and blur, use 'BRIGHTNESS' and/or 'BLUR' in
 # AUGMENTATIONS
 AUG_BRIGHTNESS_RANGE = 0.2  # this is interpreted as [-0.2, 0.2]
 AUG_BLUR_RANGE = (0, 3)
@@ -128,6 +130,8 @@ ROI_TRAPEZE_UL = 20
 ROI_TRAPEZE_UR = 140
 ROI_TRAPEZE_MIN_Y = 60
 ROI_TRAPEZE_MAX_Y = 120
+# Gamma transformations
+GAMMA_NORM_VALUE = 0.3
 
 # RECORD OPTIONS
 RECORD_DURING_AI = False

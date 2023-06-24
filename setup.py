@@ -65,6 +65,7 @@ setup(name='donkeycar',
               'adafruit-circuitpython-mpu6050',
               'adafruit-circuitpython-rplidar',
               'RPi.GPIO',
+              'opencv-python',
               'tensorflow @ https://github.com/PINTO0309/Tensorflow-bin/releases/download/v2.9.0/tensorflow-2.9.0-cp39-none-linux_aarch64.whl'
           ],
           'nano45': [

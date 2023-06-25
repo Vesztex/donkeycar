@@ -199,8 +199,13 @@ class IsThrottledChecker:
         pass
 
     def run(self):
-        ret = system("vcgencmd get_throttled")
-        print(ret)
+        from subprocess import run
+
+        cmd = "vcgencmd get_throttled"
+        data = run(cmd, capture_output=True, shell=True)
+        output = data.stdout.splitlines()
+        # errors = data.stderr.splitlines()
+        ret = output.decode('utf-8')
         val = ret.split("throttled=")[1]
         out = bin(int(val[2:], 16))[2:]
         out = out.zfill(out, 19)

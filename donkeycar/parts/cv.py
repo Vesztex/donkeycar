@@ -388,17 +388,18 @@ class ImgGamma:
                         for i in np.arange(0, 256)]).astype("uint8")
 
 
-class ImgGammaNormaliser(ImgGamma):
+class ImgGammaNormaliser:
     def __init__(self, norm=0.3):
         self.norm = norm
         logger.info(f'Creating ImgGammaNormaliser with norm {self.norm:.3f}')
-        # don't run base class ctor
+        self.table = self.make_table()
 
     def run(self, img_arr):
-        b = self._image_brightness(img_arr) / 255
-        self.invGamma = np.log(self.norm) / np.log(b)
-        self.table = self.make_table()
-        img_arr_norm = super().run(img_arr)
+        # brightness as int in [0, 255]
+        b = int(self._image_brightness(img_arr))
+        # pick up gamma scaling by corresponding row in table
+        tab = self.table[b]
+        img_arr_norm = cv2.LUT(img_arr, tab)
         logger.debug(f"Input brightness {b:.2f}, output brightness "
                      f"{self._image_brightness(img_arr_norm) / 255:.2f}, "
                      f"target {self.norm}")
@@ -411,6 +412,36 @@ class ImgGammaNormaliser(ImgGamma):
         avg = img_arr.sum() / n
         return avg
 
+    def make_table(self):
+        """ This brightness normalisation through Gamma uses the
+        approximation that the geometric mean of the image brightness can be
+        used as the arithmetric mean. As under gamma transformations it is
+        easy to achieve a given input geometric mean (gm). Because:
+
+        \prod_{i=0}^n x_i^(1/gamma) = (\prod_{i=1}^n x_i)^(1/gamma)
+                                    = gm^(1/gamma)
+        and
+            gm = target =>  gamma = log(gm) / log(target)
+        For real images, working with geometric mean is of course rubbish as
+        pixels can be black, so using arithmetric mean as a proxy
+        """
+        eps = 1e-10
+        log_target = np.log(self.norm)
+        table = np.zeros((256, 256))
+        for i in range(256):
+            # brightness here ranges from 1/255, ... , 255/255 = 1, so can't be
+            # zero
+            b = (i + 1) / 255
+            # B/c brightness can become one, we need to cap b at slightly
+            # less than zero, so log doesn't run into problems.
+            inv_gamma = log_target / min(np.log(b), -eps)
+            for j in range(256):
+                table[i, j] = j
+            table[i] /= 255.0
+            table[i] **= inv_gamma
+        table *= 255
+        table = np.round(table).astype(np.uint8)
+        return table
 
 
 class ImgTrapezoidalMask:

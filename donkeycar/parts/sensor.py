@@ -7,7 +7,9 @@ from prettytable import PrettyTable
 import time
 from json import dump
 from os.path import join
-from os import getcwd, system
+from os import getcwd
+from subprocess import run
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -199,8 +201,6 @@ class IsThrottledChecker:
         pass
 
     def run(self):
-        from subprocess import run
-
         cmd = "vcgencmd get_throttled"
         data = run(cmd, capture_output=True, shell=True)
         output = data.stdout.splitlines()
@@ -211,4 +211,10 @@ class IsThrottledChecker:
         out = bin(int(val[2:], 16))[2:]
         # fill to 19 digits
         out = out.zfill(19)
-        print(out)
+        if out[0] == '1':
+            logger.error('Under-voltage detected')
+        if out[1] == '1':
+            logger.warning('Arm frequency capped')
+        if out[2] == '1':
+            logger.warning('Currently throttled')
+        return out

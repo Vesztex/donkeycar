@@ -200,6 +200,7 @@ class IsThrottledChecker:
 
     def run(self):
         ret = system("vcgencmd get_throttled")
+        print(ret)
         val = ret.split("throttled=")[1]
         out = bin(int(val[2:], 16))[2:]
         out = out.zfill(out, 19)

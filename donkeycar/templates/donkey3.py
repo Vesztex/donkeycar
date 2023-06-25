@@ -34,7 +34,7 @@ from donkeycar.parts.keras_2 import ModelLoader, ModelResetter
 from donkeycar.parts.transform import SimplePidController, \
     ImuCombinerNormaliser, ThrottleSwitch, \
     SpeedRescaler, RecordingCondition
-from donkeycar.parts.sensor import Odometer, LapTimer
+from donkeycar.parts.sensor import Odometer, LapTimer, IsThrottledChecker
 from donkeycar.parts.controller import WebFpv
 from donkeycar.parts.web_controller.web import LocalWebController
 from donkeycar.parts.image_transformations import ImageTransformations
@@ -332,6 +332,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     led = LEDStatus()
     car.add(led, inputs=['user/mode', 'car/lap_updated',
                          'user/wiper_triggered'], threaded=True)
+    car.add(IsThrottledChecker())
     # run the vehicle
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
 
@@ -592,6 +593,7 @@ def benchmark(cfg, model_path):
     # add auto pilot and model reloader ------------------------------------
     kl_outputs = ['pilot/angle', 'pilot/throttle']
     car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
+    car.add(IsThrottledChecker())
     # run the vehicle
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
 

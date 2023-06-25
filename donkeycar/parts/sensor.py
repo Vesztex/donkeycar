@@ -7,7 +7,7 @@ from prettytable import PrettyTable
 import time
 from json import dump
 from os.path import join
-from os import getcwd
+from os import getcwd, system
 import logging
 
 logger = logging.getLogger(__name__)
@@ -192,3 +192,11 @@ class LapTimer:
         info = [dict(lap=i, time=t, distance=l) for i, (t, l) in
                 enumerate(zip(self.lap_times, self.lap_lengths))]
         return info
+
+
+class IsThrottledChecker:
+    def __init__(self):
+        pass
+
+    def run(self):
+        ret = system("vcgencmd get_throttled")

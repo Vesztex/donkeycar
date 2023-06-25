@@ -198,23 +198,31 @@ class LapTimer:
 
 class IsThrottledChecker:
     def __init__(self):
-        pass
+        self.out = '0' * 19
+        self.run = True
 
-    def run(self):
-        cmd = "vcgencmd get_throttled"
-        data = run(cmd, capture_output=True, shell=True)
-        output = data.stdout.splitlines()
-        # errors = data.stderr.splitlines()
-        ret = output[0].decode('utf-8')
-        # split off 'throttled=0x' from the hex number and convert to binary
-        val = ret.split("throttled=")[1]
-        out = bin(int(val[2:], 16))[2:]
-        # fill to 19 digits
-        out = out.zfill(19)
-        if out[0] == '1':
-            logger.error('Under-voltage detected')
-        if out[1] == '1':
-            logger.warning('Arm frequency capped')
-        if out[2] == '1':
-            logger.warning('Currently throttled')
-        return out
+    def update(self):
+        while self.run:
+            cmd = "vcgencmd get_throttled"
+            data = run(cmd, capture_output=True, shell=True)
+            output = data.stdout.splitlines()
+            # errors = data.stderr.splitlines()
+            ret = output[0].decode('utf-8')
+            # split off 'throttled=0x' from the hex number and convert to binary
+            val = ret.split("throttled=")[1]
+            out = bin(int(val[2:], 16))[2:]
+            # fill to 19 digits
+            self.out = out.zfill(19)
+            if self.out[0] == '1':
+                logger.error('Under-voltage detected')
+            if self.out[1] == '1':
+                logger.warning('Arm frequency capped')
+            if self.out[2] == '1':
+                logger.warning('Currently throttled')
+            time.sleep(1.0)
+
+    def run_threaded(self):
+        return self.out
+
+    def shutdown(self):
+        self.run = False

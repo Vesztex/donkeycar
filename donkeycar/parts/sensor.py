@@ -205,8 +205,10 @@ class IsThrottledChecker:
         data = run(cmd, capture_output=True, shell=True)
         output = data.stdout.splitlines()
         # errors = data.stderr.splitlines()
-        ret = output.decode('utf-8')
+        ret = output[0].decode('utf-8')
+        # split off 'throttled=0x' from the hex number and convert to binary
         val = ret.split("throttled=")[1]
         out = bin(int(val[2:], 16))[2:]
+        # fill to 19 digits
         out = out.zfill(out, 19)
         print(out)

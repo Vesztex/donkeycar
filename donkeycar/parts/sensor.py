@@ -210,5 +210,5 @@ class IsThrottledChecker:
         val = ret.split("throttled=")[1]
         out = bin(int(val[2:], 16))[2:]
         # fill to 19 digits
-        out = out.zfill(out, 19)
+        out = out.zfill(19)
         print(out)

@@ -154,6 +154,10 @@ class KerasPilot(ABC):
         trains the model
         """
         assert isinstance(self.interpreter, KerasInterpreter)
+        dev = tf.config.list_physical_devices('GPU')
+        if not dev:
+            logger.warning("No GPU found for training")
+
         model = self.interpreter.model
         self.compile()
 

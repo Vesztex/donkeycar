@@ -12,7 +12,7 @@ Usage:
     manage.py (led)
     manage.py (gym) [--model=<path_to_pilot>] [--type=<model_type>] [--no_tub]\
         [--my_cfg=<path_to_myconfig.py>] [--respawn] [--random] [--verbose]
-    manage.py (bench) [--model=<path_to_pilot>]
+    manage.py (bench) [--model=<path_to_pilot>] [--verbose]
 
 Options:
     -h --help               Show this screen.

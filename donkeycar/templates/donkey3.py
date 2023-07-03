@@ -96,7 +96,8 @@ def update_from_database(cfg, model_path, model_type):
     """ Load model database to overwrite some configs parameters with the
         values that were used in the trained model and also imply model_type
         from the trained model. """
-
+    if not model_path:
+        return model_type
     overwrite = ['TRANSFORMATIONS', 'POST_TRANSFORMATIONS', 'ROI_CROP_BOTTOM',
                  'ROI_CROP_LEFT', 'ROI_CROP_RIGHT', 'ROI_CROP_TOP',
                  'SEQUENCE_LENGTH']
@@ -568,31 +569,35 @@ def benchmark(cfg, model_path):
             outputs=['car/lap', 'car/m_in_lap', 'car/lap_updated'],
             threaded=True)
 
-    model_type = update_from_database(cfg, model_path, "")
-    kl = dk.utils.get_model_by_type(model_type, cfg)
-    kl.load(model_path)
-    kl_inputs = [CAM_IMG]
-    # Add image transformations like crop or trapezoidal mask
+        # Add image transformations like crop or trapezoidal mask
     if hasattr(cfg, 'TRANSFORMATIONS') and cfg.TRANSFORMATIONS or \
             hasattr(cfg, 'POST_TRANSFORMATIONS') and cfg.POST_TRANSFORMATIONS:
         car.add(ImageTransformations(cfg, 'TRANSFORMATIONS',
                                      'POST_TRANSFORMATIONS'),
                 inputs=[CAM_IMG], outputs=[CAM_IMG])
 
-    if kl.use_lap_pct():
-        ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT,
-                                 mode=cfg.WEB_INIT_MODE)
-        car.add(ctr,
-                inputs=[CAM_IMG, 'tub/num_records'],
-                outputs=['ctr/user/angle', 'ctr/user/throttle',
-                         'ctr/user/mode',
-                         'ctr/recording', 'ctr/buttons', 'ctr/sliders'],
-                threaded=True)
-        car.add(SliderSorter(cfg), inputs=['ctr/sliders'], outputs=['lap_pct'])
-        kl_inputs.append('lap_pct')
-    # add auto pilot and model reloader ------------------------------------
-    kl_outputs = ['pilot/angle', 'pilot/throttle']
-    car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
+    ctr = LocalWebController(port=cfg.WEB_CONTROL_PORT,
+                                mode=cfg.WEB_INIT_MODE)
+    car.add(ctr,
+            inputs=[CAM_IMG, 'tub/num_records'],
+            outputs=['ctr/user/angle', 'ctr/user/throttle',
+                        'ctr/user/mode',
+                        'ctr/recording', 'ctr/buttons', 'ctr/sliders'],
+            threaded=True)
+
+    if model_path:
+        model_type = update_from_database(cfg, model_path, "")
+        kl = dk.utils.get_model_by_type(model_type, cfg)
+        kl.load(model_path)
+        kl_inputs = [CAM_IMG]
+ 
+        if kl.use_lap_pct():
+            car.add(SliderSorter(cfg), inputs=['ctr/sliders'], outputs=['lap_pct'])
+            kl_inputs.append('lap_pct')
+        # add auto pilot and model reloader ------------------------------------
+        kl_outputs = ['pilot/angle', 'pilot/throttle']
+        car.add(kl, inputs=kl_inputs, outputs=kl_outputs)
+
     car.add(IsThrottledChecker(), outputs=['car/throttled'], threaded=True)
     # run the vehicle
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)

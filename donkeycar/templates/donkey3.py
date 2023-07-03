@@ -553,8 +553,12 @@ def gym(cfg, model_path=None, model_type=None, no_tub=False,
     car.start(rate_hz=car_frequency, max_loop_count=cfg.MAX_LOOPS)
 
 
-def benchmark(cfg, model_path):
+def benchmark(cfg, model_path, verbose=False):
     from donkeycar.parts.camera import PiCamera
+    if verbose:
+        donkeycar.logger.setLevel(logging.DEBUG)
+    else:
+        donkeycar.logger.setLevel(logging.INFO)
     car = dk.vehicle.Vehicle()
     car_frequency = cfg.DRIVE_LOOP_HZ
     cam = PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
@@ -634,5 +638,6 @@ if __name__ == '__main__':
             random=args['--random'],
             verbose=args['--verbose'])
     elif args['bench']:
-        benchmark(cfg=config, model_path=args['--model'])
+        benchmark(cfg=config, model_path=args['--model'],
+                  verbose=args['--verbose'])
     logger.info(f'Ending run of {__file__}')

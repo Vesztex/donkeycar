@@ -210,6 +210,7 @@ class IsThrottledChecker:
             ret = output[0].decode('utf-8')
             # split off 'throttled=0x' from the hex number and convert to binary
             val = ret.split("throttled=")[1]
+            logger.debug(f"Is throttled: {val}")
             out = bin(int(val[2:], 16))[2:]
             # fill to 19 digits
             self.out = out.zfill(19)

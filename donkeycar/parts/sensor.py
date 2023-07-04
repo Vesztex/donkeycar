@@ -213,12 +213,13 @@ class IsThrottledChecker:
             logger.debug(f"Is throttled: {val}")
             out = bin(int(val[2:], 16))[2:]
             # fill to 19 digits
-            self.out = out.zfill(19)
-            if self.out[0] == '1':
+            len = 19
+            self.out = out.zfill(len)
+            if self.out[len-1] == '1':
                 logger.error('Under-voltage detected')
-            if self.out[1] == '1':
+            if self.out[len-2] == '1':
                 logger.warning('Arm frequency capped')
-            if self.out[2] == '1':
+            if self.out[len-3] == '1':
                 logger.warning('Currently throttled')
             time.sleep(1.0)
 

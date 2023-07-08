@@ -320,8 +320,8 @@ class Manifest(object):
         self.deleted_indexes.update(record_indexes)
         self._update_catalog_metadata(update=True)
         if record_indexes:
-            logger.info(f'Deleted records {min(record_indexes)} - '
-                        f'{max(record_indexes)}')
+            logger.info(f'Deleting {record_indexes} records: '
+                        f'{min(record_indexes)} - {max(record_indexes)}')
 
     def restore_records(self, record_indexes):
         # Does not actually delete the record, but marks it as deleted.

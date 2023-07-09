@@ -320,7 +320,7 @@ class Manifest(object):
         self.deleted_indexes.update(record_indexes)
         self._update_catalog_metadata(update=True)
         if record_indexes:
-            logger.info(f'Deleting {record_indexes} records: '
+            logger.info(f'Deleting {len(record_indexes)} records: '
                         f'{min(record_indexes)} - {max(record_indexes)}')
 
     def restore_records(self, record_indexes):

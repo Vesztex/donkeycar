@@ -70,12 +70,8 @@ class Tub(object):
                                                 key, extension='.png')
                     image_path = os.path.join(self.images_base_path, name)
                     image.save(image_path)
-                    contents[key]=name
+                    contents[key] = name
 
-        # Private properties
-        contents['_timestamp_ms'] = int(round(time.time() * 1000))
-        contents['_index'] = self.manifest.current_index
-        contents['_session_id'] = self.manifest.session_id
         # Private properties, allow record overwriting if '_index' is given
         if is_overwrite:
             index = record['_index']

@@ -111,7 +111,8 @@ NUM_BINS_FOR_LAP_STATS = 4
 # Augmentations and Transformations
 AUGMENTATIONS = ["BRIGHTNESS", "BLUR"]
 TRANSFORMATIONS = []
-POST_TRANSFORMATIONS = ["GAMMANORM"]
+# could be "GAMMANORM" for example
+POST_TRANSFORMATIONS = []
 
 # Settings for brightness and blur, use 'BRIGHTNESS' and/or 'BLUR' in
 # AUGMENTATIONS

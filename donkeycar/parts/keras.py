@@ -8,6 +8,8 @@ include one or more models to help direct the vehicles motion.
 
 """
 import datetime
+from datetime import datetime
+from os import path
 from abc import ABC, abstractmethod
 from collections import deque
 
@@ -31,7 +33,8 @@ from tensorflow.keras.layers import (Dense, Input,Convolution2D,
 from tensorflow.keras.layers import TimeDistributed as TD
 from tensorflow.keras.backend import concatenate
 from tensorflow.keras.models import Model
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, \
+    TensorBoard
 
 ONE_BYTE_SCALE = 1.0 / 255.0
 
@@ -170,7 +173,16 @@ class KerasPilot(ABC):
                             save_best_only=True,
                             verbose=verbose)]
 
-        tic = datetime.datetime.now()
+        # Create a TensorBoard callback
+        log_path = path.join(path.dirname(model_path),
+                             "logs", datetime.now().strftime("%Y%m%d-%H%M%S"))
+        board = TensorBoard(
+            log_dir=log_path,
+            histogram_freq=1,
+            profile_batch=(0, 4))
+        callbacks.append(board)
+
+        tic = datetime.now()
         logger.info('////////// Starting training //////////')
         history: tf.keras.callbacks.History = model.fit(
             x=train_data,
@@ -183,7 +195,7 @@ class KerasPilot(ABC):
             verbose=verbose,
             workers=1,
             use_multiprocessing=False)
-        toc = datetime.datetime.now()
+        toc = datetime.now()
         logger.info(f'////////// Finished training in: {toc - tic} //////////')
 
         if show_plot:

@@ -102,7 +102,9 @@ SEQUENCE_LENGTH = 5
 MEM_START_SPEED = 0.5
 
 # Default to fastest quarter or laps
-LAP_PCT = 0.25
+LAP_PCT = [0.5, 0.5, 0.5]
+LAP_PCT_L = [0.5, 0.5, 0.5]
+LAP_PCT_R = [0.5, 0.5, 0.5]
 
 # Stats setting for lap model
 COMPRESS_SESSIONS_FOR_LAP_STATS = True

@@ -217,7 +217,8 @@ class ConfigManager(BoxLayout, FileChooserBase):
         if self.file_path:
             try:
                 path = os.path.join(self.file_path, 'config.py')
-                self.config = load_config(path)
+                new_conf = load_config(path)
+                self.config = new_conf
                 # If load successful, store into app config
                 rc_handler.data['car_dir'] = self.file_path
             except FileNotFoundError:

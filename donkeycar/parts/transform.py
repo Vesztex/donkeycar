@@ -203,17 +203,19 @@ class ImuCombinerNormaliser:
         return combined
 
 
-class ThrottleSwitch:
+class ControlSwitch:
     """ Class to switch between user speed or pilot speed """
     def __init__(self, cfg):
         self.throttle_mult = cfg.AI_THROTTLE_MULT
+        self.angle_mult = getattr(cfg, 'AI_ANGLE_MULT', self.throttle_mult)
 
-    def run(self, user_mode, user_speed, pilot_speed):
+    def run(self, user_mode, user_speed, pilot_speed, pilot_angle):
         # currently assume 2 modes 0 = user, 1 = pilot
         if user_mode < 1:
-            return user_speed
+            return pilot_angle * self.angle_mult, user_speed
         else:
-            return pilot_speed * self.throttle_mult
+            return (pilot_angle * self.angle_mult,
+                    pilot_speed * self.throttle_mult)
 
 
 class SteeringSwitch:

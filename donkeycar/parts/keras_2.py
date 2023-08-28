@@ -40,11 +40,16 @@ class KerasSquarePlus(KerasLinear):
         self.size = kwargs.get('size', 'S').upper()
         self.use_speed = kwargs.get('use_speed', True)
         self.max_speed = 1.0 if not self.use_speed else kwargs['max_speed']
+        self.offset = kwargs.get('offset', 0)
         super().__init__(interpreter, input_shape)
         self.num_to_freeze = 2
 
     def __str__(self) -> str:
-        return super().__str__() + f'-{self.size}-speed:{int(self.use_speed)}'
+        return super().__str__() + \
+            f'-{self.size}-speed:{int(self.use_speed)}-os:{self.offset}'
+
+    def seq_size(self) -> int:
+        return self.offset + 1 if self.offset else 0
 
     def create_model(self):
         return linear_square_plus(self.input_shape, size=self.size,
@@ -54,11 +59,32 @@ class KerasSquarePlus(KerasLinear):
     #     self.interpreter.compile(optimizer=self.optimizer, loss='mse',
     #                              weighted_metrics=['mse'])
 
+    def x_transform(
+            self,
+            record: Union[TubRecord, List[TubRecord]],
+            img_processor: Callable[[np.ndarray], np.ndarray]) \
+            -> Dict[str, Union[float, np.ndarray]]:
+        """ Transforms the record into x for training the model to x,y """
+        if self.offset == 0:
+            assert isinstance(record, TubRecord), 'TubRecord expected'
+            rec = record
+        else:
+            assert isinstance(record, list), 'List[TubRecord] expected'
+            rec = record[-(1 + self.offset)]
+
+        img_arr = rec.image(processor=img_processor)
+        return {'img_in': img_arr}
+
     def y_transform(self, record: Union[TubRecord, List[TubRecord]]) \
             -> Dict[str, Union[float, List[float]]]:
-        assert isinstance(record, TubRecord), 'TubRecord expected'
-        angle = record.underlying['user/angle']
-        throttle = self._get_throttle(record)
+        if self.offset == 0:
+            assert isinstance(record, TubRecord), 'TubRecord expected'
+            rec = record
+        else:
+            assert isinstance(record, list), 'List[TubRecord] expected'
+            rec = record[-1]
+        angle = rec.underlying['user/angle']
+        throttle = self._get_throttle(rec)
         return {'angle': angle, 'throttle': throttle}
 
     def output_shapes(self):
@@ -96,7 +122,6 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
                  interpreter: Interpreter = KerasInterpreter(),
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
-        self.offset = kwargs.get('offset', 0)
         super().__init__(interpreter, input_shape, *args, **kwargs)
         # because we have 2 inputs (img, mem) we need to freeze in1, in2, cnn
         self.num_to_freeze = 3
@@ -115,8 +140,7 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
             record: Union[TubRecord, List[TubRecord]],
             img_processor: Callable[[np.ndarray], np.ndarray]) \
             -> Dict[str, Union[float, np.ndarray]]:
-        """ Transforms the record into x for training the model to x,y,
-            here we assume the model only takes the image as input. """
+        """ Transforms the record into x for training the model to x,y """
         assert isinstance(record, list), 'List[TubRecord] expected'
         assert len(record) == self.mem_length + 1, \
             f"Record list of length {self.mem_length} required but " \
@@ -157,9 +181,6 @@ class KerasSquarePlusMemory(KerasMemory, KerasSquarePlus):
         logger.info(f"Resetting with start speed {self.mem_start_speed}")
         self.mem_seq = deque([[0.0, self.mem_start_speed]] * self.mem_length)
 
-    def __str__(self) -> str:
-        return super().__str__() + f'-os:{self.offset}'
-
 
 class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
     def __init__(self,
@@ -167,7 +188,6 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
                  input_shape: Tuple[int, ...] = (120, 160, 3),
                  *args, **kwargs):
         self.lap_dim = kwargs.get('lap_dim', 3)
-        self.throttle_mult = kwargs.get('throttle_mult', 1.0)
         super().__init__(interpreter, input_shape, *args, **kwargs)
         # needs to come after base class ctor otherwise gets overwritten
         self.num_to_freeze = 4
@@ -177,7 +197,6 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
 
     def use_lap_pct(self) -> bool:
         return True
-        # return False
 
     def create_model(self):
         return linear_square_plus_mem(self.input_shape, self.size,
@@ -225,8 +244,6 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         # and output shapes(), so we need the first tuple here
         input_dict = dict(zip(self.output_shapes()[0].keys(), values))
         angle, throttle = self.inference_from_dict(input_dict)
-        throttle *= self.throttle_mult
-        angle *= self.throttle_mult
         # fill new values into back of history list for next call
         self.mem_seq.popleft()
         self.mem_seq.append([angle, throttle])

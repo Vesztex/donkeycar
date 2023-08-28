@@ -32,7 +32,7 @@ from donkeycar.parts.tub_v2 import TubWiper, TubWriter
 from donkeycar.parts.file_watcher import FileWatcher
 from donkeycar.parts.keras_2 import ModelLoader, ModelResetter
 from donkeycar.parts.transform import SimplePidController, \
-    ImuCombinerNormaliser, ThrottleSwitch, \
+    ImuCombinerNormaliser, ControlSwitch, \
     SpeedRescaler, RecordingCondition
 from donkeycar.parts.sensor import Odometer, LapTimer, IsThrottledChecker
 from donkeycar.parts.controller import WebFpv
@@ -247,9 +247,10 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         car.add(mode_switch, inputs=['user/wiper_on'], outputs=['user/mode'])
 
         # This part dispatches between user or ai depending on the switch state
-        switch = ThrottleSwitch(cfg)
-        car.add(switch, inputs=['user/mode', 'user/throttle', 'pilot/throttle'],
-                outputs=['throttle'])
+        switch = ControlSwitch(cfg)
+        car.add(switch, inputs=['user/mode', 'user/throttle',
+                                'pilot/throttle', 'pilot/angle'],
+                outputs=['pilot/angle', 'throttle'])
     else:
         # rename the usr throttle
         car.add(Renamer(), inputs=['user/throttle'], outputs=['throttle'])

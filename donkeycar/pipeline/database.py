@@ -60,7 +60,7 @@ class PilotDatabase:
     def write(self):
         try:
             with open(self.path, "w") as data_file:
-                json.dump(self.entries, data_file,
+                json.dump(self.entries, data_file, indent=4,
                           default=lambda o: '<not serializable>')
                 logger.info(f'Writing database file: {self.path}')
         except Exception as e:

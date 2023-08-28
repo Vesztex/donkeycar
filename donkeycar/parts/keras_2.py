@@ -192,9 +192,6 @@ class KerasSquarePlusMemoryLap(KerasSquarePlusMemory):
         # needs to come after base class ctor otherwise gets overwritten
         self.num_to_freeze = 4
 
-    def __str__(self) -> str:
-        return super().__str__() + f"-tm:{self.throttle_mult}"
-
     def use_lap_pct(self) -> bool:
         return True
 

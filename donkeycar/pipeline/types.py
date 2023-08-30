@@ -200,7 +200,7 @@ class TubDataset(object):
 
 
 class Collator(Iterable[List[TubRecord]]):
-    """" Builds a sequence of continuous records for RNN and similar models. """
+    """ Builds a sequence of continuous records for RNN and similar models. """
     def __init__(self, seq_length: int, records: List[TubRecord]):
         """
         :param seq_length:  length of sequence

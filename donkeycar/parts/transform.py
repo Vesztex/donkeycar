@@ -208,6 +208,8 @@ class ControlSwitch:
     def __init__(self, cfg):
         self.throttle_mult = cfg.AI_THROTTLE_MULT
         self.angle_mult = getattr(cfg, 'AI_ANGLE_MULT', self.throttle_mult)
+        logger.info(f"Creating ControlSwitch with throttle mult = "
+                    f"{self.throttle_mult}, angle mult = {self.angle_mult}")
 
     def run(self, user_mode, user_speed, pilot_speed, pilot_angle):
         # currently assume 2 modes 0 = user, 1 = pilot

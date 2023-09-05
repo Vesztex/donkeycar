@@ -282,7 +282,7 @@ class Manifest(object):
                                            start_index=self.current_index)
         # Create a new session_id, which will be added to each record in the
         # tub, when Tub.write_record() is called.
-        self.session_id = self.create_new_session_id()
+        self.session_id = self._create_new_session_id()
 
         def exit_hook():
             if not self._is_closed:
@@ -412,11 +412,27 @@ class Manifest(object):
         sessions['all_full_ids'].append(this_full_id)
         self.manifest_metadata['sessions'] = sessions
 
-    def create_new_session_id(self):
+    def _create_new_session_id(self):
         """ Creates a new session id and appends it to the metadata."""
         sessions = self.manifest_metadata.get('sessions', {})
         new_id = sessions['last_id'] + 1 if sessions else 0
         new_full_id = f"{time.strftime('%y-%m-%d')}_{new_id}"
+        # Check if the new session id has not already been created in the
+        # tub. This could be due to an invalid previous tub closing where the
+        # manifest metadata was not updated properly. Rather than overwriting
+        # the session id silently we are throwing an error and forcing a
+        # manual clean up of the manifest metadata before a new session can
+        # be written into it.
+
+        # find last entry:
+        cat_index = self.current_index % self.max_len
+        last_rec_str = self.current_catalog.seekable.read_from(cat_index)[0]
+        last_rec = json.loads(last_rec_str)
+        if last_rec['_session_id'] == new_full_id:
+            raise RuntimeError(f'Session {new_full_id} already found in last '
+                               f'record of existing tub at {self.base_path}. '
+                               f'Please clean up your manifest metadata first, '
+                               f'before trying to write to the tub')
         return new_id, new_full_id
 
     def add_deleted_indexes(self, indexes):

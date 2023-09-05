@@ -189,6 +189,10 @@ class TubStatistics(object):
                 # last lap of the prev session and update the lap timer of
                 # the previous session
                 if prev_session is not None:
+                    # we should never overwrite anything in the map,
+                    # otherwise there is a data problem.
+                    assert prev_lap not in lap_gyro_map, \
+                        f'Lap {prev_lap} should not be in the map'
                     lap_gyro_map[prev_lap] = gyro_z_agg / count
                     update_metadata(lap_gyro_map, prev_session)
 
@@ -202,6 +206,10 @@ class TubStatistics(object):
             if lap != prev_lap:
                 # only update map if we haven't started a fresh session
                 if prev_lap is not None:
+                    # we should never overwrite anything in the map,
+                    # otherwise there is a data problem.
+                    assert prev_lap not in lap_gyro_map, \
+                        f'Lap {prev_lap} should not be in the map'
                     # add aggregated normalised gyro value to map
                     lap_gyro_map[prev_lap] = gyro_z_agg / count
                 # zero the aggregation value and update lap
@@ -216,6 +224,12 @@ class TubStatistics(object):
         # update for last lap, because we didn't go through the if lap !=
         # prev_lap part any more and hence need to update the map with the
         # last lap info
+
+        # we should never overwrite anything in the map,
+        # otherwise there is a data problem.
+        assert lap not in lap_gyro_map, \
+            f'Lap {lap} should not be in the map'
+
         lap_gyro_map[lap] = gyro_z_agg / count
         update_metadata(lap_gyro_map, prev_session)
 

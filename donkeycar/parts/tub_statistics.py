@@ -169,10 +169,16 @@ class TubStatistics(object):
             assert session_dict, \
                 f"Missing metadata for session_id {session}"
             lap_timer = session_dict.get('laptimer')
-            # update lap_timer here
+            # Update lap_timer with aggregated values and mark each lap that
+            # is not in the map as invalid, so it will not be used in the
+            # statistics.
             for entry in lap_timer:
                 lap_i = entry['lap']
-                entry['gyro_z_agg'] = lap_gyro_map.get(lap_i)
+                agg_value = lap_gyro_map.get(lap_i)
+                if agg_value is None:
+                    entry['valid'] = False
+                else:
+                    entry['gyro_z_agg'] = agg_value
 
         logger.info(f'Calculating aggregated gyro in tub {self.tub.base_path}')
         prev_session = None

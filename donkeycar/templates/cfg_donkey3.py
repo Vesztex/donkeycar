@@ -120,11 +120,13 @@ POST_TRANSFORMATIONS = []
 # AUGMENTATIONS
 AUG_BRIGHTNESS_RANGE = 0.2  # this is interpreted as [-0.2, 0.2]
 AUG_BLUR_RANGE = (0, 3)
+
 # Number of pixels to crop, requires 'CROP' in TRANSFORMATIONS to be set
 ROI_CROP_TOP = 50
 ROI_CROP_BOTTOM = 0
 ROI_CROP_RIGHT = 0
 ROI_CROP_LEFT = 0
+
 # For trapezoidal see explanation in augmentations.py, requires 'TRAPEZE' in
 # TRANSFORMATIONS to be set
 ROI_TRAPEZE_LL = 0
@@ -133,8 +135,28 @@ ROI_TRAPEZE_UL = 20
 ROI_TRAPEZE_UR = 140
 ROI_TRAPEZE_MIN_Y = 60
 ROI_TRAPEZE_MAX_Y = 120
+
 # Gamma transformations
 GAMMA_NORM_VALUE = 0.3
+
+# "CANNY" Canny Edge Detection tranformation
+CANNY_LOW_THRESHOLD = 60    # Canny edge detection low threshold value of intensity gradient
+CANNY_HIGH_THRESHOLD = 110  # Canny edge detection high threshold value of intensity gradient
+CANNY_APERTURE = 3          # Canny edge detect aperture in pixels, must be odd; choices=[3, 5, 7]
+
+# "BLUR" transformation (not this is SEPARATE from the blur augmentation)
+BLUR_KERNEL = 5        # blur kernel horizontal size in pixels
+BLUR_KERNEL_Y = None   # blur kernel vertical size in pixels or None for square kernel
+BLUR_GAUSSIAN = True   # blur is gaussian if True, simple if False
+
+# "RESIZE" transformation
+RESIZE_WIDTH = 160     # horizontal size in pixels
+RESIZE_HEIGHT = 120    # vertical size in pixels
+
+# "SCALE" transformation
+SCALE_WIDTH = 1.0      # horizontal scale factor
+SCALE_HEIGHT = None    # vertical scale factor or None to maintain aspect ratio
+
 
 # RECORD OPTIONS
 RECORD_DURING_AI = False

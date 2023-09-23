@@ -259,7 +259,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
         car.add(SpeedRescaler(cfg), inputs=['throttle'], outputs=['speed'])
         # add pid controller to convert (user/pilot) speed into throttle
         pid = SimplePidController(p=cfg.PID_P, i=cfg.PID_I, d=cfg.PID_D)
-        car.add(pid, inputs=['speed', 'car/inst_speed'],
+        car.add(pid, inputs=['speed', 'car/inst_speed', 'user/estop'],
                 outputs=['pid/throttle'])
 
     # create and add the PWM steering controller
@@ -281,7 +281,7 @@ def drive(cfg, use_pid=False, no_cam=False, model_path=None, model_type=None,
     throttle_input = 'pid/throttle' if use_pid else 'throttle'
     car.add(EStop(car_frequency),
             inputs=[throttle_input, 'user/mode'],
-            outputs=[throttle_input])
+            outputs=[throttle_input, 'user/estop'])
     car.add(throttle, inputs=[throttle_input], threaded=True)
 
     # if we want to record a tub -----------------------------------------------

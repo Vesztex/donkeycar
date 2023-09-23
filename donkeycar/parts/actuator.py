@@ -401,15 +401,15 @@ class EStop:
             logger.warning('E-Stop hit!')
         # if not activated return input throttle
         if self.count == 0:
-            return in_throttle
+            return in_throttle, trigger
         # this only runs if brake activated (i.e. self.count > 0)
-        if self.count < 5 * self.car_freq:
+        if self.count < self.car_freq:
             self.count += 1
-            return self.brake
+            return self.brake, trigger
         else:
             logger.info('E-Stop released')
             self.count = 0
-            return in_throttle
+            return in_throttle, trigger
 
 #
 # This seems redundant.  If it's really emulating and PCA9685, then

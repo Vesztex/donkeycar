@@ -127,11 +127,14 @@ class SimplePidController:
         self.pid.output_limits = (0, 1)
         logger.info(f"Created SimplePid part p: {p}, i:{i}, d:{d}")
 
-    def run(self, set_point, feedback):
+    def run(self, set_point, feedback, e_stop=False):
         self.pid.setpoint = set_point
-        # logger.debug(f'PID setpoint: {set_point:4.2f} feedback:'
-        #              f' {feedback:4.2f}')
         out = self.pid(feedback)
+        if e_stop:
+            self.pid.reset()
+            out = 0
+        logger.debug(f'PID setpoint: {set_point:4.2f} feedback:'
+                     f' {feedback:4.2f} e_stop: {e_stop}')
         return out
 
 

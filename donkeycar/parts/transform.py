@@ -59,8 +59,8 @@ class DelayedTrigger:
 
 class PIDController:
     """ Performs a PID computation and returns a control value.
-        This is based on the elapsed time (dt) and the current value of the process variable
-        (i.e. the thing we're measuring and trying to change).
+        This is based on the elapsed time (dt) and the current value of the
+        process variable (i.e. the thing we're measuring and trying to change).
         https://github.com/chrisspen/pid_controller/blob/master/pid_controller/pid.py
     """
 
@@ -109,7 +109,7 @@ class PIDController:
         if self.debug:
             print('PID error={0:4.3f} total_error={1:4.3f} dif_error={2:4.3f} '
                   'output={3:4.3f}'
-                  .format(err, self.totalError, self.difError, curr_alpha))
+                  .format(err, self.totalError, dif_error, curr_alpha))
 
         self.last_alpha = curr_alpha
         return curr_alpha

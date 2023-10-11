@@ -27,7 +27,7 @@ IMAGE_H = 144
 IMAGE_DEPTH = 3         # default RGB=3, make 1 for mono
 CAMERA_FRAMERATE = DRIVE_LOOP_HZ
 
-# 9865, over rides only if needed, ie. TX2..
+# 9865, overrides only if needed, ie. TX2..
 PCA9685_I2C_ADDR = 0x40
 PCA9685_I2C_BUSNUM = None
 
@@ -86,6 +86,7 @@ MIN_DELTA = .000001
 PRINT_MODEL_SUMMARY = True
 USE_SPEED_FOR_MODEL = True
 CACHE_IMAGES = True
+CACHE_POLICY = "ARRAY"
 USE_LAP_0 = False
 
 # model transfer options
@@ -198,7 +199,7 @@ GYM_CONF["racer_name"] = "Your Name"
 GYM_CONF["country"] = "Place"
 GYM_CONF["bio"] = "I race robots."
 
-SIM_HOST = "127.0.0.1"              # when racing on virtual-race-league use host "trainmydonkey.com"
+SIM_HOST = "127.0.0.1"
 SIM_ARTIFICIAL_LATENCY = 0
 
 # Save info from Simulator (pln)

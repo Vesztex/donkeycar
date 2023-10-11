@@ -34,7 +34,7 @@ def filter_record(record):
     return record.underlying['car/speed'] > 0.5
 #TRAIN_FILTER = filter_record
 
-CACHE_IMAGES = True
+
 FREEZE_LAYERS = False
 NUM_LAST_LAYERS_TO_TRAIN = None  # important to overwrite default of 7
 # EXCLUDE_SLOW_LAPS = 0.5

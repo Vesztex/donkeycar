@@ -1,5 +1,6 @@
 import copy
 import os
+from enum import Enum
 from typing import Any, List, Optional, Iterator, Union, Iterable
 import logging
 import numpy as np
@@ -12,6 +13,13 @@ from typing_extensions import TypedDict
 
 
 logger = logging.getLogger(__name__)
+
+
+class CachePolicy(Enum):
+    NOCACHE = 0
+    BINARY = 1
+    ARRAY = 2
+
 
 TubRecordDict = TypedDict(
     'TubRecordDict',
@@ -55,6 +63,8 @@ class TubRecord(object):
         self.config = config
         self.base_path = base_path
         self.underlying = underlying
+        self._cache_policy = CachePolicy[
+            getattr(self.config, 'CACHE_POLICY', 'ARRAY')]
         self._cache_images = getattr(self.config, 'CACHE_IMAGES', True)
         self._image: Optional[Any] = None
 
@@ -72,42 +82,73 @@ class TubRecord(object):
         if self._image is None:
             _image = self._extract_image(as_nparray, processor)
         else:
-            _image = self._image if self._cache_images \
-                else img_to_arr(binary_to_img(self._image))
+            _image = self._image_from_cache(as_nparray)
         return _image
+
+    def _image_from_cache(self, as_nparray):
+        """
+        Cache policy only supports numpy array format
+        :return: Numpy array from cache
+        """
+        if not as_nparray:
+            return self._image
+
+        if self._cache_policy == CachePolicy.NOCACHE:
+            raise RuntimeError("Found cached image with policy NOCACHE")
+        elif self._cache_policy == CachePolicy.ARRAY:
+            return self._image
+        elif self._cache_policy == CachePolicy.BINARY:
+            return img_to_arr(binary_to_img(self._image))
+        else:
+            raise RuntimeError(f"Unhandled cache policy {self._cache_policy}")
+
+    def _load_image_and_cache(self, img_path):
+        # if no caching, just load but don't cache
+        if self._cache_policy == CachePolicy.NOCACHE:
+            _image = load_image(img_path, cfg=self.config)
+        # if caching full array, load and cache array
+        elif self._cache_policy == CachePolicy.ARRAY:
+            _image = load_image(img_path, cfg=self.config)
+            self._image = _image
+        # if caching is binary, only cache binary but return full array
+        elif self._cache_policy == CachePolicy.BINARY:
+            with open(img_path, 'rb') as f:
+                _image = f.read()
+                self._image = _image
+                _image = img_to_arr(binary_to_img(_image))
+        return _image
+
+    def _load_pil_image_and_cache(self, img_path):
+        _image = load_pil_image(img_path, cfg=self.config)
+        if self._cache_policy != CachePolicy.NOCACHE:
+            self._image = _image
+        return _image
+
+    def _cache_processed_image(self, image, as_nparray):
+        if not as_nparray:
+            if self._cache_policy != CachePolicy.NOCACHE:
+                self._image = image
+            return
+        # if numpy and array caching, cache the processed image
+        if self._cache_policy == CachePolicy.ARRAY:
+            self._image = image
+        # if numpy and binary caching, cache binary image, but return
+        # numpy
+        elif self._cache_policy == CachePolicy.BINARY:
+            self._image = arr_to_binary(image)
+        # in the case of no caching, nothing needs to be done here
 
     def _extract_image(self, as_nparray, processor):
         image_path = self.underlying['cam/image_array']
         full_path = os.path.join(self.base_path, 'images', image_path)
         if as_nparray:
-            # if caching is true, load the full numpy uint8 array and cache
-            if self._cache_images:
-                _image = load_image(full_path, cfg=self.config)
-                self._image = _image
-            # if caching is false, load the jpeg binary and cache binary
-            else:
-                with open(full_path, 'rb') as f:
-                    _image = f.read()
-                    # save binary
-                    self._image = _image
-                    # but return numpy
-                    _image = img_to_arr(binary_to_img(_image))
+            _image = self._load_image_and_cache(full_path)
         else:
-            # If you just want the raw Image
-            _image = load_pil_image(full_path, cfg=self.config)
+            _image = self._load_pil_image_and_cache(full_path)
         if processor:
             # _image is now either numpy or PIL, so processing applies always
             _image = processor(_image)
-            if as_nparray:
-                # if numpy and caching, cache the processed image
-                if self._cache_images:
-                    self._image = _image
-                # if numpy and no caching, cache binary image, but return numpy
-                else:
-                    self._image = arr_to_binary(_image)
-        # cache PIL image, processed or not
-        if not as_nparray and self._cache_images:
-            self._image = _image
+            self._cache_processed_image(_image, as_nparray)
         return _image
 
     def extend(self, session_lap_rank):
@@ -115,6 +156,7 @@ class TubRecord(object):
             return True
         session_id = self.underlying['_session_id']
         lap_i = self.underlying['car/lap']
+        lap_i_dict = None
 
         if session_lap_rank:
             # we won't get a result for the last lap as this is incomplete and

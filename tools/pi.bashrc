@@ -120,4 +120,5 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
-source env/bin/activate
+
+source /home/pi/env/bin/activate 

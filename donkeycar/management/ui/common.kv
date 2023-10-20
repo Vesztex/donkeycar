@@ -1,0 +1,98 @@
+#:import platform sys.platform
+
+#:set common_height 30 if platform != 'darwin' else 60
+#:set layout_pad_x 10 if platform != 'darwin' else 20
+#:set layout_height common_height + layout_pad_x
+#:set layout_height_double 2 * common_height + layout_pad_x
+#:set layout_pad_xy [layout_pad_x, layout_pad_x // 2]
+
+#:set font_size_14: '14sp' # 14 if platform == 'linux' else 28
+#:set font_size_12: '12sp' # 12 if platform == 'linux' else 24
+
+
+<PaddedBoxLayout>:
+    size_hint_y: None
+    height: layout_height
+    padding: layout_pad_xy
+    spacing: layout_pad_x
+
+
+<AutoLabel@Label>
+    text_size: self.size
+    halign: 'center'
+    valign: 'middle'
+
+
+<MySpinnerOption>:
+    text_size: self.size
+    halign: 'center'
+    valign: 'middle'
+    height: common_height
+
+
+<DataPanel>
+    orientation: 'vertical'
+    spacing: 2
+    GridLayout:
+        cols: 2
+        Label:
+            text: 'Record field'
+            size_hint_y: None
+            height: common_height
+        MySpinner:
+            id: data_spinner
+            size_hint_y: None
+            height: common_height
+            text: root.auto_text if root.link else 'Add/remove'
+            on_text: root.add_remove()
+            on_values: root.clear()
+
+
+<ControlPanel>
+    orientation: 'vertical'
+    GridLayout:
+        cols: 2
+        Label:
+            id: record_num
+            text: root.record_display
+        MySpinner:
+            id: control_spinner
+            pos_hint: {'center': (.5, .5)}
+            text: '1.00'
+            values: ['0.25', '0.50', '1.00', '1.50', '2.00', '3.00', '4.00']
+            on_text:
+                root.speed = float(self.text)
+                app.tub_screen.ids.status.text = f'Setting speed to {self.text} - you can also use the +/- keys.'
+                root.restart()
+        Button:
+            id: step_bwd
+            text: '<'
+            on_press:
+                root.start(fwd=False)
+            on_release:
+                root.stop()
+        Button:
+            id: step_fwd
+            text: '>'
+            on_press:
+                root.start(fwd=True)
+            on_release:
+                root.stop()
+        Button:
+            id: run_bwd
+            text: '<<'
+            on_press:
+                root.start(fwd=False, continuous=True)
+                root.set_button_status(disabled=True)
+        Button:
+            id: run_fwd
+            text: '>>'
+            on_press:
+                root.start(fwd=True, continuous=True)
+                root.set_button_status(disabled=True)
+    Button:
+        size_hint_y: 0.3
+        text: 'Stop'
+        on_press:
+            root.stop()
+            root.set_button_status(disabled=False)

@@ -1,21 +1,11 @@
-#: import TsPlot donkeycar.management.graph.TsPlot
-#: import get_model_by_type donkeycar.utils.get_model_by_type
-#: import platform sys.platform
-#: import os os
+#:import TsPlot donkeycar.management.graph.TsPlot
+#:import get_model_by_type donkeycar.utils.get_model_by_type
+#:import os os
 
-#:set common_height 30 if platform != 'darwin' else 60
-#:set layout_pad_x 10 if platform != 'darwin' else 20
-#:set layout_height common_height + layout_pad_x
-#:set layout_height_double 2 * common_height + layout_pad_x
-#:set layout_pad_xy [layout_pad_x, layout_pad_x // 2]
+#:include common.kv
+
 #:set supported_models ['linear', 'categorical', 'inferred', 'memory', 'behavior', 'localizer', 'rnn', '3d', 'sq', 'sq_imu', 'sq_mem', 'sq_mem_lap']
 #:set drive_models [pre + t for pre in['', 'tflite_', 'tensorrt_'] for t in supported_models ]
-
-<PaddedBoxLayout>:
-    size_hint_y: None
-    height: layout_height
-    padding: layout_pad_xy
-    spacing: layout_pad_x
 
 
 <FileChooserPopup>:
@@ -45,11 +35,6 @@
                 text: "Load"
                 on_release: root.load(file_chooser.selection)
                 disabled: file_chooser.selection==[]
-
-<AutoLabel@Label>
-    text_size: self.size
-    halign: 'center'
-    valign: 'middle'
 
 <ConfigManager>
     title: 'Choose the car directory'
@@ -90,7 +75,7 @@
         text_size: self.size
         halign: 'left'
         valign: 'middle'
-        font_size: '14sp' # 14 if platform == 'linux' else 28
+        font_size: '14sp'
         canvas.before:
             Color:
                 rgba: 0.17, 0.18, 0.25, 1
@@ -102,7 +87,7 @@
         text_size: self.size
         halign: 'right'
         valign: 'middle'
-        font_size: 14 if platform == 'linux' else 28
+        font_size: '14sp'
         size_hint_x: 0.8
         padding_x: 10
         canvas.before:
@@ -120,78 +105,6 @@
                 pos: self.pos
                 size: self.size
 
-<MySpinnerOption>:
-    text_size: self.size
-    halign: 'center'
-    valign: 'middle'
-    height: common_height
-
-
-<DataPanel>
-    orientation: 'vertical'
-    spacing: 2
-    GridLayout:
-        cols: 2
-        Label:
-            text: 'Record field'
-            size_hint_y: None
-            height: common_height
-        MySpinner:
-            id: data_spinner
-            size_hint_y: None
-            height: common_height
-            text: root.auto_text if root.link else 'Add/remove'
-            on_text: root.add_remove()
-            on_values: root.clear()
-
-<ControlPanel>
-    orientation: 'vertical'
-    GridLayout:
-        cols: 2
-        Label:
-            id: record_num
-            text: root.record_display
-        MySpinner:
-            id: control_spinner
-            pos_hint: {'center': (.5, .5)}
-            text: '1.00'
-            values: ['0.25', '0.50', '1.00', '1.50', '2.00', '3.00', '4.00']
-            on_text:
-                root.speed = float(self.text)
-                app.tub_screen.ids.status.text = f'Setting speed to {self.text} - you can also use the +/- keys.'
-                root.restart()
-        Button:
-            id: step_bwd
-            text: '<'
-            on_press:
-                root.start(fwd=False)
-            on_release:
-                root.stop()
-        Button:
-            id: step_fwd
-            text: '>'
-            on_press:
-                root.start(fwd=True)
-            on_release:
-                root.stop()
-        Button:
-            id: run_bwd
-            text: '<<'
-            on_press:
-                root.start(fwd=False, continuous=True)
-                root.set_button_status(disabled=True)
-        Button:
-            id: run_fwd
-            text: '>>'
-            on_press:
-                root.start(fwd=True, continuous=True)
-                root.set_button_status(disabled=True)
-    Button:
-        size_hint_y: 0.3
-        text: 'Stop'
-        on_press:
-            root.stop()
-            root.set_button_status(disabled=False)
 
 <TubEditor>
     orientation: 'horizontal'
@@ -210,7 +123,6 @@
         on_press: root.set_lr(False)
     Label:
         text: '[' + str(root.lr[0]) + ', ' + str(root.lr[1]) + ')'
-        # text: f'Index range [{root.lr[0]}, {root.lr[1]})'
     Button:
         text: 'Delete'
         on_press:
@@ -352,7 +264,6 @@
             id: tub_filter
         TsPlot:
             id: graph
-            #size_hint_y: 3.0 if platform == 'linux' else None
         DataPlot:
             id: data_plot
         StatusLabel:
@@ -512,7 +423,7 @@
 
 <DataframeLabel>:
     font_name: 'data/fonts/RobotoMono-Regular.ttf'
-    font_size: 12 if platform == 'linux' else 24
+    font_size: '12sp'
     size_hint_y: None
     size_hint_x: None
     height: self.texture_size[1]

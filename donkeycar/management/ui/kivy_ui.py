@@ -1290,7 +1290,7 @@ class CarScreen(Screen):
 class StartScreen(Screen):
     img_path = os.path.realpath(os.path.join(
         os.path.dirname(__file__),
-        '../parts/web_controller/templates/static/donkeycar-logo-sideways.png'))
+        '../../parts/web_controller/templates/static/donkeycar-logo-sideways.png'))
     pass
 
 

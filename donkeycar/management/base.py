@@ -605,7 +605,7 @@ class ModelDatabase(BaseCommand):
 
 class Gui(BaseCommand):
     def run(self, args):
-        from donkeycar.management.kivy_ui import main
+        from donkeycar.management.ui.kivy_ui import main
         main()
 
 

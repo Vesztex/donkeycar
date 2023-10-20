@@ -4,46 +4,53 @@
 #:include train_screen.kv
 #:include car_screen.kv
 
+<BlackButton@Button>
+    color: 0, 0, 0, 1
+    disabled_color: 0.2, 0.2, 0.2, 1
 
 <TabBar>:
     size_hint_y: None
-    height: common_height + 40
-    padding: [20, 20]
-    spacing: 20
+    height: common_height + 20
+    padding: [10, 10]
+    spacing: 10
     canvas.before:
         Color:
-            rgba: 0.25, 0.138, 0.0, 1
+            rgba: 0.4, 0.2, 0.0, 1
         Rectangle:
             pos: self.pos
             size: self.size
-    Button:
+    BlackButton:
         id: tub_btn
         text: 'Tub Manager'
+        color: 0, 0, 0, 1
         on_release:
             root.manager.current_screen.keys_enabled = False
             root.manager.current = 'tub'
             root.manager.current_screen.keys_enabled = True
             root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
-    Button:
+    BlackButton:
         id: train_btn
         text: 'Trainer'
+        color: 0, 0, 0, 1
         on_release:
             root.manager.current_screen.keys_enabled = False
             root.manager.current = 'train'
             root.manager.current_screen.keys_enabled = True
             root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
-    Button:
+    BlackButton:
         id: pilot_btn
         text: 'Pilot Arena'
+        color: 0, 0, 0, 1
         on_release:
             root.manager.current_screen.keys_enabled = False
             root.manager.current = 'pilot'
             root.manager.current_screen.keys_enabled = True
             if not root.manager.current_screen.index: root.manager.current_screen.index = 0
             root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
-    Button:
+    BlackButton:
         id: car_btn
         text: 'Car Connector'
+        color: 0, 0, 0, 1
         on_release:
             root.manager.current_screen.keys_enabled = False
             root.manager.current = 'car'

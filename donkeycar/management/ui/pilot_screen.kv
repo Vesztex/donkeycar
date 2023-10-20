@@ -1,0 +1,151 @@
+
+<PilotLoader>:
+    title: 'Choose the pilot'
+    orientation: 'horizontal'
+    model_type: pilot_spinner.text
+    Button:
+        id: pilot_button
+        text: 'Choose pilot'
+        size_hint_x: 0.5
+        disabled: True
+        on_press:
+            root.open_popup()
+    MySpinner:
+        id: pilot_spinner
+        pos_hint: {'center': (.5, .5)}
+        size_hint_x: 0.5
+        text: 'Model type'
+        values: drive_models
+    AutoLabel:
+        id: pilot_file
+        text: root.file_path
+
+
+<TransformationPopup>:
+    size_hint: 1.0, 1.0
+    auto_dismiss: False
+    pos_hint: {'center_x': .5, 'center_y': .5}
+
+    BoxLayout:
+        orientation: "horizontal"
+        BoxLayout:
+            orientation: 'vertical'
+            id: selected_list
+            spacing: 20
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: 20
+            BoxLayout:
+                orientation: 'vertical'
+                id: trafo_list
+            Button:
+                text: "Close"
+                size_hint_y: 0.1
+                on_release: root.dismiss()
+
+
+<PilotScreen>:
+    config: app.tub_screen.ids.config_manager.config
+    BoxLayout:
+        orientation: 'vertical'
+        TabBar:
+            id: tab_bar
+            manager: root.manager
+        PaddedBoxLayout:
+            PilotLoader:
+                id: pilot_loader_1
+                num: '1'
+                data_panel: data_panel_1
+            PilotLoader:
+                id: pilot_loader_2
+                num: '2'
+                data_panel: data_panel_2
+        BoxLayout:
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            OverlayImage:
+                id: img_1
+                pilot: pilot_loader_1.pilot
+                throttle_field: data_in.throttle_field
+                is_left: True
+            OverlayImage:
+                id: img_2
+                pilot: pilot_loader_2.pilot
+                throttle_field: data_in.throttle_field
+                is_left: False
+        PaddedBoxLayout:
+            size_hint_y: 0.5
+            DataPanel:
+                id: data_panel_1
+                screen: root
+                record: img_1.pilot_record
+                dual_mode: True
+                link: True
+                auto_text: root.map_pilot_field(data_in.auto_text)
+            DataPanel:
+                id: data_panel_2
+                screen: root
+                record: img_2.pilot_record
+                dual_mode: True
+                link: True
+                auto_text: root.map_pilot_field(data_in.auto_text)
+        Slider:
+            id: slider
+            min: 0
+            max: app.tub_screen.ids.tub_loader.len - 1
+            value: 0
+            size_hint_y: None
+            height: common_height
+            on_value: root.index = int(self.value)
+
+        PaddedBoxLayout:
+            ToggleButton:
+                id: button_bright
+                size_hint_x: 0.5
+                text: 'Brightness {:4.2f}'.format(slider_bright.value)
+                on_press: root.set_brightness(slider_bright.value)
+            Slider:
+                id: slider_bright
+                value: 0
+                min: -0.5
+                max: 0.5
+                on_value: root.set_brightness(self.value)
+            ToggleButton:
+                id: button_blur
+                size_hint_x: 0.5
+                text: 'Blur {:4.2f}'.format(slider_blur.value)
+                on_press: root.set_blur(slider_blur.value)
+            Slider:
+                id: slider_blur
+                value: 0
+                min: 0.001
+                max: 3
+                on_value: root.set_blur(self.value)
+        PaddedBoxLayout:
+            Transformations:
+                id: pre_transformation
+                title: 'Pre-Augmentation Transformations'
+                text: 'Set pre transformation'
+                pilot_screen: root
+                is_post: False
+                on_press: self.open_popup()
+            Transformations:
+                id: post_transformation
+                title: 'Post-Augmentation Transformations'
+                text: 'Set post transformation'
+                pilot_screen: root
+                is_post: True
+                on_press: self.open_popup()
+        PaddedBoxLayout:
+            size_hint_y: 0.5
+            ControlPanel:
+                id: pilot_control
+                screen: root
+            DataPanel:
+                id: data_in
+                screen: root
+                record: root.current_record
+                dual_mode: True
+        StatusLabel:
+            id: status

@@ -1,0 +1,142 @@
+
+<CarScreen>:
+    config: app.tub_screen.ids.config_manager.config
+    BoxLayout:
+        orientation: 'vertical'
+        TabBar:
+            id: tab_bar
+            manager: root.manager
+        AutoLabel:
+            text: 'This screen is experimental and only works on Linux and OSX if ssh is configured to login without password. Please see the docs.'
+            color: (1, 0.35, 0, 1)
+        BoxLayout:
+            size_hint_y: None
+            height: common_height
+            Label:
+                text: 'Connection status'
+            Label:
+                id: connected
+                text: 'Checking...'
+        Label:
+            #size_hint_y: None
+            #height: common_height
+            text: 'Pull tub from car -> pc'
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            Label:
+                text: 'Car directory (hit return)'
+            Label:
+                text: 'Select tub'
+
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            TextInput:
+                id: car_dir
+                multiline: False
+                text: root.car_dir
+                on_text_validate:
+                    root.list_car_dir(self.text)
+                    root.update_pilots()
+            MySpinner:
+                id: tub_dir_spinner
+                text: 'select'
+                values: root.files
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            ToggleButton:
+                id: create_dir
+                size_hint_x: 0.49
+                text: 'Create new folder'
+            Button:
+                id: pull_tub
+                size_hint_x: 0.49
+                text: 'Pull tub ' + tub_dir_spinner.text
+                on_press:
+                    self.disabled = True
+                    root.pull(tub_dir_spinner.text)
+            ProgressBar:
+                id: pull_bar
+                #value: root.pull_bar
+        Label:
+            #size_hint_y: None
+            #height: common_height
+            text: 'Push pilots from pc -> car'
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            ToggleButton:
+                id: btn_h5
+                text: 'Sync h5'
+            ToggleButton:
+                id: btn_savedmodel
+                text: 'Sync savedmodel'
+            ToggleButton:
+                id: btn_tflite
+                text: 'Sync tflite'
+            ToggleButton:
+                id: btn_trt
+                text: 'Sync tensorrt'
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            Button:
+                id: send_pilots
+                multiline: False
+                text: 'Push pilots'
+                on_press:
+                    self.disabled = True
+                    root.send_pilot()
+            ProgressBar:
+                id: push_bar
+                # value: root.push_bar
+
+        Label:
+            # size_hint_y: None
+            # height: common_height
+            text: 'Drive car'
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height_double
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            MySpinner:
+                id: type_spinner
+                text: 'tflite_linear'
+                values: drive_models
+            MySpinner:
+                id: pilot_spinner
+                text: 'No pilot'
+                values: ['No pilot'] + root.pilots
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height_double
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            Button:
+                id: drive_btn
+                text: 'Drive'
+                on_press:
+                    root.drive()
+                    self.disabled = True
+                    stop_btn.disabled = False
+            Button:
+                id: stop_btn
+                text: 'Stop'
+                disabled: True
+                on_press:
+                    root.stop()
+                    self.disabled = True
+                    drive_btn.disabled = False

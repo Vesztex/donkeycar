@@ -1,0 +1,136 @@
+
+#:set supported_models ['linear', 'categorical', 'inferred', 'memory', 'behavior', 'localizer', 'rnn', '3d', 'sq', 'sq_imu', 'sq_mem', 'sq_mem_lap']
+#:set drive_models [pre + t for pre in['', 'tflite_', 'tensorrt_'] for t in supported_models ]
+
+
+<DataframeLabel>:
+    font_name: 'data/fonts/RobotoMono-Regular.ttf'
+    font_size: '12sp'
+    size_hint_y: None
+    size_hint_x: None
+    height: self.texture_size[1]
+    width: self.texture_size[0]
+    #text_size: self.width, None
+
+<TransferSelector>:
+    title: 'Choose transfer model'
+    orientation: 'horizontal'
+    Button:
+        id: transfer_button
+        text: 'Transfer model'
+        size_hint_x: 0.5
+        on_press: root.open_popup()
+    AutoLabel:
+        text: root.file_path
+
+<TrainScreen>:
+    config: app.tub_screen.ids.config_manager.config
+    BoxLayout:
+        orientation: 'vertical'
+        TabBar:
+            id: tab_bar
+            manager: root.manager
+        Label:
+            size_hint_y: None
+            height: common_height
+            text: 'Overwrite config: use json syntax, i.e. "abc" for strings and true/false for bool'
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            MySpinner:
+                id: cfg_spinner
+                text_autoupdate: True
+                values: root.keys()
+            TextInput:
+                id: cfg_overwrite
+                multiline: False
+                text: str(getattr(root.config, cfg_spinner.text, ''))
+                on_text_validate:
+                    root.set_config_attribute(self.text)
+        Label:
+            size_hint_y: None
+            height: common_height
+            text: 'Train pilot'
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            Label:
+                size_hint_x: 0.5
+                text: 'Model type'
+            MySpinner:
+                id: train_spinner
+                size_hint_x: 0.5
+                text: 'linear'
+                values: supported_models
+            TextInput:
+                id: comment
+                multiline: False
+                text: 'Comment'
+                on_text: app.train_screen.ids.status.text = f'Adding comment: {self.text}'
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            MySpinner:
+                id: transfer_spinner
+                text: 'Choose transfer model'
+            ToggleButton:
+                id: train_button
+                text: 'Training running...' if self.state == 'down' else 'Train'
+                on_press:
+                    root.train()
+                    self.disabled = True
+        ScrollableLabel:
+            DataFrameLabel:
+                id: scroll_pilots
+        ScrollableLabel:
+            size_hint_y: 1.0 if check.state == 'down' else 0.1
+            DataFrameLabel:
+                id: scroll_tubs
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            MySpinner:
+                size_hint_x: 1.5
+                id: select_spinner
+                text_autoupdate: True
+                on_text:
+                    entry = root.database.get_entry(select_spinner.text)
+                    txt = entry.get('Comment') or ''
+                    comment.text = txt
+            Button:
+                size_hint_x: 0.75
+                id: delete_btn
+                on_press:
+                    root.database.delete_entry(select_spinner.text)
+                    root.reload_database()
+                text: 'Delete pilot'
+            Button:
+                size_hint_x: 0.75
+                id: update_comment
+                text: 'Update comment'
+                on_press:
+                    root.database.get_entry(select_spinner.text)['Comment'] = comment.text
+                    root.database.write()
+                    root.on_database()
+
+        BoxLayout:
+            size_hint_y: None
+            height: layout_height
+            padding: layout_pad_xy
+            spacing: layout_pad_x
+            Label:
+                text: 'Group multiple tubs'
+            ToggleButton:
+                id: check
+                on_press: root.on_database(None, None)
+                text: 'On' if self.state == 'down' else 'Off'
+        StatusLabel:
+            id: status

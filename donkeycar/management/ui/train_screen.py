@@ -1,3 +1,4 @@
+import datetime
 import os
 from threading import Thread
 import json
@@ -8,19 +9,28 @@ from kivy.properties import ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
-from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
 
 from donkeycar.management.ui.common import FileChooserBase, tub_screen
 from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.training import train
 
 
-class ScrollableLabel(ScrollView):
+class BackgroundColor(Widget):
     pass
 
 
-class DataFrameLabel(Label):
+class BackgroundLabel(BackgroundColor, Label):
     pass
+
+
+class FittingLabel(Label):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def on_texture_size(self, o, new_size):
+        super().on_texture_size(o, new_size)
+        self.size = self.texture_size
 
 
 class TransferSelector(BoxLayout, FileChooserBase):
@@ -113,11 +123,39 @@ class TrainScreen(Screen):
             self.database = PilotDatabase(self.config)
 
     def on_database(self, obj=None, database=None):
-        group_tubs = self.ids.check.state == 'down'
-        pilot_txt, tub_txt, pilot_names = self.database.pretty_print(group_tubs)
-        self.ids.scroll_tubs.text = tub_txt
-        self.ids.scroll_pilots.text = pilot_txt
+        df = self.database.to_df()
+        df.drop(columns=['History', 'Config'], errors='ignore', inplace=True)
+        self.set_database_frame(df)
+
+        pilot_names = self.database.get_pilot_names()
         self.ids.transfer_spinner.values \
             = ['Choose transfer model'] + pilot_names
         self.ids.select_spinner.values \
             = pilot_names
+
+    def set_database_frame(self, df):
+        grid = self.ids.scroll_pilots
+        grid.clear_widgets()
+        cols = len(df.columns)
+        rows = len(df)
+        grid.cols = cols
+
+        for i, col in enumerate(df.columns):
+            lab = BackgroundLabel(text=col)
+            lab.size = lab.texture_size
+            grid.add_widget(lab)
+            if col in ('Pilot', 'Comment'):
+                grid.cols_minimum |= {i: 100}
+
+        for row in range(rows):
+            for col in range(cols):
+                cell = df.iloc[row][col]
+                if df.columns[col] == 'Time':
+                    cell = datetime.datetime.fromtimestamp(cell)
+                    cell = cell.strftime("%Y-%m-%d %H:%M:%S")
+                cell = str(cell)
+                lab = BackgroundLabel(text=cell)
+                lab.size = lab.texture_size
+                grid.add_widget(lab)
+
+        # self.ids.scroll_pilots.add_widget(gl)

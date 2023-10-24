@@ -1,6 +1,26 @@
+#:import ScrollEffect  kivy.effects.scroll.ScrollEffect
 
 #:set supported_models ['linear', 'categorical', 'inferred', 'memory', 'behavior', 'localizer', 'rnn', '3d', 'sq', 'sq_imu', 'sq_mem', 'sq_mem_lap']
 #:set drive_models [pre + t for pre in['', 'tflite_', 'tensorrt_'] for t in supported_models ]
+
+
+<BackgroundColor>
+    background_color: 1, 1, 1, 1
+    canvas.before:
+        Color:
+            rgba: root.background_color
+        Rectangle:
+            size: self.size
+            pos: self.pos
+
+
+<BackgroundLabel>
+    background_color: 0.25, 0.125, 0.05, 1
+    font_name: 'data/fonts/RobotoMono-Regular.ttf'
+    font_size: '12sp'
+    text_size: root.width, None
+    size: self.texture_size
+    halign: 'center'
 
 
 <DataframeLabel>:
@@ -12,6 +32,7 @@
     width: self.texture_size[0]
     #text_size: self.width, None
 
+
 <TransferSelector>:
     title: 'Choose transfer model'
     orientation: 'horizontal'
@@ -22,6 +43,7 @@
         on_press: root.open_popup()
     AutoLabel:
         text: root.file_path
+
 
 <TrainScreen>:
     config: app.tub_screen.ids.config_manager.config
@@ -85,13 +107,17 @@
                 on_press:
                     root.train()
                     self.disabled = True
-        ScrollableLabel:
-            DataFrameLabel:
+        ScrollView:
+            effect_cls: ScrollEffect
+            GridLayout:
+                size_hint_y: None
+                padding: 2
+                spacing: 2
+                cols: 2
+                row_default_height: 28
+                height: self.minimum_height
                 id: scroll_pilots
-        ScrollableLabel:
-            size_hint_y: 1.0 if check.state == 'down' else 0.1
-            DataFrameLabel:
-                id: scroll_tubs
+
         BoxLayout:
             size_hint_y: None
             height: layout_height
@@ -127,10 +153,9 @@
             padding: layout_pad_xy
             spacing: layout_pad_x
             Label:
-                text: 'Group multiple tubs'
+                text: 'Select columns'
             ToggleButton:
-                id: check
-                on_press: root.on_database(None, None)
+                on_release: pass
                 text: 'On' if self.state == 'down' else 'Off'
         StatusLabel:
             id: status

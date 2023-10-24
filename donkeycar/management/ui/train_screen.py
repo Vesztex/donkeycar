@@ -141,7 +141,7 @@ class TrainScreen(Screen):
         grid.cols = cols
 
         for i, col in enumerate(df.columns):
-            lab = BackgroundLabel(text=col)
+            lab = BackgroundLabel(text=f"[b]{col}[/b]", markup=True)
             lab.size = lab.texture_size
             grid.add_widget(lab)
             if col in ('Pilot', 'Comment'):

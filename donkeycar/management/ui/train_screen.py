@@ -5,10 +5,12 @@ import json
 
 from kivy import Logger
 from kivy.clock import Clock
-from kivy.properties import ObjectProperty
+from kivy.properties import ObjectProperty, NumericProperty, ListProperty
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.dropdown import DropDown
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
+from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
 from donkeycar.management.ui.common import FileChooserBase, tub_screen
@@ -31,6 +33,23 @@ class FittingLabel(Label):
     def on_texture_size(self, o, new_size):
         super().on_texture_size(o, new_size)
         self.size = self.texture_size
+
+
+class CustomButton(ToggleButton):
+    menu = ObjectProperty()
+    i = NumericProperty()
+
+
+class CustomDropDown(DropDown):
+    selected = ListProperty()
+
+    def set_labels(self, labels):
+        self.clear_widgets()
+        self.selected.clear()
+        print(f'len {len(self.selected)}')
+        for i, label in enumerate(labels):
+            but = CustomButton(i=i, text=label, menu=self)
+            self.add_widget(but)
 
 
 class TransferSelector(BoxLayout, FileChooserBase):
@@ -158,4 +177,5 @@ class TrainScreen(Screen):
                 lab.size = lab.texture_size
                 grid.add_widget(lab)
 
-        # self.ids.scroll_pilots.add_widget(gl)
+        #self.ids.colomn_chooser.set_labels(df.columns)
+        self.ids.column_chooser.text = ", ".join(df.columns)

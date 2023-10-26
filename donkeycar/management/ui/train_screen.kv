@@ -34,6 +34,17 @@
         text: root.file_path
 
 
+<CustomButton>:
+    size_hint_y: None
+    height: 32
+    on_state:
+        self.menu.selected.insert(self.i, self.text) if self.state == "down" else self.menu.selected.remove(self.text)
+
+
+<CustomDropDown>:
+    dismiss_on_select: False
+
+
 <TrainScreen>:
     config: app.tub_screen.ids.config_manager.config
     BoxLayout:
@@ -143,8 +154,11 @@
             spacing: layout_pad_x
             Label:
                 text: 'Select columns'
-            ToggleButton:
-                on_release: pass
-                text: 'On' if self.state == 'down' else 'Off'
+
+            #CustomDropDown:
+            Label:
+                id: column_chooser
+                text: 'Select columns'
+
         StatusLabel:
             id: status

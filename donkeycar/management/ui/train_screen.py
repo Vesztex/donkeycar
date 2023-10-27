@@ -5,12 +5,11 @@ import json
 
 from kivy import Logger
 from kivy.clock import Clock
-from kivy.properties import ObjectProperty, NumericProperty, ListProperty
+from kivy.properties import ObjectProperty, NumericProperty, ListProperty, \
+    StringProperty
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.dropdown import DropDown
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
-from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
 from donkeycar.management.ui.common import FileChooserBase, tub_screen
@@ -26,30 +25,23 @@ class BackgroundLabel(BackgroundColor, Label):
     pass
 
 
-class FittingLabel(Label):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def on_texture_size(self, o, new_size):
-        super().on_texture_size(o, new_size)
-        self.size = self.texture_size
-
-
-class CustomButton(ToggleButton):
+class MenuCheckbox(BoxLayout):
     menu = ObjectProperty()
+    text = StringProperty()
     i = NumericProperty()
 
 
-class CustomDropDown(DropDown):
+class CheckBoxRow(BoxLayout):
     selected = ListProperty()
+    screen = ObjectProperty()
 
-    def set_labels(self, labels):
+    def build_widgets(self, labels):
         self.clear_widgets()
         self.selected.clear()
-        print(f'len {len(self.selected)}')
         for i, label in enumerate(labels):
-            but = CustomButton(i=i, text=label, menu=self)
+            but = MenuCheckbox(i=i, text=label, menu=self)
             self.add_widget(but)
+        self.selected = list(labels)
 
 
 class TransferSelector(BoxLayout, FileChooserBase):
@@ -61,6 +53,7 @@ class TrainScreen(Screen):
     """ Class showing the training screen. """
     config = ObjectProperty(force_dispatch=True, allownone=True)
     database = ObjectProperty()
+    dataframe = ObjectProperty(force_dispatch=True)
     pilot_df = ObjectProperty(force_dispatch=True)
     tub_df = ObjectProperty(force_dispatch=True)
     train_checker = False
@@ -69,28 +62,27 @@ class TrainScreen(Screen):
         tub_path = tub_screen().ids.tub_loader.tub.base_path
         transfer = self.ids.transfer_spinner.text
         model_type = self.ids.train_spinner.text
-        if transfer != 'Choose transfer model':
-            h5 = os.path.join(self.config.MODELS_PATH, transfer + '.h5')
-            sm = os.path.join(self.config.MODELS_PATH, transfer + '.savedmodel')
-            if os.path.exists(sm):
-                transfer = sm
-            elif os.path.exists(h5):
-                transfer = h5
-            else:
-                transfer = None
-                self.ids.status.text = \
-                    f'Could find neither {sm} nor {h5} - training ' \
-                    f'without transfer'
+        h5 = os.path.join(self.config.MODELS_PATH, transfer + '.h5')
+        sm = os.path.join(self.config.MODELS_PATH, transfer + '.savedmodel')
+
+        if transfer == 'Choose transfer model':
+            transfer_model = None
+        elif os.path.exists(sm):
+            transfer_model = sm
+        elif os.path.exists(h5):
+            transfer_model = h5
         else:
-            transfer = None
+            transfer_model = None
+            self.ids.status.text = \
+                f'Could find neither {sm} nor {h5} - training without transfer'
         try:
             history = train(self.config, tub_paths=tub_path,
                             model_type=model_type,
-                            transfer=transfer,
+                            transfer=transfer_model,
                             comment=self.ids.comment.text)
         except Exception as e:
             Logger.error(e)
-            self.ids.status.text = f'Train failed see console'
+            self.ids.status.text = f'Training failed see console'
 
     def train(self):
         self.config.SHOW_PLOT = False
@@ -144,20 +136,27 @@ class TrainScreen(Screen):
     def on_database(self, obj=None, database=None):
         df = self.database.to_df()
         df.drop(columns=['History', 'Config'], errors='ignore', inplace=True)
-        self.set_database_frame(df)
+        self.dataframe = df
 
-        pilot_names = self.database.get_pilot_names()
+    def on_dataframe(self, obj, dataframe):
+        self.plot_dataframe(dataframe)
+        pilot_names = self.dataframe.loc[:, 'Name']
         self.ids.transfer_spinner.values \
             = ['Choose transfer model'] + pilot_names
-        self.ids.select_spinner.values \
-            = pilot_names
+        self.ids.select_spinner.values = pilot_names
+        self.ids.column_chooser.build_widgets(dataframe)
 
-    def set_database_frame(self, df):
+    def plot_dataframe(self, df, selected_cols=None):
         grid = self.ids.scroll_pilots
         grid.clear_widgets()
-        cols = len(df.columns)
+        # only set column chooser labels on initialisation when selected_cols
+        # is not passed in. otherwise project df to selected columns
+        if selected_cols:
+            df = df[selected_cols]
+
+        num_cols = len(df.columns)
         rows = len(df)
-        grid.cols = cols
+        grid.cols = num_cols
 
         for i, col in enumerate(df.columns):
             lab = BackgroundLabel(text=f"[b]{col}[/b]", markup=True)
@@ -167,7 +166,7 @@ class TrainScreen(Screen):
                 grid.cols_minimum |= {i: 100}
 
         for row in range(rows):
-            for col in range(cols):
+            for col in range(num_cols):
                 cell = df.iloc[row][col]
                 if df.columns[col] == 'Time':
                     cell = datetime.datetime.fromtimestamp(cell)
@@ -176,6 +175,3 @@ class TrainScreen(Screen):
                 lab = BackgroundLabel(text=cell)
                 lab.size = lab.texture_size
                 grid.add_widget(lab)
-
-        #self.ids.colomn_chooser.set_labels(df.columns)
-        self.ids.column_chooser.text = ", ".join(df.columns)

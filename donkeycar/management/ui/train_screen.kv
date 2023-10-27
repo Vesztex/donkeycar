@@ -34,15 +34,23 @@
         text: root.file_path
 
 
-<CustomButton>:
+<MenuCheckBox>:
+    orientation: 'horizontal'
     size_hint_y: None
-    height: 32
-    on_state:
-        self.menu.selected.insert(self.i, self.text) if self.state == "down" else self.menu.selected.remove(self.text)
+    height: common_height
+    Label:
+        text: root.text
+    CheckBox:
+        active: True
+        on_active:
+            root.menu.selected.insert(root.i, root.text) if self.active else root.menu.selected.remove(root.text)
 
 
-<CustomDropDown>:
-    dismiss_on_select: False
+<CheckBoxRow>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: layout_height
+    on_selected: self.screen.plot_dataframe(self.screen.dataframe, self.selected)
 
 
 <TrainScreen>:
@@ -118,6 +126,10 @@
                 height: self.minimum_height
                 id: scroll_pilots
 
+        CheckBoxRow:
+            screen: root
+            id: column_chooser
+
         BoxLayout:
             size_hint_y: None
             height: layout_height
@@ -146,19 +158,6 @@
                     root.database.get_entry(select_spinner.text)['Comment'] = comment.text
                     root.database.write()
                     root.on_database()
-
-        BoxLayout:
-            size_hint_y: None
-            height: layout_height
-            padding: layout_pad_xy
-            spacing: layout_pad_x
-            Label:
-                text: 'Select columns'
-
-            #CustomDropDown:
-            Label:
-                id: column_chooser
-                text: 'Select columns'
 
         StatusLabel:
             id: status

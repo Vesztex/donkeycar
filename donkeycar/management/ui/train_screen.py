@@ -151,7 +151,7 @@ class TrainScreen(Screen):
         grid.clear_widgets()
         # only set column chooser labels on initialisation when selected_cols
         # is not passed in. otherwise project df to selected columns
-        if selected_cols:
+        if selected_cols is not None:
             df = df[selected_cols]
 
         num_cols = len(df.columns)

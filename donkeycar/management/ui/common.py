@@ -158,14 +158,14 @@ class DataPanel(BoxLayout):
             return
         if field in self.labels and not self.dual_mode:
             self.remove_widget(self.labels[field])
-            del(self.labels[field])
+            del self.labels[field]
             self.screen.status(f'Removing {field}')
         else:
             # in dual mode replace the second entry with the new one
             if self.dual_mode and len(self.labels) == 2:
                 k, v = list(self.labels.items())[-1]
                 self.remove_widget(v)
-                del(self.labels[k])
+                del self.labels[k]
             field_property = rc_handler.field_properties.get(decompose(field)[0])
             cfg = tub_screen().ids.config_manager.config
             lb = LabelBar(field=field, field_property=field_property, config=cfg)

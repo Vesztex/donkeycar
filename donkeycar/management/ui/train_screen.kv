@@ -4,6 +4,24 @@
 #:set drive_models [pre + t for pre in['', 'tflite_', 'tensorrt_'] for t in supported_models ]
 
 
+<ConfigParamSetter>
+    size_hint_y: None
+    height: layout_height
+    padding: layout_pad_xy
+    spacing: layout_pad_x
+    MySpinner:
+        id: cfg_spinner
+        text_autoupdate: True
+        values: []
+    TextInput:
+        id: cfg_overwrite
+        multiline: False
+        text:
+            str(getattr(root.config, cfg_spinner.text, '')) if root.config else ''
+        on_text_validate:
+            root.set_config_attribute(self.text)
+
+
 <BackgroundColor>
     background_color: 1, 1, 1, 1
     canvas.before:
@@ -64,21 +82,14 @@
             size_hint_y: None
             height: common_height
             text: 'Overwrite config: use json syntax, i.e. "abc" for strings and true/false for bool'
-        BoxLayout:
-            size_hint_y: None
-            height: layout_height
-            padding: layout_pad_xy
-            spacing: layout_pad_x
-            MySpinner:
-                id: cfg_spinner
-                text_autoupdate: True
-                values: root.keys()
-            TextInput:
-                id: cfg_overwrite
-                multiline: False
-                text: str(getattr(root.config, cfg_spinner.text, ''))
-                on_text_validate:
-                    root.set_config_attribute(self.text)
+        ConfigParamSetter:
+            id: cfg_setter1
+            screen: root
+            config: root.config
+        ConfigParamSetter:
+            id: cfg_setter2
+            screen: root
+            config: root.config
         Label:
             size_hint_y: None
             height: common_height

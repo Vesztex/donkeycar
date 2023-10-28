@@ -17,6 +17,32 @@ from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.training import train
 
 
+class ConfigParamSetter(BoxLayout):
+    screen = ObjectProperty()
+    config = ObjectProperty(force_dispatch=True, allownone=True)
+
+    def get_keys(self):
+        if self.config:
+            return [str(k) for k in self.config.__dict__.keys()]
+        else:
+            return []
+
+    def on_config(self, obj=None, config=None):
+        if self.config and self.ids:
+            self.ids.cfg_spinner.values = self.get_keys()
+
+    def set_config_attribute(self, input):
+        try:
+            val = json.loads(input)
+        except ValueError:
+            val = input
+
+        att = self.ids.cfg_spinner.text
+        setattr(self.config, att, val)
+        self.screen.ids.status.text = f'Setting {att} to {val} of type ' \
+                                      f'{type(val).__name__}'
+
+
 class BackgroundColor(Widget):
     pass
 
@@ -52,6 +78,7 @@ class TransferSelector(BoxLayout, FileChooserBase):
 class TrainScreen(Screen):
     """ Class showing the training screen. """
     config = ObjectProperty(force_dispatch=True, allownone=True)
+    # keys = ListProperty()
     database = ObjectProperty()
     dataframe = ObjectProperty(force_dispatch=True)
     pilot_df = ObjectProperty(force_dispatch=True)
@@ -107,26 +134,8 @@ class TrainScreen(Screen):
         # checks if training finished and updates the window if
         self.train_checker = Clock.schedule_interval(check_training_done, 0.5)
 
-    def set_config_attribute(self, input):
-        try:
-            val = json.loads(input)
-        except ValueError:
-            val = input
-
-        att = self.ids.cfg_spinner.text
-        setattr(self.config, att, val)
-        self.ids.status.text = f'Setting {att} to {val} of type ' \
-                               f'{type(val).__name__}'
-
-    def keys(self):
-        if self.config:
-            return [str(k) for k in self.config.__dict__.keys()]
-        else:
-            return []
-
     def on_config(self, obj, config):
         if self.config and self.ids:
-            self.ids.cfg_spinner.values = self.keys()
             self.reload_database()
 
     def reload_database(self):

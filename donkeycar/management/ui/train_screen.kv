@@ -9,6 +9,7 @@
     height: layout_height
     padding: layout_pad_xy
     spacing: layout_pad_x
+
     MySpinner:
         id: cfg_spinner
         text_autoupdate: True
@@ -20,6 +21,16 @@
             str(getattr(root.config, cfg_spinner.text, '')) if root.config else ''
         on_text_validate:
             root.set_config_attribute(self.text)
+    Button:
+        id: cfg_add_remove
+        size_hint_x: 0.15
+        text: root.button_text
+        on_release:
+            root.screen.ids.config_panel.add() if root.is_global else root.screen.ids.config_panel.remove_widget(root)
+
+
+<ConfigParamPanel>:
+    cols: 2
 
 
 <BackgroundColor>
@@ -83,13 +94,14 @@
             height: common_height
             text: 'Overwrite config: use json syntax, i.e. "abc" for strings and true/false for bool'
         ConfigParamSetter:
-            id: cfg_setter1
+            id: cfg_setter
             screen: root
             config: root.config
-        ConfigParamSetter:
-            id: cfg_setter2
-            screen: root
-            config: root.config
+            is_global: True
+        ConfigParamPanel:
+            id: config_panel
+            size_hint_y: None
+            height: layout_height * (int(len(self.children) // self.cols) + (0 if len(self.children) % self.cols == 0 else 1))
         Label:
             size_hint_y: None
             height: common_height

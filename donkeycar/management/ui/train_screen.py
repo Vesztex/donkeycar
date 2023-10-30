@@ -6,13 +6,15 @@ import json
 from kivy import Logger
 from kivy.clock import Clock
 from kivy.properties import ObjectProperty, NumericProperty, ListProperty, \
-    StringProperty
+    StringProperty, BooleanProperty
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
-from donkeycar.management.ui.common import FileChooserBase, tub_screen
+from donkeycar.management.ui.common import FileChooserBase, tub_screen, \
+    train_screen
 from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.training import train
 
@@ -20,6 +22,8 @@ from donkeycar.pipeline.training import train
 class ConfigParamSetter(BoxLayout):
     screen = ObjectProperty()
     config = ObjectProperty(force_dispatch=True, allownone=True)
+    button_text = StringProperty("+")
+    is_global = False
 
     def get_keys(self):
         if self.config:
@@ -28,7 +32,7 @@ class ConfigParamSetter(BoxLayout):
             return []
 
     def on_config(self, obj=None, config=None):
-        if self.config and self.ids:
+        if self.ids:
             self.ids.cfg_spinner.values = self.get_keys()
 
     def set_config_attribute(self, input):
@@ -36,11 +40,26 @@ class ConfigParamSetter(BoxLayout):
             val = json.loads(input)
         except ValueError:
             val = input
-
         att = self.ids.cfg_spinner.text
         setattr(self.config, att, val)
         self.screen.ids.status.text = f'Setting {att} to {val} of type ' \
                                       f'{type(val).__name__}'
+
+
+class ConfigParamPanel(GridLayout):
+
+    def row_count(self):
+        rows = int(len(self.children) // self.cols) \
+            + 0 if len(self.children) % self.cols == 0 else 1
+        return rows
+
+    def add(self):
+        cfg_setter = ConfigParamSetter(screen=train_screen(),
+                                       config=train_screen().config,
+                                       button_text='-')
+        # We need simulate a config change so the keys get populated
+        cfg_setter.on_config()
+        self.add_widget(cfg_setter)
 
 
 class BackgroundColor(Widget):

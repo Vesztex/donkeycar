@@ -11,7 +11,7 @@ from kivy.uix.screenmanager import Screen
 
 from donkeycar import load_config
 from donkeycar.management.ui.common import FileChooserBase, tub_screen, \
-    PaddedBoxLayout, decompose
+    PaddedBoxLayout, decompose, start_screen
 from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.types import TubRecord
@@ -97,6 +97,7 @@ class TubLoader(BoxLayout, FileChooserBase):
         else:
             msg = f'No records in tub {self.file_path}'
         tub_screen().status(msg)
+        start_screen().ids.status.text = 'Donkey ready'
         return True
 
 

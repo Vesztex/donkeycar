@@ -38,6 +38,10 @@ def car_screen():
     return App.get_running_app().car_screen if App.get_running_app() else None
 
 
+def start_screen():
+    return App.get_running_app().start_screen if App.get_running_app() else None
+
+
 def decompose(field):
     """ Function to decompose a string vector field like 'gyroscope_1' into a
         tuple ('gyroscope', 1) """

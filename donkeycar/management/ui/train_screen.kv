@@ -1,4 +1,5 @@
 #:import ScrollEffect  kivy.effects.scroll.ScrollEffect
+#:import tub_screen donkeycar.management.ui.common.tub_screen
 
 #:set supported_models ['linear', 'categorical', 'inferred', 'memory', 'behavior', 'localizer', 'rnn', '3d', 'sq', 'sq_imu', 'sq_mem', 'sq_mem_lap']
 #:set drive_models [pre + t for pre in['', 'tflite_', 'tensorrt_'] for t in supported_models ]
@@ -83,7 +84,8 @@
 
 
 <TrainScreen>:
-    config: app.tub_screen.ids.config_manager.config
+    name: 'train'
+    config: root.manager.get_screen("tub").ids.config_manager.config
     BoxLayout:
         orientation: 'vertical'
         TabBar:

@@ -1,6 +1,8 @@
+#:import tub_screen donkeycar.management.ui.common.tub_screen
 
 <CarScreen>:
-    config: app.tub_screen.ids.config_manager.config
+    name: 'car'
+    config: tub_screen().ids.config_manager.config if tub_screen() else None
     BoxLayout:
         orientation: 'vertical'
         TabBar:

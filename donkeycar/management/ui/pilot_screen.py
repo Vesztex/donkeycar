@@ -42,7 +42,8 @@ class PilotLoader(BoxLayout, FileChooserBase):
     def on_model_type(self, obj, model_type):
         """ Kivy method that is called if self.model_type changes. """
         if self.model_type and self.model_type != 'Model type':
-            cfg = tub_screen().ids.config_manager.config
+            cfg = tub_screen().ids.config_manager.config if tub_screen() else \
+                None
             if cfg:
                 self.pilot = get_model_by_type(self.model_type, cfg)
                 self.ids.pilot_button.disabled = False

@@ -12,6 +12,8 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
+from kivy.app import App
+
 
 from donkeycar.management.ui.common import FileChooserBase, tub_screen, \
     train_screen
@@ -54,8 +56,9 @@ class ConfigParamPanel(GridLayout):
         return rows
 
     def add(self):
-        cfg_setter = ConfigParamSetter(screen=train_screen(),
-                                       config=train_screen().config,
+        train_screen = App.get_running_app().root.get_screen('train')
+        cfg_setter = ConfigParamSetter(screen=train_screen,
+                                       config=train_screen.config,
                                        button_text='-')
         # We need simulate a config change so the keys get populated
         cfg_setter.on_config()
@@ -97,7 +100,6 @@ class TransferSelector(BoxLayout, FileChooserBase):
 class TrainScreen(Screen):
     """ Class showing the training screen. """
     config = ObjectProperty(force_dispatch=True, allownone=True)
-    # keys = ListProperty()
     database = ObjectProperty()
     dataframe = ObjectProperty(force_dispatch=True)
     pilot_df = ObjectProperty(force_dispatch=True)

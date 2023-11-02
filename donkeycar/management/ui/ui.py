@@ -37,6 +37,10 @@ class StartScreen(Screen):
     pass
 
 
+class DonkeyScreenManager(ScreenManager):
+    pass
+
+
 class DonkeyApp(App):
     start_screen = None
     tub_screen = None
@@ -44,6 +48,7 @@ class DonkeyApp(App):
     pilot_screen = None
     car_screen = None
     title = 'Donkey Manager'
+    config = ObjectProperty(force_dispatch=True, allownone=True)
 
     def initialise(self, event):
         self.tub_screen.ids.config_manager.load_action()
@@ -54,22 +59,17 @@ class DonkeyApp(App):
         Clock.schedule_once(self.tub_screen.ids.tub_loader.update_tub)
 
     def build(self):
-        self.start_screen = StartScreen(name='donkey')
-        self.tub_screen = TubScreen(name='tub')
-        self.train_screen = TrainScreen(name='train')
-        self.pilot_screen = PilotScreen(name='pilot')
-        self.car_screen = CarScreen(name='car')
+        dm = DonkeyScreenManager()
+        self.start_screen = dm.ids.start_screen
+        self.tub_screen = dm.ids.tub_screen
+        self.train_screen = dm.ids.train_screen
+        self.pilot_screen = dm.ids.pilot_screen
+        self.car_screen = dm.ids.car_screen
         Window.bind(on_keyboard=self.tub_screen.on_keyboard)
         Window.bind(on_keyboard=self.pilot_screen.on_keyboard)
         Window.bind(on_request_close=self.on_request_close)
         Clock.schedule_once(self.initialise)
-        sm = ScreenManager()
-        sm.add_widget(self.start_screen)
-        sm.add_widget(self.tub_screen)
-        sm.add_widget(self.train_screen)
-        sm.add_widget(self.pilot_screen)
-        sm.add_widget(self.car_screen)
-        return sm
+        return dm
 
     def on_request_close(self, *args):
         tub = self.tub_screen.ids.tub_loader.tub

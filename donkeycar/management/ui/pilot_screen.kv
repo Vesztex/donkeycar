@@ -1,3 +1,4 @@
+#:import tub_screen donkeycar.management.ui.common.tub_screen
 
 <PilotLoader>:
     title: 'Choose the pilot'
@@ -46,7 +47,7 @@
 
 
 <PilotScreen>:
-    config: app.tub_screen.ids.config_manager.config
+    name: 'pilot'
     BoxLayout:
         orientation: 'vertical'
         TabBar:
@@ -93,7 +94,7 @@
         Slider:
             id: slider
             min: 0
-            max: app.tub_screen.ids.tub_loader.len - 1
+            max: tub_screen().ids.tub_loader.len - 1 if tub_screen() else 0
             value: 0
             size_hint_y: None
             height: common_height

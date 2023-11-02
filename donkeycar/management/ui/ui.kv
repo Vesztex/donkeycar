@@ -1,7 +1,7 @@
 #:include common.kv
 #:include tub_screen.kv
-#:include pilot_screen.kv
 #:include train_screen.kv
+#:include pilot_screen.kv
 #:include car_screen.kv
 
 <BlackButton@Button>
@@ -67,3 +67,17 @@
         StatusLabel:
             id: status
             text: 'Donkey getting ready...'
+
+
+<DonkeyScreenManager>:
+    StartScreen:
+        id: start_screen
+        name: 'start'
+    TubScreen:
+        id: tub_screen
+    TrainScreen:
+        id: train_screen
+    PilotScreen:
+        id: pilot_screen
+    CarScreen:
+        id: car_screen

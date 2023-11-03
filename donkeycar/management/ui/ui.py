@@ -28,6 +28,10 @@ class TabBar(BoxLayout):
         for button_name, button in self.ids.items():
             button.disabled = button_name == this_button_name
 
+    def enable_disable_all(self, enable=True):
+        for button_name, button in self.ids.items():
+            button.disabled = not enable
+
 
 class StartScreen(Screen):
     img_path = os.path.realpath(os.path.join(
@@ -44,13 +48,19 @@ class DonkeyScreenManager(ScreenManager):
 class DonkeyApp(App):
     title = 'Donkey Manager'
 
+    def after_init(self, obj):
+        self.root.ids.tub_screen.ids.tub_loader.update_tub()
+        self.root.ids.start_screen.ids.tab_bar.enable_disable_all(True)
+        self.root.ids.start_screen.ids.status.text = 'Donkey ready'
+
     def initialise(self, event):
+        self.root.ids.start_screen.ids.tab_bar.enable_disable_all(False)
         self.root.ids.tub_screen.ids.config_manager.load_action()
         self.root.ids.pilot_screen.initialise(event)
         self.root.ids.car_screen.initialise()
         # This builds the graph which can only happen after everything else
         # has run, therefore delay until the next round.
-        Clock.schedule_once(self.root.ids.tub_screen.ids.tub_loader.update_tub)
+        Clock.schedule_once(self.after_init)
 
     def build(self):
         dm = DonkeyScreenManager()

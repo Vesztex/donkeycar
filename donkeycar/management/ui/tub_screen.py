@@ -99,7 +99,6 @@ class TubLoader(BoxLayout, FileChooserBase):
         else:
             msg = f'No records in tub {self.file_path}'
         tub_screen.status(msg)
-        get_app_screen('start').ids.status.text = 'Donkey ready'
         return True
 
 

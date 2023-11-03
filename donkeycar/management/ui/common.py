@@ -22,24 +22,8 @@ from donkeycar.management.ui.rc_file_handler import rc_handler
 LABEL_SPINNER_TEXT = 'Add/remove'
 
 
-def tub_screen():
-    return App.get_running_app().tub_screen if App.get_running_app() else None
-
-
-def pilot_screen():
-    return App.get_running_app().pilot_screen if App.get_running_app() else None
-
-
-def train_screen():
-    return App.get_running_app().train_screen if App.get_running_app() else None
-
-
-def car_screen():
-    return App.get_running_app().car_screen if App.get_running_app() else None
-
-
-def start_screen():
-    return App.get_running_app().start_screen if App.get_running_app() else None
+def get_app_screen(name):
+    return App.get_running_app().root.get_screen(name)
 
 
 def decompose(field):
@@ -171,7 +155,7 @@ class DataPanel(BoxLayout):
                 self.remove_widget(v)
                 del self.labels[k]
             field_property = rc_handler.field_properties.get(decompose(field)[0])
-            cfg = tub_screen().ids.config_manager.config
+            cfg = get_app_screen('tub').ids.config_manager.config
             lb = LabelBar(field=field, field_property=field_property, config=cfg)
             self.labels[field] = lb
             self.add_widget(lb)
@@ -238,7 +222,7 @@ class ControlPanel(BoxLayout):
         """
         # this widget it used in two screens, so reference the original location
         # of the config which is the config manager in the tub screen
-        cfg = tub_screen().ids.config_manager.config
+        cfg = get_app_screen('tub').ids.config_manager.config
         hz = cfg.DRIVE_LOOP_HZ if cfg else 20
         time.sleep(0.1)
         call = partial(self.step, fwd, continuous)
@@ -262,10 +246,10 @@ class ControlPanel(BoxLayout):
             self.screen.status("No tub loaded")
             return
         new_index = self.screen.index + (1 if fwd else -1)
-        if new_index >= tub_screen().ids.tub_loader.len:
+        if new_index >= get_app_screen('tub').ids.tub_loader.len:
             new_index = 0
         elif new_index < 0:
-            new_index = tub_screen().ids.tub_loader.len - 1
+            new_index = get_app_screen('tub').ids.tub_loader.len - 1
         self.screen.index = new_index
         msg = f'Donkey {"run" if continuous else "step"} ' \
               f'{"forward" if fwd else "backward"}'

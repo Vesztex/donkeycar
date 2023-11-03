@@ -10,8 +10,8 @@ from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
 from kivy.uix.screenmanager import Screen
 
 from donkeycar import load_config
-from donkeycar.management.ui.common import FileChooserBase, tub_screen, \
-    PaddedBoxLayout, decompose, start_screen
+from donkeycar.management.ui.common import FileChooserBase,  \
+    PaddedBoxLayout, decompose, get_app_screen
 from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.types import TubRecord
@@ -56,19 +56,20 @@ class TubLoader(BoxLayout, FileChooserBase):
         if not self.file_path:
             return False
         # If config not yet loaded return
-        cfg = tub_screen().ids.config_manager.config
+        tub_screen = get_app_screen('tub')
+        cfg = tub_screen.ids.config_manager.config
         if not cfg:
             return False
         # At least check if there is a manifest file in the tub path
         if not os.path.exists(os.path.join(self.file_path, 'manifest.json')):
-            tub_screen().status(f'Path {self.file_path} is not a valid tub.')
+            tub_screen.status(f'Path {self.file_path} is not a valid tub.')
             return False
         try:
             if self.tub:
                 self.tub.close()
             self.tub = Tub(self.file_path)
         except Exception as e:
-            tub_screen().status(f'Failed loading tub: {str(e)}')
+            tub_screen.status(f'Failed loading tub: {str(e)}')
             return False
         # Check if filter is set in tub screen
         # expression = tub_screen().ids.tub_filter.filter_expression
@@ -91,13 +92,14 @@ class TubLoader(BoxLayout, FileChooserBase):
                         for record in self.tub if select(record)]
         self.len = len(self.records)
         if self.len > 0:
-            tub_screen().index = 0
-            tub_screen().ids.data_plot.update_dataframe_from_tub()
+            tub_screen.index = 0
+            tub_screen.ids.data_plot.update_dataframe_from_tub()
             msg = f'Loaded tub {self.file_path} with {self.len} records'
+            get_app_screen('pilot').ids.slider.max = self.len - 1
         else:
             msg = f'No records in tub {self.file_path}'
-        tub_screen().status(msg)
-        start_screen().ids.status.text = 'Donkey ready'
+        tub_screen.status(msg)
+        get_app_screen('start').ids.status.text = 'Donkey ready'
         return True
 
 
@@ -108,14 +110,14 @@ class TubEditor(PaddedBoxLayout):
 
     def set_lr(self, is_l=True):
         """ Sets left or right range to the current tub record index """
-        if not tub_screen().current_record:
+        if not get_app_screen('tub').current_record:
             return
         self.lr[0 if is_l else 1] \
-            = tub_screen().current_record.underlying['_index']
+            = get_app_screen('tub').current_record.underlying['_index']
 
     def del_lr(self, is_del):
         """ Deletes or restores records in chosen range """
-        tub = tub_screen().ids.tub_loader.tub
+        tub = get_app_screen('tub').ids.tub_loader.tub
         if self.lr[1] >= self.lr[0]:
             selected = list(range(*self.lr))
         else:
@@ -132,7 +134,7 @@ class TubFilter(PaddedBoxLayout):
 
     def update_filter(self):
         filter_text = self.ids.record_filter.text
-        config = tub_screen().ids.config_manager.config
+        config = get_app_screen('tub').ids.config_manager.config
         # empty string resets the filter
         if filter_text == '':
             self.record_filter = ''
@@ -140,11 +142,11 @@ class TubFilter(PaddedBoxLayout):
             rc_handler.data['record_filter'] = self.record_filter
             if hasattr(config, 'TRAIN_FILTER'):
                 delattr(config, 'TRAIN_FILTER')
-            tub_screen().status(f'Filter cleared')
+            get_app_screen('tub').status(f'Filter cleared')
             return
         filter_expression = self.create_filter_string(filter_text)
         try:
-            record = tub_screen().current_record
+            record = get_app_screen('tub').current_record
             filter_func_text = f"""def filter_func(record): 
                                        return {filter_expression}       
                                 """
@@ -162,9 +164,9 @@ class TubFilter(PaddedBoxLayout):
             else:
                 status += ' - non bool expression can\'t be applied'
             status += ' - press <Reload tub> to see effect'
-            tub_screen().status(status)
+            get_app_screen('tub').status(status)
         except Exception as e:
-            tub_screen().status(f'Filter error on current record: {e}')
+            get_app_screen('tub').status(f'Filter error on current record: {e}')
 
     @staticmethod
     def create_filter_string(filter_text, record_name='record'):
@@ -176,7 +178,7 @@ class TubFilter(PaddedBoxLayout):
         :param record_name: name of the record in the expression
         :return:            updated string that has all input fields wrapped
         """
-        for field in tub_screen().current_record.underlying.keys():
+        for field in get_app_screen('tub').current_record.underlying.keys():
             field_list = filter_text.split(field)
             if len(field_list) > 1:
                 filter_text = f'{record_name}.underlying["{field}"]'\
@@ -192,10 +194,11 @@ class DataPlot(PaddedBoxLayout):
         """ Plotting from current selected bars. The DataFrame for plotting
             should contain all bars except for strings fields and all data is
             selected if bars are empty.  """
-        tub = tub_screen().ids.tub_loader.tub
+        tub = get_app_screen('tub').ids.tub_loader.tub
         field_map = dict(zip(tub.manifest.inputs, tub.manifest.types))
         # Use selected fields or all fields if nothing is slected
-        all_cols = tub_screen().ids.data_panel.labels.keys() or self.df.columns
+        all_cols = (get_app_screen('tub').ids.data_panel.labels.keys()
+                    or self.df.columns)
         cols = [c for c in all_cols if decompose(c)[0] in field_map
                 and field_map[decompose(c)[0]] not in ('image_array', 'str')]
 
@@ -206,7 +209,7 @@ class DataPlot(PaddedBoxLayout):
         df = df.drop(labels=['_timestamp_ms'], axis=1, errors='ignore')
 
         if in_app:
-            tub_screen().ids.graph.df = df
+            get_app_screen('tub').ids.graph.df = df
         else:
             fig = px.line(df, x=df.index, y=df.columns, title=tub.base_path)
             fig.update_xaxes(rangeslider=dict(visible=True))
@@ -215,10 +218,10 @@ class DataPlot(PaddedBoxLayout):
     def unravel_vectors(self):
         """ Unravels vector and list entries in tub which are created
             when the DataFrame is created from a list of records"""
-        manifest = tub_screen().ids.tub_loader.tub.manifest
+        manifest = get_app_screen('tub').ids.tub_loader.tub.manifest
         for k, v in zip(manifest.inputs, manifest.types):
             if v == 'vector' or v == 'list':
-                dim = len(tub_screen().current_record.underlying[k])
+                dim = len(get_app_screen('tub').current_record.underlying[k])
                 df_keys = [k + f'_{i}' for i in range(dim)]
                 self.df[df_keys] = pd.DataFrame(self.df[k].tolist(),
                                                 index=self.df.index)
@@ -228,13 +231,14 @@ class DataPlot(PaddedBoxLayout):
         """ Called from TubManager when a tub is reloaded/recreated. Fills
             the DataFrame from records, and updates the dropdown menu in the
             data panel."""
-        generator = (t.underlying for t in tub_screen().ids.tub_loader.records)
+        tub_screen = get_app_screen('tub')
+        generator = (t.underlying for t in tub_screen.ids.tub_loader.records)
         self.df = pd.DataFrame(generator).dropna()
         to_drop = {'cam/image_array'}
         self.df.drop(labels=to_drop, axis=1, errors='ignore', inplace=True)
         self.df.set_index('_index', inplace=True)
         self.unravel_vectors()
-        tub_screen().ids.data_panel.ids.data_spinner.values = self.df.columns
+        tub_screen.ids.data_panel.ids.data_spinner.values = self.df.columns
         self.plot_from_current_bars()
 
 

@@ -1,4 +1,3 @@
-#:import tub_screen donkeycar.management.ui.common.tub_screen
 
 <PilotLoader>:
     title: 'Choose the pilot'
@@ -94,7 +93,6 @@
         Slider:
             id: slider
             min: 0
-            max: tub_screen().ids.tub_loader.len - 1 if tub_screen() else 0
             value: 0
             size_hint_y: None
             height: common_height

@@ -1,5 +1,4 @@
 #:import ScrollEffect  kivy.effects.scroll.ScrollEffect
-#:import tub_screen donkeycar.management.ui.common.tub_screen
 
 #:set supported_models ['linear', 'categorical', 'inferred', 'memory', 'behavior', 'localizer', 'rnn', '3d', 'sq', 'sq_imu', 'sq_mem', 'sq_mem_lap']
 #:set drive_models [pre + t for pre in['', 'tflite_', 'tensorrt_'] for t in supported_models ]
@@ -125,7 +124,7 @@
                 id: comment
                 multiline: False
                 text: 'Comment'
-                on_text: app.train_screen.ids.status.text = f'Adding comment: {self.text}'
+                on_text: status.text = f'Adding comment: {self.text}'
         BoxLayout:
             size_hint_y: None
             height: layout_height

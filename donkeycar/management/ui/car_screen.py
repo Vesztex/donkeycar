@@ -9,7 +9,7 @@ from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
     ListProperty, BooleanProperty
 from kivy.uix.screenmanager import Screen
 
-from donkeycar.management.ui.common import tub_screen
+from donkeycar.management.ui.common import get_app_screen
 from donkeycar.management.ui.rc_file_handler import rc_handler
 
 
@@ -103,12 +103,12 @@ class CarScreen(Screen):
                 self.ids.pull_bar.value = 0
                 # merge in previous deleted indexes which now might have been
                 # overwritten
-                old_tub = tub_screen().ids.tub_loader.tub
+                old_tub = get_app_screen('tub').ids.tub_loader.tub
                 if old_tub:
                     deleted_indexes = old_tub.manifest.deleted_indexes
-                    tub_screen().ids.tub_loader.update_tub()
+                    get_app_screen('tub').ids.tub_loader.update_tub()
                     if deleted_indexes:
-                        new_tub = tub_screen().ids.tub_loader.tub
+                        new_tub = get_app_screen('tub').ids.tub_loader.tub
                         new_tub.manifest.add_deleted_indexes(deleted_indexes)
             else:
                 button = self.ids.send_pilots

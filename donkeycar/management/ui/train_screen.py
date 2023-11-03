@@ -6,17 +6,15 @@ import json
 from kivy import Logger
 from kivy.clock import Clock
 from kivy.properties import ObjectProperty, NumericProperty, ListProperty, \
-    StringProperty, BooleanProperty
+    StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
-from kivy.app import App
 
 
-from donkeycar.management.ui.common import FileChooserBase, tub_screen, \
-    train_screen
+from donkeycar.management.ui.common import FileChooserBase, get_app_screen
 from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.training import train
 
@@ -56,7 +54,7 @@ class ConfigParamPanel(GridLayout):
         return rows
 
     def add(self):
-        train_screen = App.get_running_app().root.get_screen('train')
+        train_screen = get_app_screen('train')
         cfg_setter = ConfigParamSetter(screen=train_screen,
                                        config=train_screen.config,
                                        button_text='-')
@@ -107,7 +105,7 @@ class TrainScreen(Screen):
     train_checker = False
 
     def train_call(self, *args):
-        tub_path = tub_screen().ids.tub_loader.tub.base_path
+        tub_path = get_app_screen('tub').ids.tub_loader.tub.base_path
         transfer = self.ids.transfer_spinner.text
         model_type = self.ids.train_spinner.text
         h5 = os.path.join(self.config.MODELS_PATH, transfer + '.h5')

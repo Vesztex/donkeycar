@@ -10,8 +10,8 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 
-from donkeycar.management.ui.common import FileChooserBase, tub_screen, \
-    FullImage, pilot_screen, get_norm_value, LABEL_SPINNER_TEXT
+from donkeycar.management.ui.common import FileChooserBase, \
+    FullImage, get_app_screen, get_norm_value, LABEL_SPINNER_TEXT
 from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.parts.image_transformations import ImageTransformations
 from donkeycar.pipeline.augmentations import ImageAugmentation
@@ -42,8 +42,10 @@ class PilotLoader(BoxLayout, FileChooserBase):
     def on_model_type(self, obj, model_type):
         """ Kivy method that is called if self.model_type changes. """
         if self.model_type and self.model_type != 'Model type':
-            cfg = tub_screen().ids.config_manager.config if tub_screen() else \
-                None
+            # we cannot use get_app_screen() here as the app is not
+            # completely build when we are entering this the first time
+            tub_screen = self.parent.parent.parent.manager.get_screen('tub')
+            cfg = tub_screen.ids.config_manager.config if tub_screen else None
             if cfg:
                 self.pilot = get_model_by_type(self.model_type, cfg)
                 self.ids.pilot_button.disabled = False
@@ -71,17 +73,18 @@ class OverlayImage(FullImage):
         self.is_left = True
 
     def augment(self, img_arr):
-        if pilot_screen().trans_list:
-            img_arr = pilot_screen().transformation.run(img_arr)
-        if pilot_screen().aug_list:
-            img_arr = pilot_screen().augmentation.run(img_arr)
-        if pilot_screen().post_trans_list:
-            img_arr = pilot_screen().post_transformation.run(img_arr)
+        pilot_screen = get_app_screen('pilot')
+        if pilot_screen.trans_list:
+            img_arr = pilot_screen.transformation.run(img_arr)
+        if pilot_screen.aug_list:
+            img_arr = pilot_screen.augmentation.run(img_arr)
+        if pilot_screen.post_trans_list:
+            img_arr = pilot_screen.post_transformation.run(img_arr)
         return img_arr
 
     def get_image(self, record):
         from donkeycar.management.makemovie import MakeMovie
-        config = tub_screen().ids.config_manager.config
+        config = get_app_screen('tub').ids.config_manager.config
         orig_img_arr = super().get_image(record)
         aug_img_arr = self.augment(orig_img_arr)
         img_arr = copy(aug_img_arr)
@@ -119,7 +122,8 @@ class OverlayImage(FullImage):
         pilot_throttle_field \
             = rc_handler.data['user_pilot_map'][self.throttle_field]
         out_record.underlying[pilot_throttle_field] \
-            = get_norm_value(output[1], tub_screen().ids.config_manager.config,
+            = get_norm_value(output[1],
+                             get_app_screen('tub').ids.config_manager.config,
                              rc_handler.field_properties[self.throttle_field],
                              normalised=False)
         self.pilot_record = out_record
@@ -195,8 +199,9 @@ class PilotScreen(Screen):
     def on_index(self, obj, index):
         """ Kivy method that is called if self.index changes. Here we update
             self.current_record and the slider value. """
-        if tub_screen().ids.tub_loader.records:
-            self.current_record = tub_screen().ids.tub_loader.records[index]
+        if get_app_screen('tub').ids.tub_loader.records:
+            self.current_record \
+                = get_app_screen('tub').ids.tub_loader.records[index]
             self.ids.slider.value = index
 
     def on_current_record(self, obj, record):

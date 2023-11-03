@@ -42,37 +42,26 @@ class DonkeyScreenManager(ScreenManager):
 
 
 class DonkeyApp(App):
-    start_screen = None
-    tub_screen = None
-    train_screen = None
-    pilot_screen = None
-    car_screen = None
     title = 'Donkey Manager'
-    config = ObjectProperty(force_dispatch=True, allownone=True)
 
     def initialise(self, event):
-        self.tub_screen.ids.config_manager.load_action()
-        self.pilot_screen.initialise(event)
-        self.car_screen.initialise()
+        self.root.ids.tub_screen.ids.config_manager.load_action()
+        self.root.ids.pilot_screen.initialise(event)
+        self.root.ids.car_screen.initialise()
         # This builds the graph which can only happen after everything else
         # has run, therefore delay until the next round.
-        Clock.schedule_once(self.tub_screen.ids.tub_loader.update_tub)
+        Clock.schedule_once(self.root.ids.tub_screen.ids.tub_loader.update_tub)
 
     def build(self):
         dm = DonkeyScreenManager()
-        self.start_screen = dm.ids.start_screen
-        self.tub_screen = dm.ids.tub_screen
-        self.train_screen = dm.ids.train_screen
-        self.pilot_screen = dm.ids.pilot_screen
-        self.car_screen = dm.ids.car_screen
-        Window.bind(on_keyboard=self.tub_screen.on_keyboard)
-        Window.bind(on_keyboard=self.pilot_screen.on_keyboard)
+        Window.bind(on_keyboard=dm.ids.tub_screen.on_keyboard)
+        Window.bind(on_keyboard=dm.ids.pilot_screen.on_keyboard)
         Window.bind(on_request_close=self.on_request_close)
         Clock.schedule_once(self.initialise)
         return dm
 
     def on_request_close(self, *args):
-        tub = self.tub_screen.ids.tub_loader.tub
+        tub = self.root.ids.tub_screen.ids.tub_loader.tub
         if tub:
             tub.close()
         Logger.info("Good bye Donkey")

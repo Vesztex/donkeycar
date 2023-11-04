@@ -23,34 +23,28 @@
         id: tub_btn
         text: 'Tub Manager'
         on_release:
-            root.manager.current_screen.keys_enabled = False
             root.manager.current = 'tub'
-            root.manager.current_screen.keys_enabled = True
+            root.manager.current_screen.ids.control_panel.bind_keyboard()
             root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
     BlackButton:
         id: train_btn
         text: 'Trainer'
         on_release:
-            root.manager.current_screen.keys_enabled = False
             root.manager.current = 'train'
-            root.manager.current_screen.keys_enabled = True
             root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
     BlackButton:
         id: pilot_btn
         text: 'Pilot Arena'
         on_release:
-            root.manager.current_screen.keys_enabled = False
             root.manager.current = 'pilot'
-            root.manager.current_screen.keys_enabled = True
             if not root.manager.current_screen.index: root.manager.current_screen.index = 0
+            root.manager.current_screen.ids.pilot_control.bind_keyboard()
             root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
     BlackButton:
         id: car_btn
         text: 'Car Connector'
         on_release:
-            root.manager.current_screen.keys_enabled = False
             root.manager.current = 'car'
-            root.manager.current_screen.keys_enabled = True
             root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
             root.manager.current_screen.update_pilots()
 
@@ -69,7 +63,9 @@
             text: 'Donkey getting ready...'
 
 
-<DonkeyScreenManager>:
+# Last widget in the file, this will be returned from the builder and is our
+# root widget for the app
+DonkeyScreenManager:
     StartScreen:
         id: start_screen
         name: 'start'

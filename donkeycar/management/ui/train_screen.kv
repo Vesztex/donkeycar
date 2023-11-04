@@ -139,6 +139,9 @@
                 on_press:
                     root.train()
                     self.disabled = True
+        CheckBoxRow:
+            screen: root
+            id: column_chooser
         ScrollView:
             effect_cls: ScrollEffect
             GridLayout:
@@ -149,10 +152,6 @@
                 row_default_height: 28
                 height: self.minimum_height
                 id: scroll_pilots
-
-        CheckBoxRow:
-            screen: root
-            id: column_chooser
 
         BoxLayout:
             size_hint_y: None

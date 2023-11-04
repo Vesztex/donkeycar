@@ -1,6 +1,5 @@
-from kivy.logger import Logger, LOG_LEVELS
-
 import os
+from kivy.logger import Logger, LOG_LEVELS
 from kivy.clock import Clock
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
@@ -15,9 +14,7 @@ from donkeycar.management.ui.train_screen import TrainScreen
 from donkeycar.management.ui.tub_screen import TubScreen
 
 Logger.setLevel(LOG_LEVELS["info"])
-
-Builder.load_file(os.path.join(os.path.dirname(__file__), 'ui.kv'))
-Window.clearcolor = (0.2, 0.2, 0.2, 1)
+Window.clearcolor = (0.12, 0.06, 0.06, 1)
 
 
 class TabBar(BoxLayout):
@@ -63,9 +60,8 @@ class DonkeyApp(App):
         Clock.schedule_once(self.after_init)
 
     def build(self):
-        dm = DonkeyScreenManager()
-        Window.bind(on_keyboard=dm.ids.tub_screen.on_keyboard)
-        Window.bind(on_keyboard=dm.ids.pilot_screen.on_keyboard)
+        # the builder returns the screen manager
+        dm = Builder.load_file(os.path.join(os.path.dirname(__file__), 'ui.kv'))
         Window.bind(on_request_close=self.on_request_close)
         Clock.schedule_once(self.initialise)
         return dm

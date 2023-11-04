@@ -9,6 +9,7 @@ from PIL import Image as PilImage
 from kivy import Logger
 from kivy.app import App
 from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty, ListProperty, \
     BooleanProperty, NumericProperty
 from kivy.uix.boxlayout import BoxLayout
@@ -212,6 +213,19 @@ class ControlPanel(BoxLayout):
     clock = None
     fwd = None
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._keyboard = None
+
+    def bind_keyboard(self):
+        self._keyboard = Window.request_keyboard(
+            self.keyboard_close, self, 'text')
+        self._keyboard.bind(on_key_down=self.on_keyboard)
+
+    def keyboard_close(self):
+        self._keyboard.unbind(on_key_down=self.on_keyboard)
+        self._keyboard = None
+
     def start(self, fwd=True, continuous=False):
         """
         Method to cycle through records if either single <,> or continuous
@@ -256,13 +270,15 @@ class ControlPanel(BoxLayout):
         if not continuous:
             msg += f' - you can also use {"<right>" if fwd else "<left>"} key'
         else:
-            msg += ' - you can toggle run/stop with <space>'
+            msg += (' - you can toggle run/stop with <space> or <shift> + '
+                    '<space> for run backwards')
         self.screen.status(msg)
 
     def stop(self):
         if self.clock:
             self.clock.cancel()
             self.clock = None
+            self.screen.status('Donkey stopped')
 
     def restart(self):
         if self.clock:
@@ -283,24 +299,25 @@ class ControlPanel(BoxLayout):
         self.ids.run_bwd.disabled = self.ids.run_fwd.disabled = \
             self.ids.step_fwd.disabled = self.ids.step_bwd.disabled = disabled
 
-    def on_keyboard(self, key, scancode):
-        """ Method to chack with keystroke has ben sent. """
-        if key == ' ':
+    def on_keyboard(self, keyboard, scancode, text=None, modifier=None):
+        """ Method to check with keystroke has been sent. """
+        if text == ' ':
             if self.clock and self.clock.is_triggered:
                 self.stop()
                 self.set_button_status(disabled=False)
                 self.screen.status('Donkey stopped')
             else:
-                self.start(continuous=True)
+                fwd = 'shift' not in modifier
+                self.start(fwd=fwd, continuous=True)
                 self.set_button_status(disabled=True)
-        elif scancode == 79:
+        elif scancode[1] == 'right':
             self.step(fwd=True)
-        elif scancode == 80:
+        elif scancode[1] == 'left':
             self.step(fwd=False)
-        elif scancode == 45:
-            self.update_speed(up=False)
-        elif scancode == 46:
+        elif scancode[1] == 'up':
             self.update_speed(up=True)
+        elif scancode[1] == 'down':
+            self.update_speed(up=False)
 
 
 class PaddedBoxLayout(BoxLayout):

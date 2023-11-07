@@ -63,11 +63,11 @@ class ConfigParamPanel(GridLayout):
         self.add_widget(cfg_setter)
 
 
-class BackgroundColor(Widget):
-    pass
+# class BackgroundColor(Widget):
+#     pass
 
 
-class BackgroundLabel(BackgroundColor, Label):
+class BackgroundLabel(Label):
     pass
 
 

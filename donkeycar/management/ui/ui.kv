@@ -1,8 +1,10 @@
 #:include common.kv
-#:include tub_screen.kv
+#:include tub_screen1.kv
 #:include train_screen.kv
-#:include pilot_screen.kv
-#:include car_screen.kv
+
+# #:include pilot_screen.kv
+# #:include car_screen.kv
+
 
 <BlackButton@Button>
     color: 0, 0, 0, 1
@@ -47,12 +49,47 @@
             root.manager.current = 'car'
             root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
             root.manager.current_screen.update_pilots()
+    BlackButton:
+        id: layout_btn
+        text: 'Layout'
+        on_release:
+            root.manager.current = 'layout'
+
+
+<ScreenSelector>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: 50
+    spacing: 10
+    RoundedButton:
+        id: tub_btn
+        text: 'Tub'
+        on_release:
+            app.root.current = 'tub'
+            app.root.current_screen.ids.control_panel.bind_keyboard()
+            app.root.current_screen.ids.selector.disable_only(app.root.current_screen.name)
+    RoundedButton:
+        id: train_btn
+        text: 'Trainer'
+        on_release:
+            app.root.current = 'train'
+            app.root.current_screen.ids.selector.disable_only(app.root.current_screen.name)
+    RoundedButton:
+        text: 'Other'
+        on_release: app.root.current = 'other'
+    RoundedButton:
+        text: 'More'
+    RoundedButton:
+        text: 'Various'
+    RoundedButton:
+        text: 'Stuff'
 
 
 <StartScreen>:
     BoxLayout:
+        padding: 10
         orientation: 'vertical'
-        TabBar:
+        ScreenSelector:
             id: tab_bar
             manager: root.manager
         Image:
@@ -65,15 +102,33 @@
 
 # Last widget in the file, this will be returned from the builder and is our
 # root widget for the app
-DonkeyScreenManager:
+#ScreenManager:
+##    StartScreen:
+##        id: start_screen
+##        name: 'start'
+##    TubScreen:
+##        id: tub_screen
+##    TrainScreen:
+##        id: train_screen
+##    PilotScreen:
+##        id: pilot_screen
+##    CarScreen:
+##        id: car_screen
+#    LayoutScreen:
+#        id: layout_screen
+#
+
+
+ScreenManager:
     StartScreen:
         id: start_screen
         name: 'start'
     TubScreen:
         id: tub_screen
+        name: 'tub'
     TrainScreen:
         id: train_screen
-    PilotScreen:
-        id: pilot_screen
-    CarScreen:
-        id: car_screen
+        name: 'train'
+    OtherScreen:
+        id: other_screen
+        name: 'other'

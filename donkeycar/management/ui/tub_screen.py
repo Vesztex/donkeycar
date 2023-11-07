@@ -10,14 +10,14 @@ from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
 from kivy.uix.screenmanager import Screen
 
 from donkeycar import load_config
-from donkeycar.management.ui.common import FileChooserBase,  \
-    PaddedBoxLayout, decompose, get_app_screen
+from donkeycar.management.ui.common import FileChooserBase, \
+    PaddedBoxLayout, decompose, get_app_screen, BackgroundBoxLayout
 from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.types import TubRecord
 
 
-class ConfigManager(BoxLayout, FileChooserBase):
+class ConfigManager(BackgroundBoxLayout, FileChooserBase):
     """ Class to manage loading of the config file from the car directory"""
     config = ObjectProperty(None)
     file_path = StringProperty(rc_handler.data.get('car_dir', ''))
@@ -38,7 +38,7 @@ class ConfigManager(BoxLayout, FileChooserBase):
                 Logger.error(f'Config: {e}')
 
 
-class TubLoader(BoxLayout, FileChooserBase):
+class TubLoader(BackgroundBoxLayout, FileChooserBase):
     """ Class to manage loading or reloading of the Tub from the tub directory.
         Loading triggers many actions on other widgets of the app. """
     file_path = StringProperty(rc_handler.data.get('last_tub', ''))
@@ -95,7 +95,8 @@ class TubLoader(BoxLayout, FileChooserBase):
             tub_screen.index = 0
             tub_screen.ids.data_plot.update_dataframe_from_tub()
             msg = f'Loaded tub {self.file_path} with {self.len} records'
-            get_app_screen('pilot').ids.slider.max = self.len - 1
+            # TODO: enable that line again
+            # get_app_screen('pilot').ids.slider.max = self.len - 1
         else:
             msg = f'No records in tub {self.file_path}'
         tub_screen.status(msg)

@@ -17,6 +17,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.image import Image
 from kivy.core.image import Image as CoreImage
+from kivy.uix.widget import Widget
 
 from donkeycar.management.ui.rc_file_handler import rc_handler
 
@@ -41,6 +42,19 @@ def get_norm_value(value, cfg, field_property, normalised=True):
     max_value = getattr(cfg, max_val_key, 1.0)
     out_val = value / max_value if normalised else value * max_value
     return out_val
+
+
+class BackgroundColor(Widget):
+    pass
+
+
+class BackgroundBoxLayout(BackgroundColor, BoxLayout):
+    pass
+
+
+class Header(BoxLayout):
+    title = StringProperty()
+    description = StringProperty()
 
 
 class MySpinnerOption(SpinnerOption):
@@ -323,3 +337,6 @@ class ControlPanel(BoxLayout):
 class PaddedBoxLayout(BoxLayout):
     pass
 
+
+class StatusBar(BackgroundBoxLayout):
+    text = StringProperty()

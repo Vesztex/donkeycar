@@ -1,13 +1,87 @@
 #:import platform sys.platform
 
-#:set common_height 30 if platform != 'darwin' else 60
-#:set layout_pad_x 10 if platform != 'darwin' else 20
+#:set common_height 30
+#:set layout_pad_x 10
 #:set layout_height common_height + layout_pad_x
 #:set layout_height_double 2 * common_height + layout_pad_x
 #:set layout_pad_xy [layout_pad_x, layout_pad_x // 2]
 
-#:set font_size_14: '14sp' # 14 if platform == 'linux' else 28
-#:set font_size_12: '12sp' # 12 if platform == 'linux' else 24
+#:set font_size_14 '14sp'
+#:set font_size_12 '12sp'
+
+
+#:set font_color 0.8, 0.9, 0.9, 1
+
+# Define your background color Template
+
+<RoundedButton@Button>:
+    background_color: 0,0,0,0  # the last zero is the critical on, make invisible
+    canvas.before:
+        Color:
+            rgba: (.3,.3,.3,1) if self.state=='normal' else (0.2, 0.6,.8,1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10,]
+    color: font_color
+
+
+<RoundedToggleButton@ToggleButton>:
+    background_color: 0,0,0,0  # the last zero is the critical on, make invisible
+    canvas.before:
+        Color:
+            rgba: (.3,.3,.3,1) if self.state=='normal' else (0.2, 0.6,.8,1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10,]
+    color: font_color
+
+
+<BackgroundColor>
+    background_color: 1, 1, 1, 1
+    canvas.before:
+        Color:
+            rgba: root.background_color
+        Rectangle:
+            size: self.size
+            pos: self.pos
+
+
+<BackgroundBoxLayout>
+    background_color: 0,0,0,0  # the last zero is the critical on, make invisible
+    padding: 10
+    spacing: 5
+    canvas.before:
+        Color:
+            rgba: 0.10, 0.11, 0.12, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10,]
+
+
+<MyLabel@Label>:
+    halign: 'left'
+    valign: 'top'
+    color: font_color
+    text_size: self.size
+
+
+<AutoLabel@Label>
+    halign: 'center'
+    valign: 'middle'
+    color: font_color
+    text_size: self.size
+
+
+<Header>
+    MyLabel:
+        font_size: '20sp'
+        text: root.title
+    MyLabel:
+        font_size: '13sp'
+        text: root.description
 
 
 <PaddedBoxLayout>:
@@ -17,19 +91,23 @@
     spacing: layout_pad_x
 
 
-<AutoLabel@Label>
-    text_size: self.size
-    halign: 'center'
-    valign: 'middle'
-
-
-<StatusLabel@Label>:
+<StatusLabel@MyLabel>:
     size_hint_y: None
-    height: 30
+    height: 20
     text_size: self.size
     halign: 'left'
     valign: 'bottom'
     text: 'Donkey ready'
+
+
+<StatusBar>
+    size_hint_y: None
+    height: 20
+    MyLabel:
+        valign: 'bottom'
+        font_size: '12sp'
+        color: 0.6, 0.6, 0, 1
+        text: root.text
 
 
 <MySpinnerOption>:
@@ -120,7 +198,6 @@
 
 <DataPanel>
     orientation: 'vertical'
-    spacing: 2
     GridLayout:
         cols: 2
         Label:
@@ -138,9 +215,11 @@
 
 <ControlPanel>
     orientation: 'vertical'
+    spacing: 10
     GridLayout:
+        spacing: 10
         cols: 2
-        Label:
+        MyLabel:
             id: record_num
             text: root.record_display
         MySpinner:
@@ -153,33 +232,33 @@
                 app.root.current_screen.ids.status.text = f'Setting speed to '\
                 f'{self.text} - you can also use the <up>/<down> keys.'
                 root.restart()
-        Button:
+        RoundedButton:
             id: step_bwd
             text: '<'
             on_press:
                 root.start(fwd=False)
             on_release:
                 root.stop()
-        Button:
+        RoundedButton:
             id: step_fwd
             text: '>'
             on_press:
                 root.start(fwd=True)
             on_release:
                 root.stop()
-        Button:
+        RoundedButton:
             id: run_bwd
             text: '<<'
             on_press:
                 root.start(fwd=False, continuous=True)
                 root.set_button_status(disabled=True)
-        Button:
+        RoundedButton:
             id: run_fwd
             text: '>>'
             on_press:
                 root.start(fwd=True, continuous=True)
                 root.set_button_status(disabled=True)
-    Button:
+    RoundedButton:
         size_hint_y: 0.3
         text: 'Stop'
         on_press:

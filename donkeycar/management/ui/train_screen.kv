@@ -7,9 +7,8 @@
 <ConfigParamSetter>
     size_hint_y: None
     height: layout_height
-    padding: layout_pad_xy
-    spacing: layout_pad_x
-
+#    padding: layout_pad_xy
+    spacing: 10
     MySpinner:
         id: cfg_spinner
         text_autoupdate: True
@@ -21,7 +20,7 @@
             str(getattr(root.config, cfg_spinner.text, '')) if root.config else ''
         on_text_validate:
             root.set_config_attribute(self.text)
-    Button:
+    RoundedButton:
         id: cfg_add_remove
         size_hint_x: 0.15
         text: root.button_text
@@ -30,17 +29,8 @@
 
 
 <ConfigParamPanel>:
-    cols: 2
-
-
-<BackgroundColor>
-    background_color: 1, 1, 1, 1
-    canvas.before:
-        Color:
-            rgba: root.background_color
-        Rectangle:
-            size: self.size
-            pos: self.pos
+    spacing: 10
+    cols: 1
 
 
 <BackgroundLabel>
@@ -54,7 +44,7 @@
 <TransferSelector>:
     title: 'Choose transfer model'
     orientation: 'horizontal'
-    Button:
+    RoundedButton:
         id: transfer_button
         text: 'Transfer model'
         size_hint_x: 0.5
@@ -66,121 +56,162 @@
 <MenuCheckBox>:
     orientation: 'horizontal'
     size_hint_y: None
-    height: common_height
-    Label:
-        text: root.text
     CheckBox:
         active: True
         on_active:
             root.menu.selected.insert(root.i, root.text) if self.active else root.menu.selected.remove(root.text)
+    MyLabel:
+        valign: 'middle'
+        font_size: '12sp'
+        text: root.text
 
 
 <CheckBoxRow>:
     orientation: 'horizontal'
-    size_hint_y: None
-    height: layout_height
+    #size_hint_y: None
+    #height: layout_height
     on_selected: self.screen.plot_dataframe(self.screen.dataframe, self.selected)
 
 
 <TrainScreen>:
     name: 'train'
-    config: root.manager.get_screen("tub").ids.config_manager.config
     BoxLayout:
         orientation: 'vertical'
-        TabBar:
-            id: tab_bar
-            manager: root.manager
-        Label:
+        padding: 10
+        spacing: 10
+        ScreenSelector:
+            id: selector
+        BackgroundBoxLayout:
+            orientation: 'vertical'
+            spacing: 10
             size_hint_y: None
-            height: common_height
-            text: 'Overwrite config: use json syntax, i.e. "abc" for strings and true/false for bool'
-        ConfigParamSetter:
-            id: cfg_setter
-            screen: root
-            config: root.config
-            is_global: True
-        ConfigParamPanel:
-            id: config_panel
-            size_hint_y: None
-            height: layout_height * (int(len(self.children) // self.cols) + (0 if len(self.children) % self.cols == 0 else 1))
-        Label:
-            size_hint_y: None
-            height: common_height
-            text: 'Train pilot'
-        BoxLayout:
-            size_hint_y: None
-            height: layout_height
-            padding: layout_pad_xy
-            spacing: layout_pad_x
-            Label:
-                size_hint_x: 0.5
-                text: 'Model type'
-            MySpinner:
-                id: train_spinner
-                size_hint_x: 0.5
-                text: 'linear'
-                values: supported_models
-            TextInput:
-                id: comment
-                multiline: False
-                text: 'Comment'
-                on_text: status.text = f'Adding comment: {self.text}'
-        BoxLayout:
-            size_hint_y: None
-            height: layout_height
-            padding: layout_pad_xy
-            spacing: layout_pad_x
-            MySpinner:
-                id: transfer_spinner
-                text: 'Choose transfer model'
-            ToggleButton:
-                id: train_button
-                text: 'Training running...' if self.state == 'down' else 'Train'
-                on_press:
-                    root.train()
-                    self.disabled = True
-        CheckBoxRow:
-            screen: root
-            id: column_chooser
-        ScrollView:
-            effect_cls: ScrollEffect
-            GridLayout:
+            height: self.minimum_height + cfg_setter.height
+            Header:
+                id: cfg_header
+                title: 'Config Editor'
+                description:
+                    "Use dropdown menus to edit config parameters. Add more"\
+                    " rows to keep track of more parameters without scrolling."
+            ConfigParamSetter:
+                id: cfg_setter
                 size_hint_y: None
-                padding: 2
-                spacing: 2
-                cols: 2
-                row_default_height: 28
-                height: self.minimum_height
-                id: scroll_pilots
+                height: layout_height
+                screen: root
+                config: root.config
+                is_global: True
+            ConfigParamPanel:
+                id: config_panel
+                size_hint_y: None
+                height:
+                    (layout_height + 10) * (int(len(self.children) // self.cols)
+                    + (0 if len(self.children) % self.cols == 0 else 1)) - 10
 
-        BoxLayout:
+
+        BackgroundBoxLayout:
+            orientation: 'vertical'
             size_hint_y: None
-            height: layout_height
-            padding: layout_pad_xy
-            spacing: layout_pad_x
-            MySpinner:
-                size_hint_x: 1.5
-                id: select_spinner
-                text_autoupdate: True
-                on_text:
-                    entry = root.database.get_entry(select_spinner.text)
-                    txt = entry.get('Comment') or ''
-                    comment.text = txt
-            Button:
-                size_hint_x: 0.75
-                id: delete_btn
-                on_press:
-                    root.database.delete_entry(select_spinner.text)
-                    root.reload_database()
-                text: 'Delete pilot'
-            Button:
-                size_hint_x: 0.75
-                id: update_comment
-                text: 'Update comment'
-                on_press:
-                    root.database.get_entry(select_spinner.text)['Comment'] = comment.text
-                    root.database.write()
-                    root.on_database()
+            height: self.minimum_height
+            Header:
+                size_hint_y: None
+                height: 40
+                title: 'Trainer'
+                description:
+                    "Train pilot using config parameters from above. Choose a "\
+                    "model type and optionally a transfer model. Provide a "\
+                    "comment to help identify the training parameters."
 
-        StatusLabel:
+            BoxLayout:
+                size_hint_y: None
+                height: layout_height
+                spacing: layout_pad_x
+                MyLabel:
+                    size_hint_x: 0.5
+                    text: 'Select model type'
+                MySpinner:
+                    id: train_spinner
+                    size_hint_x: 0.5
+                    text: 'linear'
+                    values: supported_models
+                TextInput:
+                    id: comment
+                    multiline: False
+                    text: 'Comment'
+                    on_text: status.text = f'Adding comment: {self.text}'
+            BoxLayout:
+                size_hint_y: None
+                height: layout_height
+                spacing: layout_pad_x
+                MySpinner:
+                    id: transfer_spinner
+                    text: 'Choose transfer model'
+                RoundedToggleButton:
+                    id: train_button
+                    text: 'Training running...' if self.state == 'down' else 'Train'
+                    on_press:
+                        root.train()
+                        self.disabled = True
+
+        BackgroundBoxLayout:
+            size_hint_y: 2
+            orientation: 'vertical'
+            spacing: 0
+            padding: 0
+            CheckBoxRow:
+                size_hint_y: None
+                height: 60
+                screen: root
+                id: column_chooser
+            ScrollView:
+                id: scroll
+                effect_cls: ScrollEffect
+                GridLayout:
+                    size_hint_y: None
+                    padding: 2
+                    spacing: 2
+                    cols: 2
+                    row_default_height: 28
+                    height: self.minimum_height
+                    id: scroll_pilots
+
+        BackgroundBoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            Header:
+                size_hint_y: None
+                height: 40
+                title: 'Pilot Editor'
+                description:
+                    "Select a pilot to delete which will remove the files from"\
+                    " disk and the entry from the database. Or update "\
+                    "comment from the selected pilot."
+            BoxLayout:
+                size_hint_y: None
+                height: layout_height
+                spacing: layout_pad_x
+                MySpinner:
+                    size_hint_x: 1.5
+                    id: select_spinner
+                    text_autoupdate: True
+                    on_text:
+                        entry = root.database.get_entry(select_spinner.text)
+                        txt = entry.get('Comment') or ''
+                        comment.text = txt
+                RoundedButton:
+                    size_hint_x: 0.75
+                    id: delete_btn
+                    on_press:
+                        root.database.delete_entry(select_spinner.text)
+                        root.reload_database()
+                    text: 'Delete pilot'
+                RoundedButton:
+                    size_hint_x: 0.75
+                    id: update_comment
+                    text: 'Update comment'
+                    on_press:
+                        root.database.get_entry(select_spinner.text)['Comment'] = comment.text
+                        root.database.write()
+                        root.on_database()
+
+        StatusBar:
             id: status

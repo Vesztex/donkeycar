@@ -6,20 +6,27 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import ObjectProperty
 from kivy.lang.builder import Builder
 from kivy.core.window import Window
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.screenmanager import Screen
 
-from donkeycar.management.ui.car_screen import CarScreen
-from donkeycar.management.ui.pilot_screen import PilotScreen
+# from donkeycar.management.ui.car_screen import CarScreen
+# from donkeycar.management.ui.pilot_screen import PilotScreen
 from donkeycar.management.ui.train_screen import TrainScreen
 from donkeycar.management.ui.tub_screen import TubScreen
+# from donkeycar.management.ui.layout_screen import LayoutScreen
+from common import *
 
 Logger.setLevel(LOG_LEVELS["info"])
-Window.clearcolor = (0.12, 0.06, 0.06, 1)
 
 
-class TabBar(BoxLayout):
-    manager = ObjectProperty(None)
+Window.size = (800, 1000)
 
+
+class Header(BoxLayout):
+    title = StringProperty()
+    description = StringProperty()
+
+
+class ScreenSelector(BackgroundBoxLayout):
     def disable_only(self, bar_name):
         this_button_name = bar_name + '_btn'
         for button_name, button in self.ids.items():
@@ -38,23 +45,19 @@ class StartScreen(Screen):
     pass
 
 
-class DonkeyScreenManager(ScreenManager):
-    pass
-
-
 class DonkeyApp(App):
     title = 'Donkey Manager'
 
     def after_init(self, obj):
         self.root.ids.tub_screen.ids.tub_loader.update_tub()
-        self.root.ids.start_screen.ids.tab_bar.enable_disable_all(True)
-        self.root.ids.start_screen.ids.status.text = 'Donkey ready'
+        #self.root.ids.start_screen.ids.tab_bar.enable_disable_all(True)
+        #self.root.ids.start_screen.ids.status.text = 'Donkey ready'
 
     def initialise(self, event):
-        self.root.ids.start_screen.ids.tab_bar.enable_disable_all(False)
+        # self.root.ids.start_screen.ids.tab_bar.enable_disable_all(False)
         self.root.ids.tub_screen.ids.config_manager.load_action()
-        self.root.ids.pilot_screen.initialise(event)
-        self.root.ids.car_screen.initialise()
+        # self.root.ids.pilot_screen.initialise(event)
+        #self.root.ids.car_screen.initialise()
         # This builds the graph which can only happen after everything else
         # has run, therefore delay until the next round.
         Clock.schedule_once(self.after_init)
@@ -75,8 +78,7 @@ class DonkeyApp(App):
 
 
 def main():
-    tub_app = DonkeyApp()
-    tub_app.run()
+    DonkeyApp().run()
 
 
 if __name__ == '__main__':

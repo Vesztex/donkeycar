@@ -6,8 +6,7 @@
 
 <ConfigParamSetter>
     size_hint_y: None
-    height: layout_height
-#    padding: layout_pad_xy
+    height: common_height
     spacing: 10
     MySpinner:
         id: cfg_spinner
@@ -94,8 +93,6 @@
                     " rows to keep track of more parameters without scrolling."
             ConfigParamSetter:
                 id: cfg_setter
-                size_hint_y: None
-                height: layout_height
                 screen: root
                 config: root.config
                 is_global: True
@@ -103,7 +100,7 @@
                 id: config_panel
                 size_hint_y: None
                 height:
-                    (layout_height + 10) * (int(len(self.children) // self.cols)
+                    (common_height + 10) * (int(len(self.children) // self.cols)
                     + (0 if len(self.children) % self.cols == 0 else 1)) - 10
 
 
@@ -122,7 +119,7 @@
 
             BoxLayout:
                 size_hint_y: None
-                height: layout_height
+                height: common_height
                 spacing: layout_pad_x
                 MyLabel:
                     size_hint_x: 0.5
@@ -139,7 +136,7 @@
                     on_text: status.text = f'Adding comment: {self.text}'
             BoxLayout:
                 size_hint_y: None
-                height: layout_height
+                height: common_height
                 spacing: layout_pad_x
                 MySpinner:
                     id: transfer_spinner

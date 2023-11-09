@@ -47,7 +47,7 @@
         id: transfer_button
         text: 'Transfer model'
         size_hint_x: 0.5
-        on_press: root.open_popup()
+        on_release: root.open_popup()
     AutoLabel:
         text: root.file_path
 
@@ -179,9 +179,9 @@
                 height: 40
                 title: 'Pilot Editor'
                 description:
-                    "Select a pilot to delete which will remove the files from"\
-                    " disk and the entry from the database. Or update "\
-                    "comment from the selected pilot."
+                    "Select a pilot to delete which removes files from disk "\
+                    "and the entry from the database. Or update "\
+                    "comment for the selected pilot."
             BoxLayout:
                 size_hint_y: None
                 height: layout_height
@@ -194,18 +194,33 @@
                         entry = root.database.get_entry(select_spinner.text)
                         txt = entry.get('Comment') or ''
                         comment.text = txt
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_x: 0.4
+                    MyLabel:
+                        valign: 'top'
+                        halign: 'center'
+                        font_size: '11sp'
+                        text: 'Enable delete'
+                    Switch:
+                        id: delete_switch
+                        active: False
+                        on_active:
+                            delete_btn.disabled = False if self.active else True
                 RoundedButton:
                     size_hint_x: 0.75
                     id: delete_btn
-                    on_press:
+                    disabled: True
+                    on_release:
                         root.database.delete_entry(select_spinner.text)
                         root.reload_database()
+                        delete_switch.active = False
                     text: 'Delete pilot'
                 RoundedButton:
                     size_hint_x: 0.75
                     id: update_comment
                     text: 'Update comment'
-                    on_press:
+                    on_release:
                         root.database.get_entry(select_spinner.text)['Comment'] = comment.text
                         root.database.write()
                         root.on_database()

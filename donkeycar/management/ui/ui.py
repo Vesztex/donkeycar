@@ -48,11 +48,6 @@ class StartScreen(Screen):
 class DonkeyApp(App):
     title = 'Donkey Manager'
 
-    def after_init(self, obj):
-        self.root.ids.tub_screen.ids.tub_loader.update_tub()
-        #self.root.ids.start_screen.ids.tab_bar.enable_disable_all(True)
-        #self.root.ids.start_screen.ids.status.text = 'Donkey ready'
-
     def initialise(self, event):
         # self.root.ids.start_screen.ids.tab_bar.enable_disable_all(False)
         self.root.ids.tub_screen.ids.config_manager.load_action()
@@ -60,7 +55,10 @@ class DonkeyApp(App):
         #self.root.ids.car_screen.initialise()
         # This builds the graph which can only happen after everything else
         # has run, therefore delay until the next round.
-        Clock.schedule_once(self.after_init)
+        # Clock.schedule_once(self.after_init)
+        self.root.ids.tub_screen.ids.tub_loader.update_tub()
+        # self.root.ids.start_screen.ids.tab_bar.enable_disable_all(True)
+        self.root.ids.start_screen.ids.status.text = 'Donkey ready'
 
     def build(self):
         # the builder returns the screen manager

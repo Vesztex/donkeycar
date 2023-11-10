@@ -4,6 +4,7 @@ import pandas as pd
 
 
 from kivy import Logger
+from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
     ListProperty, BooleanProperty
@@ -11,7 +12,7 @@ from kivy.uix.screenmanager import Screen
 
 from donkeycar import load_config
 from donkeycar.management.ui.common import FileChooserBase, \
-    PaddedBoxLayout, decompose, get_app_screen, BackgroundBoxLayout
+    PaddedBoxLayout, decompose, get_app_screen, BackgroundBoxLayout, AppScreen
 from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.types import TubRecord
@@ -242,11 +243,10 @@ class DataPlot(PaddedBoxLayout):
         self.plot_from_current_bars()
 
 
-class TubScreen(Screen):
+class TubScreen(AppScreen):
     """ First screen of the app managing the tub data. """
     index = NumericProperty(None, force_dispatch=True)
     current_record = ObjectProperty(None)
-    keys_enabled = BooleanProperty(True)
 
     def initialise(self, e):
         self.ids.config_manager.load_action()
@@ -265,10 +265,8 @@ class TubScreen(Screen):
         self.ids.control_panel.record_display = f"Record {i:06}"
 
     def status(self, msg):
-        self.ids.status.text = msg
+        App.get_running_app().root.ids.status.text = msg
 
-    def on_keyboard(self, instance, keycode, scancode, key, modifiers):
-        if self.keys_enabled:
-            self.ids.control_panel.on_keyboard(key, scancode)
-
+    def on_keyboard(self, keyboard, scancode, text=None, modifier=None):
+        self.ids.control_panel.on_keyboard(keyboard, scancode, text, modifier)
 

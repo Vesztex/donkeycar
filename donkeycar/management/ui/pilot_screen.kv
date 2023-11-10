@@ -49,9 +49,6 @@
     name: 'pilot'
     BoxLayout:
         orientation: 'vertical'
-        TabBar:
-            id: tab_bar
-            manager: root.manager
         PaddedBoxLayout:
             PilotLoader:
                 id: pilot_loader_1
@@ -146,5 +143,4 @@
                 screen: root
                 record: root.current_record
                 dual_mode: True
-        StatusLabel:
-            id: status
+

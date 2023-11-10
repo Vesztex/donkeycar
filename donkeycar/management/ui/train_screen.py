@@ -14,7 +14,8 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
 
-from donkeycar.management.ui.common import FileChooserBase, get_app_screen
+from donkeycar.management.ui.common import FileChooserBase, get_app_screen, \
+    AppScreen
 from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.training import train
 
@@ -95,7 +96,7 @@ class TransferSelector(BoxLayout, FileChooserBase):
     filters = ['*.h5', '*.savedmodel']
 
 
-class TrainScreen(Screen):
+class TrainScreen(AppScreen):
     """ Class showing the training screen. """
     config = ObjectProperty(force_dispatch=True, allownone=True)
     database = ObjectProperty()

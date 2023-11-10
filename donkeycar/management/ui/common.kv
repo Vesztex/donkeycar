@@ -253,7 +253,7 @@
             values: ['0.25', '0.50', '1.00', '1.50', '2.00', '3.00', '4.00']
             on_text:
                 root.speed = float(self.text)
-                app.root.current_screen.ids.status.text = f'Setting speed to '\
+                app.root.ids.status.text = f'Setting speed to '\
                 f'{self.text} - you can also use the <up>/<down> keys.'
                 root.restart()
         RoundedButton:

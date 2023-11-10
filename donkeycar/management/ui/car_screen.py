@@ -7,13 +7,12 @@ from kivy import Logger
 from kivy.clock import Clock
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
     ListProperty, BooleanProperty
-from kivy.uix.screenmanager import Screen
 
-from donkeycar.management.ui.common import get_app_screen
+from donkeycar.management.ui.common import get_app_screen, AppScreen
 from donkeycar.management.ui.rc_file_handler import rc_handler
 
 
-class CarScreen(Screen):
+class CarScreen(AppScreen):
     """ Screen for interacting with the car. """
     config = ObjectProperty(force_dispatch=True, allownone=True)
     files = ListProperty()

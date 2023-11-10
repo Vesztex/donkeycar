@@ -2,6 +2,7 @@ from copy import copy
 import os
 
 from kivy import Logger
+from kivy.app import App
 from kivy.properties import StringProperty, ObjectProperty, ListProperty, \
     NumericProperty, BooleanProperty
 from kivy.uix.boxlayout import BoxLayout
@@ -11,7 +12,8 @@ from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 
 from donkeycar.management.ui.common import FileChooserBase, \
-    FullImage, get_app_screen, get_norm_value, LABEL_SPINNER_TEXT
+    FullImage, get_app_screen, get_norm_value, LABEL_SPINNER_TEXT, AppScreen, \
+    status
 from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.parts.image_transformations import ImageTransformations
 from donkeycar.pipeline.augmentations import ImageAugmentation
@@ -44,9 +46,11 @@ class PilotLoader(BoxLayout, FileChooserBase):
         if self.model_type and self.model_type != 'Model type':
             # we cannot use get_app_screen() here as the app is not
             # completely build when we are entering this the first time
-            tub_screen = self.parent.parent.parent.manager.get_screen('tub')
+            tub_screen = get_app_screen('tub')
             cfg = tub_screen.ids.config_manager.config if tub_screen else None
-            if cfg:
+            if not cfg:
+                return
+            try:
                 self.pilot = get_model_by_type(self.model_type, cfg)
                 self.ids.pilot_button.disabled = False
                 if 'tflite' in self.model_type:
@@ -55,6 +59,8 @@ class PilotLoader(BoxLayout, FileChooserBase):
                     self.filters = ['*.trt', '*.savedmodel']
                 else:
                     self.filters = ['*.h5', '*.savedmodel']
+            except Exception as e:
+                status(f'Error: {e}')
 
     def on_num(self, e, num):
         """ Kivy method that is called if self.num changes. """
@@ -183,11 +189,10 @@ class Transformations(Button):
             self.pilot_screen.trans_list = self.selected
 
 
-class PilotScreen(Screen):
+class PilotScreen(AppScreen):
     """ Screen to do the pilot vs pilot comparison ."""
     index = NumericProperty(None, force_dispatch=True)
     current_record = ObjectProperty(None)
-    keys_enabled = BooleanProperty(False)
     aug_list = ListProperty(force_dispatch=True)
     augmentation = ObjectProperty()
     trans_list = ListProperty(force_dispatch=True)
@@ -305,6 +310,5 @@ class PilotScreen(Screen):
     def status(self, msg):
         self.ids.status.text = msg
 
-    def on_keyboard(self, instance, keycode, scancode, key, modifiers):
-        if self.keys_enabled:
-            self.ids.pilot_control.on_keyboard(key, scancode)
+    def on_keyboard(self, keyboard, scancode, text=None, modifier=None):
+        self.ids.pilot_control.on_keyboard(keyboard, scancode, text, modifier)

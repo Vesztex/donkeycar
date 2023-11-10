@@ -2,134 +2,81 @@
 #:include common.kv
 #:include tub_screen1.kv
 #:include train_screen.kv
-
-# #:include pilot_screen.kv
-# #:include car_screen.kv
-
-
-<BlackButton@Button>
-    color: 0, 0, 0, 1
-    disabled_color: 0.2, 0.2, 0.2, 1
-
-<TabBar>:
-    size_hint_y: None
-    height: common_height + 20
-    padding: [10, 10]
-    spacing: 10
-    canvas.before:
-        Color:
-            rgba: 0.4, 0.2, 0.0, 1
-        Rectangle:
-            pos: self.pos
-            size: self.size
-    BlackButton:
-        id: tub_btn
-        text: 'Tub Manager'
-        on_release:
-            root.manager.current = 'tub'
-            root.manager.current_screen.ids.control_panel.bind_keyboard()
-            root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
-    BlackButton:
-        id: train_btn
-        text: 'Trainer'
-        on_release:
-            root.manager.current = 'train'
-            root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
-    BlackButton:
-        id: pilot_btn
-        text: 'Pilot Arena'
-        on_release:
-            root.manager.current = 'pilot'
-            if not root.manager.current_screen.index: root.manager.current_screen.index = 0
-            root.manager.current_screen.ids.pilot_control.bind_keyboard()
-            root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
-    BlackButton:
-        id: car_btn
-        text: 'Car Connector'
-        on_release:
-            root.manager.current = 'car'
-            root.manager.current_screen.ids.tab_bar.disable_only(root.manager.current_screen.name)
-            root.manager.current_screen.update_pilots()
-    BlackButton:
-        id: layout_btn
-        text: 'Layout'
-        on_release:
-            root.manager.current = 'layout'
-
-
-<ScreenSelector>:
-    orientation: 'horizontal'
-    size_hint_y: None
-    height: 50
-    spacing: 10
-    RoundedButton:
-        id: tub_btn
-        text: 'Tub'
-        on_release:
-            app.root.current = 'tub'
-            app.root.current_screen.ids.control_panel.bind_keyboard()
-            app.root.current_screen.ids.selector.disable_only(app.root.current_screen.name)
-    RoundedButton:
-        id: train_btn
-        text: 'Trainer'
-        on_release:
-            app.root.current = 'train'
-            app.root.current_screen.ids.selector.disable_only(app.root.current_screen.name)
-    RoundedButton:
-        text: 'Other'
-        on_release: app.root.current = 'other'
-    RoundedButton:
-        text: 'More'
-    RoundedButton:
-        text: 'Various'
-    RoundedButton:
-        text: 'Stuff'
-
+#:include pilot_screen.kv
+#:include car_screen.kv
 
 <StartScreen>:
     BoxLayout:
         padding: 10
         orientation: 'vertical'
-        ScreenSelector:
-            id: tab_bar
-            manager: root.manager
         Image:
             source: root.img_path
             size: self.texture_size
-        StatusLabel:
-            id: status
-            text: 'Donkey getting ready...'
 
 
-# Last widget in the file, this will be returned from the builder and is our
-# root widget for the app
-#ScreenManager:
-##    StartScreen:
-##        id: start_screen
-##        name: 'start'
-##    TubScreen:
-##        id: tub_screen
-##    TrainScreen:
-##        id: train_screen
-##    PilotScreen:
-##        id: pilot_screen
-##    CarScreen:
-##        id: car_screen
-#    LayoutScreen:
-#        id: layout_screen
-#
+BoxLayout:
+    orientation: 'vertical'
+    ActionView:
+        id: av
+        size_hint_y: None
+        height: 20
 
+        ActionPrevious:
+            with_previous: False
+            app_icon: ''
+            size_hint_x: None
+            width: 0
+        ActionButton:
+            id: tub_btn
+            text: 'Tub Manager'
+            on_release:
+                sm.current = 'tub'
+                sm.current_screen.bind_keyboard()
+        ActionButton:
+            id: train_btn
+            text: 'Trainer'
+            on_release:
+                sm.current = 'train'
+                sm.current_screen.bind_keyboard()
+        ActionButton:
+            id: pilot_btn
+            text: 'Pilot Arena'
+            on_release:
+                sm.current = 'pilot'
+                if not sm.current_screen.index: sm.current_screen.index = 0
+                sm.current_screen.bind_keyboard()
+        ActionButton:
+            id: car_btn
+            text: 'Car Connector'
+            on_release:
+                sm.current = 'car'
+                sm.current_screen.update_pilots()
+                sm.current_screen.bind_keyboard()
+        ActionButton:
+            text: 'Settings'
+            on_press: app.open_settings()
+        ActionButton:
+            text: 'Quit'
+            on_press: app.get_running_app().stop()
 
-ScreenManager:
-    StartScreen:
-        id: start_screen
-        name: 'start'
-    TubScreen:
-        id: tub_screen
-        name: 'tub'
-    TrainScreen:
-        id: train_screen
-        name: 'train'
-    OtherScreen:
-        id: other_screen
-        name: 'other'
+    ScreenManager:
+        id: sm
+        StartScreen:
+            id: start_screen
+            name: 'start'
+        TubScreen:
+            id: tub_screen
+            name: 'tub'
+        TrainScreen:
+            id: train_screen
+            name: 'train'
+        PilotScreen:
+            id: pilot_screen
+            name: 'pilot'
+        CarScreen:
+            id: car_screen
+            name: 'car'
+
+    StatusLabel:
+        id: status
+        text: "Donkey ready"

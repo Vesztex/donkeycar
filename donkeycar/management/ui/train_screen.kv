@@ -78,8 +78,6 @@
         orientation: 'vertical'
         padding: 10
         spacing: 10
-        ScreenSelector:
-            id: selector
         BackgroundBoxLayout:
             orientation: 'vertical'
             spacing: 10
@@ -133,7 +131,7 @@
                     id: comment
                     multiline: False
                     text: 'Comment'
-                    on_text: status.text = f'Adding comment: {self.text}'
+                    on_text: app.root.ids.status.text = f'Adding comment: {self.text}'
             BoxLayout:
                 size_hint_y: None
                 height: common_height
@@ -225,5 +223,3 @@
                         root.database.write()
                         root.on_database()
 
-        StatusBar:
-            id: status

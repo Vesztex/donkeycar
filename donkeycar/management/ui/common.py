@@ -14,6 +14,7 @@ from kivy.properties import ObjectProperty, StringProperty, ListProperty, \
     BooleanProperty, NumericProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
+from kivy.uix.screenmanager import Screen
 from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.image import Image
 from kivy.core.image import Image as CoreImage
@@ -25,7 +26,17 @@ LABEL_SPINNER_TEXT = 'Add/remove'
 
 
 def get_app_screen(name):
-    return App.get_running_app().root.get_screen(name)
+    root = App.get_running_app().root
+    if root is None:
+        return None
+    return root.ids.sm.get_screen(name)
+
+
+def status(msg):
+    root = App.get_running_app().root
+    if root is None:
+        return
+    root.ids.status.text = msg
 
 
 def decompose(field):
@@ -162,7 +173,7 @@ class DataPanel(BoxLayout):
         if field in self.labels and not self.dual_mode:
             self.remove_widget(self.labels[field])
             del self.labels[field]
-            self.screen.status(f'Removing {field}')
+            status(f'Removing {field}')
         else:
             # in dual mode replace the second entry with the new one
             if self.dual_mode and len(self.labels) == 2:
@@ -177,7 +188,7 @@ class DataPanel(BoxLayout):
             lb.update(self.record)
             if len(self.labels) == 2:
                 self.throttle_field = field
-            self.screen.status(f'Adding {field}')
+            status(f'Adding {field}')
         if self.screen.name == 'tub':
             self.screen.ids.data_plot.plot_from_current_bars()
         self.ids.data_spinner.text = LABEL_SPINNER_TEXT
@@ -227,19 +238,6 @@ class ControlPanel(BoxLayout):
     clock = None
     fwd = None
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._keyboard = None
-
-    def bind_keyboard(self):
-        self._keyboard = Window.request_keyboard(
-            self.keyboard_close, self, 'text')
-        self._keyboard.bind(on_key_down=self.on_keyboard)
-
-    def keyboard_close(self):
-        self._keyboard.unbind(on_key_down=self.on_keyboard)
-        self._keyboard = None
-
     def start(self, fwd=True, continuous=False):
         """
         Method to cycle through records if either single <,> or continuous
@@ -271,7 +269,7 @@ class ControlPanel(BoxLayout):
         :return:            None
         """
         if self.screen.index is None:
-            self.screen.status("No tub loaded")
+            status("No tub loaded")
             return
         new_index = self.screen.index + (1 if fwd else -1)
         if new_index >= get_app_screen('tub').ids.tub_loader.len:
@@ -286,13 +284,13 @@ class ControlPanel(BoxLayout):
         else:
             msg += (' - you can toggle run/stop with <space> or <shift> + '
                     '<space> for run backwards')
-        self.screen.status(msg)
+        status(msg)
 
     def stop(self):
         if self.clock:
             self.clock.cancel()
             self.clock = None
-            self.screen.status('Donkey stopped')
+            status('Donkey stopped')
 
     def restart(self):
         if self.clock:
@@ -319,7 +317,7 @@ class ControlPanel(BoxLayout):
             if self.clock and self.clock.is_triggered:
                 self.stop()
                 self.set_button_status(disabled=False)
-                self.screen.status('Donkey stopped')
+                status('Donkey stopped')
             else:
                 fwd = 'shift' not in modifier
                 self.start(fwd=fwd, continuous=True)
@@ -340,3 +338,23 @@ class PaddedBoxLayout(BoxLayout):
 
 class StatusBar(BackgroundBoxLayout):
     text = StringProperty()
+
+
+class AppScreen(Screen):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._keyboard = None
+
+    def bind_keyboard(self):
+        self._keyboard = Window.request_keyboard(
+            self.keyboard_close, self, 'text')
+        self._keyboard.bind(on_key_down=self.on_keyboard)
+
+    def keyboard_close(self):
+        self._keyboard.unbind(on_key_down=self.on_keyboard)
+        self._keyboard = None
+
+    def on_keyboard(self, keyboard, scancode, text=None, modifier=None):
+        """ Method to check with keystroke has been sent. """
+        pass

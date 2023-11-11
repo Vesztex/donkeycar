@@ -126,6 +126,7 @@ class LabelBar(BoxLayout):
     field = StringProperty()
     field_property = ObjectProperty()
     config = ObjectProperty()
+    font_color = ListProperty([0.8, 0.9, 0.9, 1])
     msg = ''
 
     def update(self, record):
@@ -166,6 +167,7 @@ class DataPanel(BoxLayout):
     dual_mode = BooleanProperty(False)
     auto_text = StringProperty(LABEL_SPINNER_TEXT)
     throttle_field = StringProperty('user/throttle')
+    font_color = ListProperty([0.8, 0.9, 0.9, 1])
     link = False
 
     def __init__(self, **kwargs):
@@ -192,7 +194,8 @@ class DataPanel(BoxLayout):
                 del self.labels[k]
             field_property = rc_handler.field_properties.get(decompose(field)[0])
             cfg = get_app_screen('tub').ids.config_manager.config
-            lb = LabelBar(field=field, field_property=field_property, config=cfg)
+            lb = LabelBar(field=field, field_property=field_property,
+                          config=cfg, font_color=self.font_color)
             self.labels[field] = lb
             self.add_widget(lb)
             lb.update(self.record)

@@ -125,6 +125,7 @@
             radius: [10,]
     color: font_color
 
+
 <MySpinner>:
     text_size: self.size
     halign: 'center'
@@ -146,7 +147,6 @@
     size_hint: 1.0, 1.0
     auto_dismiss: False
     pos_hint: {'center_x': .5, 'center_y': .5}
-
     BoxLayout:
         orientation: "vertical"
         FileChooser:
@@ -161,10 +161,10 @@
             size_hint: (1, 0.1)
             pos_hint: {'center_x': .5, 'center_y': .5}
             spacing: 20
-            Button:
+            RoundedButton:
                 text: "Cancel"
                 on_release: root.dismiss()
-            Button:
+            RoundedButton:
                 text: "Load"
                 on_release: root.load(file_chooser.selection)
                 disabled: file_chooser.selection==[]
@@ -173,44 +173,38 @@
 <LabelBar>:
     orientation: 'horizontal'
     spacing: 4
-    Label:
+    MyLabel:
         id: field_label
         text_size: self.size
         halign: 'left'
         valign: 'middle'
-        font_size: '14sp'
+        font_size: '12sp'
         canvas.before:
             Color:
-                rgba: 0.17, 0.18, 0.25, 1
-            Rectangle:
+                rgba: 0.13, 0.14, 0.15, 1
+            RoundedRectangle:
                 pos: self.pos
                 size: self.size
-    Label:
+                radius: [5,]
+    MyLabel:
         id: value_label
         text_size: self.size
         halign: 'right'
         valign: 'middle'
-        font_size: '14sp'
+        font_size: '12sp'
         size_hint_x: 0.8
         padding_x: 10
         canvas.before:
             Color:
-                rgba: 0.14, 0.15, 0.22, 1
-            Rectangle:
+                rgba: 0.13, 0.14, 0.15, 1
+            RoundedRectangle:
                 pos: self.pos
                 size: self.size
+                radius: [5,]
     ProgressBar:
         id: bar
-        canvas.before:
-            Color:
-                rgba: 0.12, 0.13, 0.20, 1
-            Rectangle:
-                pos: self.pos
-                size: self.size
 
 <-FullImage>:
-#    size_hint_x: 1.2
-#    size_hint_y: 1.2
     canvas:
         Color:
             rgb: (1, 1, 1)
@@ -222,16 +216,17 @@
 
 <DataPanel>
     orientation: 'vertical'
+    spacing: 2
     GridLayout:
         cols: 2
         MyLabel:
             text: 'Record field'
             size_hint_y: None
-            height: common_height
+            height: 20
         MySpinner:
             id: data_spinner
             size_hint_y: None
-            height: common_height
+            height: 20
             text: root.auto_text if root.link else 'Add/remove'
             on_text: root.add_remove()
             on_values: root.clear()

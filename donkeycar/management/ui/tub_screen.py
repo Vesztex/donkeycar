@@ -103,7 +103,7 @@ class TubLoader(BackgroundBoxLayout, FileChooserBase):
         return True
 
 
-class TubEditor(PaddedBoxLayout):
+class TubEditor(BoxLayout):
     """ Tub editor widget. Contains left/right index interval and the
         manipulator buttons for deleting / restoring and reloading """
     lr = ListProperty([0, 0])
@@ -127,7 +127,7 @@ class TubEditor(PaddedBoxLayout):
         tub.delete_records(selected) if is_del else tub.restore_records(selected)
 
 
-class TubFilter(PaddedBoxLayout):
+class TubFilter(BoxLayout):
     """ Tub filter widget. """
     filter_expression = StringProperty(None)
     record_filter = StringProperty(rc_handler.data.get('record_filter', ''))

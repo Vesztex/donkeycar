@@ -3,7 +3,6 @@ from kivy.logger import Logger, LOG_LEVELS
 from kivy.clock import Clock
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
-from kivy.properties import ObjectProperty
 from kivy.lang.builder import Builder
 from kivy.core.window import Window
 from kivy.uix.screenmanager import Screen
@@ -12,7 +11,6 @@ from donkeycar.management.ui.car_screen import CarScreen
 from donkeycar.management.ui.pilot_screen import PilotScreen
 from donkeycar.management.ui.train_screen import TrainScreen
 from donkeycar.management.ui.tub_screen import TubScreen
-# from donkeycar.management.ui.layout_screen import LayoutScreen
 from common import *
 
 Logger.setLevel(LOG_LEVELS["info"])

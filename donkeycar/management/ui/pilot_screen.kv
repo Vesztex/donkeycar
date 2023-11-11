@@ -22,9 +22,9 @@
 
 
 <TransformationPopup>:
-    size_hint: 1.0, 1.0
+    size_hint: 0.5, 1.0
     auto_dismiss: False
-    pos_hint: {'center_x': .5, 'center_y': .5}
+    pos_hint: {'center_x': .25 if self.right else 0.75, 'center_y': .5}
 
     BoxLayout:
         orientation: "horizontal"
@@ -37,6 +37,7 @@
             orientation: 'vertical'
             spacing: 20
             BoxLayout:
+                spacing: 10
                 orientation: 'vertical'
                 id: trafo_list
             RoundedButton:
@@ -52,13 +53,13 @@
         padding: 10
         spacing: 10
         BackgroundBoxLayout:
-            size_hint_y: 0.25
+            size_hint_y: None
+            height: self.minimum_height + layout_height
             Header:
-                title: 'Pilot Loader'
+                title: 'Multi Pilot Loader'
                 description:
                     'Load pilots from the Trainer screen and compare the model '\
-                    'inferencing with the recorded user data.'
-
+                    'inference with the recorded user data.'
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: 1.5
@@ -76,6 +77,8 @@
                     throttle_field: data_in.throttle_field
                     is_left: True
                 DataPanel:
+                    size_hint_y: None
+                    height: self.minimum_height + 60
                     id: data_panel_1
                     screen: root
                     record: img_1.pilot_record
@@ -95,6 +98,8 @@
                     throttle_field: data_in.throttle_field
                     is_left: False
                 DataPanel:
+                    size_hint_y: None
+                    height: self.minimum_height + 60
                     id: data_panel_2
                     screen: root
                     record: img_1.pilot_record
@@ -104,7 +109,8 @@
 
         BackgroundBoxLayout:
             orientation: 'vertical'
-            size_hint_y: 0.5
+            size_hint_y: None
+            height: self.minimum_height + common_height
             Header:
                 title: 'Augmentations and Transformations'
                 description:
@@ -160,7 +166,8 @@
 
         BackgroundBoxLayout:
             orientation: 'vertical'
-            size_hint_y: 0.75
+            size_hint_y: None
+            height: self.minimum_height + 90
             Slider:
                 size_hint_y: None
                 height: common_height

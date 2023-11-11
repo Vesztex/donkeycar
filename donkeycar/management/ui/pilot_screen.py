@@ -145,6 +145,7 @@ class TransformationPopup(Popup):
          "GRAY2BGR", "CANNY", "BLUR", "RESIZE", "SCALE", "GAMMANORM"]
     transformations_obj = ObjectProperty()
     selected = ListProperty()
+    right = BooleanProperty()
 
     def __init__(self, selected, **kwargs):
         super().__init__(**kwargs)
@@ -178,7 +179,7 @@ class Transformations(RoundedButton):
 
     def open_popup(self):
         popup = TransformationPopup(title=self.title, transformations_obj=self,
-                                    selected=self.selected)
+                                    selected=self.selected, right=self.is_post)
         popup.open()
 
     def on_selected(self, obj, select):

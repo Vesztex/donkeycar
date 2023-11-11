@@ -13,6 +13,8 @@ from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty, ListProperty, \
     BooleanProperty, NumericProperty
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 from kivy.uix.spinner import Spinner, SpinnerOption
@@ -60,6 +62,14 @@ class BackgroundColor(Widget):
 
 
 class BackgroundBoxLayout(BackgroundColor, BoxLayout):
+    pass
+
+
+class RoundedButton(Button):
+    pass
+
+
+class MyLabel(Label):
     pass
 
 

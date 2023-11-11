@@ -43,7 +43,8 @@ BoxLayout:
             text: 'Pilot Arena'
             on_release:
                 sm.current = 'pilot'
-                if not sm.current_screen.index: sm.current_screen.index = 0
+                # TODO: enable
+                # if not sm.current_screen.index: sm.current_screen.index = 0
                 sm.current_screen.bind_keyboard()
         ActionButton:
             id: car_btn

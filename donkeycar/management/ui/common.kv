@@ -14,7 +14,7 @@
 
 # Define your background color Template
 
-<RoundedButton@Button>:
+<RoundedButton>:
     background_color: 0,0,0,0  # the last zero is the critical on, make invisible
     canvas.before:
         Color:
@@ -61,7 +61,7 @@
             radius: [10,]
 
 
-<MyLabel@Label>:
+<MyLabel>:
     halign: 'left'
     valign: 'top'
     color: font_color
@@ -209,14 +209,14 @@
                 size: self.size
 
 <-FullImage>:
-    size_hint_x: 1.2
-    size_hint_y: 1.2
+#    size_hint_x: 1.2
+#    size_hint_y: 1.2
     canvas:
         Color:
             rgb: (1, 1, 1)
         Rectangle:
             texture: self.texture
-            size: self.width, self.height / 1.2
+            size: self.width, self.height
             pos: self.x, self.y
 
 
@@ -239,9 +239,9 @@
 
 <ControlPanel>
     orientation: 'vertical'
-    spacing: 10
+    spacing: 5
     GridLayout:
-        spacing: 10
+        spacing: 5
         cols: 2
         MyLabel:
             id: record_num

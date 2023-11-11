@@ -13,7 +13,7 @@ from kivy.uix.screenmanager import Screen
 
 from donkeycar.management.ui.common import FileChooserBase, \
     FullImage, get_app_screen, get_norm_value, LABEL_SPINNER_TEXT, AppScreen, \
-    status
+    status, BackgroundBoxLayout, RoundedButton, MyLabel
 from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.parts.image_transformations import ImageTransformations
 from donkeycar.pipeline.augmentations import ImageAugmentation
@@ -149,7 +149,7 @@ class TransformationPopup(Popup):
     def __init__(self, selected, **kwargs):
         super().__init__(**kwargs)
         for t in self.transformations:
-            btn = Button(text=t)
+            btn = RoundedButton(text=t)
             btn.bind(on_release=self.toggle_transformation)
             self.ids.trafo_list.add_widget(btn)
         self.selected = selected
@@ -164,12 +164,12 @@ class TransformationPopup(Popup):
     def on_selected(self, obj, select):
         self.ids.selected_list.clear_widgets()
         for l in self.selected:
-            lab = Label(text=l)
+            lab = MyLabel(text=l)
             self.ids.selected_list.add_widget(lab)
         self.transformations_obj.selected = self.selected
 
 
-class Transformations(Button):
+class Transformations(RoundedButton):
     """ Base class for transformation widgets"""
     title = StringProperty(None)
     pilot_screen = ObjectProperty()
@@ -215,21 +215,24 @@ class PilotScreen(AppScreen):
         if not record:
             return
         i = record.underlying['_index']
+        #TODO: enable
+        return
         self.ids.pilot_control.record_display = f"Record {i:06}"
         self.ids.img_1.update(record)
         self.ids.img_2.update(record)
 
     def initialise(self, e):
-        self.ids.pilot_loader_1.on_model_type(None, None)
-        self.ids.pilot_loader_1.load_action()
-        self.ids.pilot_loader_2.on_model_type(None, None)
-        self.ids.pilot_loader_2.load_action()
+        # TODO: enable
+        # self.ids.pilot_loader_1.on_model_type(None, None)
+        # self.ids.pilot_loader_1.load_action()
+        # self.ids.pilot_loader_2.on_model_type(None, None)
+        # self.ids.pilot_loader_2.load_action()
         mapping = copy(rc_handler.data['user_pilot_map'])
         del(mapping['user/angle'])
-        self.ids.data_in.ids.data_spinner.values = mapping.keys()
-        self.ids.data_in.ids.data_spinner.text = 'user/angle'
-        self.ids.data_panel_1.ids.data_spinner.disabled = True
-        self.ids.data_panel_2.ids.data_spinner.disabled = True
+        # self.ids.data_in.ids.data_spinner.values = mapping.keys()
+        # self.ids.data_in.ids.data_spinner.text = 'user/angle'
+        # self.ids.data_panel_1.ids.data_spinner.disabled = True
+        # self.ids.data_panel_2.ids.data_spinner.disabled = True
 
     def map_pilot_field(self, text):
         """ Method to return user -> pilot mapped fields except for the
@@ -291,24 +294,21 @@ class PilotScreen(AppScreen):
 
     def set_mask(self, state):
         if state == 'down':
-            self.ids.status.text = 'Trapezoidal mask on'
+            status('Trapezoidal mask on')
             self.trans_list.append('TRAPEZE')
         else:
-            self.ids.status.text = 'Trapezoidal mask off'
+            status('Trapezoidal mask off')
             if 'TRAPEZE' in self.trans_list:
                 self.trans_list.remove('TRAPEZE')
 
     def set_crop(self, state):
         if state == 'down':
-            self.ids.status.text = 'Crop on'
+            status('Crop on')
             self.trans_list.append('CROP')
         else:
-            self.ids.status.text = 'Crop off'
+            status('Crop off')
             if 'CROP' in self.trans_list:
                 self.trans_list.remove('CROP')
-
-    def status(self, msg):
-        self.ids.status.text = msg
 
     def on_keyboard(self, keyboard, scancode, text=None, modifier=None):
         self.ids.pilot_control.on_keyboard(keyboard, scancode, text, modifier)

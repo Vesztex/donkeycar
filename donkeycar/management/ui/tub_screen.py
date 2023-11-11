@@ -96,8 +96,7 @@ class TubLoader(BackgroundBoxLayout, FileChooserBase):
             tub_screen.index = 0
             tub_screen.ids.data_plot.update_dataframe_from_tub()
             msg = f'Loaded tub {self.file_path} with {self.len} records'
-            # TODO: enable that line again
-            # get_app_screen('pilot').ids.slider.max = self.len - 1
+            get_app_screen('pilot').ids.slider.max = self.len - 1
         else:
             msg = f'No records in tub {self.file_path}'
         tub_screen.status(msg)

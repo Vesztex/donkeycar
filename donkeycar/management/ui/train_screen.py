@@ -15,7 +15,7 @@ from kivy.uix.widget import Widget
 
 
 from donkeycar.management.ui.common import FileChooserBase, get_app_screen, \
-    AppScreen
+    AppScreen, status
 from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.training import train
 
@@ -43,8 +43,7 @@ class ConfigParamSetter(BoxLayout):
             val = input
         att = self.ids.cfg_spinner.text
         setattr(self.config, att, val)
-        self.screen.ids.status.text = f'Setting {att} to {val} of type ' \
-                                      f'{type(val).__name__}'
+        status(f'Setting {att} to {val} of type {type(val).__name__}')
 
 
 class ConfigParamPanel(GridLayout):

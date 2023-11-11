@@ -82,18 +82,33 @@
             orientation: 'vertical'
             spacing: 10
             size_hint_y: None
-            height: self.minimum_height + cfg_setter.height
+            height: self.minimum_height + cfg_setter.height + common_height
             Header:
+                size_hint_y: 1.2
                 id: cfg_header
                 title: 'Config Editor'
                 description:
                     "Use dropdown menus to edit config parameters. Add more"\
                     " rows to keep track of more parameters without scrolling."
-            ConfigParamSetter:
-                id: cfg_setter
-                screen: root
-                config: root.config
-                is_global: True
+            BoxLayout:
+                orientation: 'horizontal'
+                ConfigParamSetter:
+                    id: cfg_setter
+                    screen: root
+                    config: root.config
+                    is_global: True
+                MyLabel:
+                    size_hint_x: 0.06
+                    halign: 'right'
+                    font_size: '11sp'
+                    text: 'Two column'
+                CheckBox:
+                    size_hint_x: 0.1
+                    id: col_check
+                    active: False
+                    on_active:
+                        config_panel.cols = 2 if self.active else 1
+
             ConfigParamPanel:
                 id: config_panel
                 size_hint_y: None
@@ -209,11 +224,12 @@
                     size_hint_x: 0.75
                     id: delete_btn
                     disabled: True
+                    color: (.4, .4, .4, 1) if self.disabled else (0.95, 0, 0, 1)
+                    text: 'Delete pilot'
                     on_release:
                         root.database.delete_entry(select_spinner.text)
                         root.reload_database()
                         delete_switch.active = False
-                    text: 'Delete pilot'
                 RoundedButton:
                     size_hint_x: 0.75
                     id: update_comment

@@ -215,24 +215,21 @@ class PilotScreen(AppScreen):
         if not record:
             return
         i = record.underlying['_index']
-        #TODO: enable
-        return
         self.ids.pilot_control.record_display = f"Record {i:06}"
         self.ids.img_1.update(record)
         self.ids.img_2.update(record)
 
     def initialise(self, e):
-        # TODO: enable
-        # self.ids.pilot_loader_1.on_model_type(None, None)
-        # self.ids.pilot_loader_1.load_action()
-        # self.ids.pilot_loader_2.on_model_type(None, None)
-        # self.ids.pilot_loader_2.load_action()
+        self.ids.pilot_loader_1.on_model_type(None, None)
+        self.ids.pilot_loader_1.load_action()
+        self.ids.pilot_loader_2.on_model_type(None, None)
+        self.ids.pilot_loader_2.load_action()
         mapping = copy(rc_handler.data['user_pilot_map'])
         del(mapping['user/angle'])
-        # self.ids.data_in.ids.data_spinner.values = mapping.keys()
-        # self.ids.data_in.ids.data_spinner.text = 'user/angle'
-        # self.ids.data_panel_1.ids.data_spinner.disabled = True
-        # self.ids.data_panel_2.ids.data_spinner.disabled = True
+        self.ids.data_in.ids.data_spinner.values = mapping.keys()
+        self.ids.data_in.ids.data_spinner.text = 'user/angle'
+        self.ids.data_panel_1.ids.data_spinner.disabled = True
+        self.ids.data_panel_2.ids.data_spinner.disabled = True
 
     def map_pilot_field(self, text):
         """ Method to return user -> pilot mapped fields except for the

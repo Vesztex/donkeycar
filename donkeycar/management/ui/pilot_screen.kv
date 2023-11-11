@@ -67,7 +67,8 @@
             BackgroundBoxLayout:
                 orientation: 'vertical'
                 PilotLoader:
-                    size_hint_y: 0.3
+                    size_hint_y: None
+                    height: self.minimum_height + layout_height
                     id: pilot_loader_1
                     num: '1'
                     data_panel: data_panel_1
@@ -89,7 +90,8 @@
             BackgroundBoxLayout:
                 orientation: 'vertical'
                 PilotLoader:
-                    size_hint_y: 0.3
+                    size_hint_y: None
+                    height: self.minimum_height + layout_height
                     id: pilot_loader_2
                     num: '2'
                     data_panel: data_panel_2

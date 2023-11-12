@@ -213,7 +213,7 @@ class CarScreen(AppScreen):
     def stop(self):
         if self.pid:
             cmd = f'ssh {self.config.PI_USERNAME}@{self.config.PI_HOSTNAME} '\
-                  + f'kill {self.pid}'
+                  + f'kill -SIGINT {self.pid}'
             out = os.popen(cmd).read()
             Logger.info(f"car connect: Kill PID {self.pid} + {out}")
             self.pid = None

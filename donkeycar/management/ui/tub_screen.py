@@ -14,6 +14,7 @@ from donkeycar.management.ui.common import FileChooserBase, \
     PaddedBoxLayout, decompose, get_app_screen, BackgroundBoxLayout, AppScreen, \
     status
 from donkeycar.management.ui.rc_file_handler import rc_handler
+from donkeycar.management.ui.common import status
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.types import TubRecord
 
@@ -25,20 +26,21 @@ class ConfigManager(BackgroundBoxLayout, FileChooserBase):
 
     def load_action(self):
         """ Load the config from the file path"""
-        if self.file_path:
-            try:
-                path = os.path.join(self.file_path, 'config.py')
-                new_conf = load_config(path)
-                self.config = new_conf
-                # If load successful, store into app config
-                rc_handler.data['car_dir'] = self.file_path
-            except FileNotFoundError:
-                Logger.error(f'Config: Directory {self.file_path} has no '
-                             f'config.py')
-                self.config = None
-            except Exception as e:
-                Logger.error(f'Config: {e}')
-                self.config = None
+        if not self.file_path:
+            return
+        try:
+            path = os.path.join(self.file_path, 'config.py')
+            new_conf = load_config(path)
+            self.config = new_conf
+            # If load successful, store into app config
+            rc_handler.data['car_dir'] = self.file_path
+        except FileNotFoundError:
+            Logger.error(f'Config: Directory {self.file_path} has no '
+                         f'config.py')
+            self.config = None
+        except Exception as e:
+            Logger.error(f'Config: {e}')
+            self.config = None
 
     def on_config(self, obj, cfg):
         tub_screen = get_app_screen('tub')
@@ -81,14 +83,14 @@ class TubLoader(BackgroundBoxLayout, FileChooserBase):
             return False
         # At least check if there is a manifest file in the tub path
         if not os.path.exists(os.path.join(self.file_path, 'manifest.json')):
-            tub_screen.status(f'Path {self.file_path} is not a valid tub.')
+            status(f'Path {self.file_path} is not a valid tub.')
             return False
         try:
             if self.tub:
                 self.tub.close()
             self.tub = Tub(self.file_path)
         except Exception as e:
-            tub_screen.status(f'Failed loading tub: {str(e)}')
+            status(f'Failed loading tub: {str(e)}')
             return False
         # Check if filter is set in tub screen
         # expression = tub_screen().ids.tub_filter.filter_expression
@@ -117,7 +119,7 @@ class TubLoader(BackgroundBoxLayout, FileChooserBase):
             get_app_screen('pilot').ids.slider.max = self.len - 1
         else:
             msg = f'No records in tub {self.file_path}'
-        tub_screen.status(msg)
+        status(msg)
         return True
 
 
@@ -160,7 +162,7 @@ class TubFilter(BoxLayout):
             rc_handler.data['record_filter'] = self.record_filter
             if hasattr(config, 'TRAIN_FILTER'):
                 delattr(config, 'TRAIN_FILTER')
-            get_app_screen('tub').status(f'Filter cleared')
+                status(f'Filter cleared')
             return
         filter_expression = self.create_filter_string(filter_text)
         try:
@@ -182,9 +184,9 @@ class TubFilter(BoxLayout):
             else:
                 status += ' - non bool expression can\'t be applied'
             status += ' - press <Reload tub> to see effect'
-            get_app_screen('tub').status(status)
+            status(status)
         except Exception as e:
-            get_app_screen('tub').status(f'Filter error on current record: {e}')
+            status(f'Filter error on current record: {e}')
 
     @staticmethod
     def create_filter_string(filter_text, record_name='record'):
@@ -280,9 +282,6 @@ class TubScreen(AppScreen):
         self.ids.img.update(record)
         i = record.underlying['_index']
         self.ids.control_panel.record_display = f"Record {i:06}"
-
-    def status(self, msg):
-        App.get_running_app().root.ids.status.text = msg
 
     def on_keyboard(self, keyboard, scancode, text=None, modifier=None):
         self.ids.control_panel.on_keyboard(keyboard, scancode, text, modifier)

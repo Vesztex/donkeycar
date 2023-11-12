@@ -119,8 +119,8 @@ class TrainScreen(AppScreen):
             transfer_model = h5
         else:
             transfer_model = None
-            self.ids.status.text = \
-                f'Could find neither {sm} nor {h5} - training without transfer'
+            status(f'Could find neither {sm} nor {h5} - training without '
+                   f'transfer')
         try:
             history = train(self.config, tub_paths=tub_path,
                             model_type=model_type,
@@ -128,25 +128,26 @@ class TrainScreen(AppScreen):
                             comment=self.ids.comment.text)
         except Exception as e:
             Logger.error(e)
-            self.ids.status.text = f'Training failed see console'
+            status(f'Training failed see console')
 
     def train(self):
         self.config.SHOW_PLOT = False
         t = Thread(target=self.train_call)
-        self.ids.status.text = 'Training started.'
+        status('Training started.')
 
         def func(dt):
             t.start()
 
         def check_training_done(dt):
-            if not t.is_alive():
-                self.train_checker.cancel()
-                self.ids.comment.text = 'Comment'
-                self.ids.transfer_spinner.text = 'Choose transfer model'
-                self.ids.train_button.state = 'normal'
-                self.ids.status.text = 'Training completed.'
-                self.ids.train_button.disabled = False
-                self.reload_database()
+            if t.is_alive():
+                return
+            self.train_checker.cancel()
+            self.ids.comment.text = 'Comment'
+            self.ids.transfer_spinner.text = 'Choose transfer model'
+            self.ids.train_button.state = 'normal'
+            self.ids.train_button.disabled = False
+            self.reload_database()
+            status('Training completed.')
 
         # schedules the call after the current frame
         Clock.schedule_once(func, 0)

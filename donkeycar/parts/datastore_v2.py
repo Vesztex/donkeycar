@@ -426,13 +426,17 @@ class Manifest(object):
 
         # find last entry:
         cat_index = self.current_index % self.max_len
-        last_rec_str = self.current_catalog.seekable.read_from(cat_index)[0]
-        last_rec = json.loads(last_rec_str)
-        if last_rec['_session_id'] == new_full_id:
-            raise RuntimeError(f'Session {new_full_id} already found in last '
-                               f'record of existing tub at {self.base_path}. '
-                               f'Please clean up your manifest metadata first, '
-                               f'before trying to write to the tub')
+        cat_lines = self.current_catalog.seekable.read_from(cat_index)
+        # only check if catalog is not empty
+        if cat_lines:
+            last_rec_str = cat_lines[0]
+            last_rec = json.loads(last_rec_str)
+            if last_rec['_session_id'] == new_full_id:
+                raise RuntimeError(
+                    f'Session {new_full_id} already found in last '
+                    f'record of existing tub at {self.base_path}. '
+                    f'Please clean up your manifest metadata first, '
+                    f'before trying to write to the tub')
         return new_id, new_full_id
 
     def add_deleted_indexes(self, indexes):

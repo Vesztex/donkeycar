@@ -10,9 +10,10 @@ from kivy.properties import ObjectProperty, NumericProperty, ListProperty, \
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
+from kivy.uix.popup import Popup
 
 from donkeycar.management.ui.common import FileChooserBase, get_app_screen, \
-    AppScreen, status
+    AppScreen, status, MyLabel
 from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.training import train
 
@@ -86,6 +87,35 @@ class CheckBoxRow(BoxLayout):
 class TransferSelector(BoxLayout, FileChooserBase):
     """ Class to select transfer model"""
     filters = ['*.h5', '*.savedmodel']
+
+
+class ConfigViewerPopup(Popup):
+    config = ObjectProperty()
+
+    def _config_to_dict(self):
+        # In old-style database format, the config was saved as list of (key,
+        # value) pairs. That string could not be de-jsonised and then
+        # self.config is a string. In new format is already a dict.
+        if isinstance(self.config, dict):
+            return self.config
+        cfg_list = []
+        try:
+            s = self.config.replace("'", '"')
+            s = s.replace("(", '[').replace(")", "]")
+            s = s.replace("False", 'false').replace("True", "true")
+            s = s.replace("None", "null")
+            cfg_list = json.loads(s)
+        except Exception as e:
+            Logger.error(f'Failed json read of config: {e}')
+        assert isinstance(cfg_list, list), "Dejsonised config should be list"
+        return dict(cfg_list)
+
+    def fill_grid(self):
+        d = self._config_to_dict()
+        for kv in d.items():
+            for x in kv:
+                label = BackgroundLabel(text=str(x), font_size='13sp')
+                self.ids.pilot_cfg_viewer_grid.add_widget(label)
 
 
 class TrainScreen(AppScreen):
@@ -199,3 +229,10 @@ class TrainScreen(AppScreen):
                 lab = BackgroundLabel(text=cell)
                 lab.size = lab.texture_size
                 grid.add_widget(lab)
+
+    def show_config(self, obj=None):
+        pilot = self.ids.select_spinner.text
+        cfg = self.database.get_entry(pilot)['Config']
+        popup = ConfigViewerPopup(config=cfg, title=f'Config for {pilot}')
+        popup.fill_grid()
+        popup.open()

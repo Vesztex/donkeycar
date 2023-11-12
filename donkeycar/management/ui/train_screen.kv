@@ -71,6 +71,27 @@
     on_selected: self.screen.plot_dataframe(self.screen.dataframe, self.selected)
 
 
+<ConfigViewerPopup>:
+    size_hint: 1.0, 1.0
+    auto_dismiss: False
+    pos_hint: {'center_x': 0.5, 'center_y': .5}
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: 20
+        ScrollView:
+            effect_cls: ScrollEffect
+            GridLayout:
+                id: pilot_cfg_viewer_grid
+                cols: 2
+                row_default_height: 26
+                size_hint_y: None
+                height: self.minimum_height
+        RoundedButton:
+            text: "Close"
+            size_hint_y: 0.05
+            on_release: root.dismiss()
+
+
 <TrainScreen>:
     name: 'train'
     BoxLayout:
@@ -188,17 +209,18 @@
             height: self.minimum_height
             Header:
                 size_hint_y: None
-                height: 40
-                title: 'Pilot Editor'
+                height: 50
+                title: 'Pilot Viewer and Editor'
                 description:
-                    "Select a pilot to delete which removes files from disk "\
-                    "and the entry from the database. Or update pilot comment."
+                    "Select a pilot for viewing its config, updating the " \
+                    "comment or to deleting it. Deletion removes files from "\
+                    "disk and the entry from the database."
             BoxLayout:
                 size_hint_y: None
-                height: layout_height
+                height: common_height
                 spacing: layout_pad_x
                 MySpinner:
-                    size_hint_x: 1.5
+                    size_hint_x: 1.2
                     id: select_spinner
                     text_autoupdate: True
                     on_text:
@@ -236,4 +258,9 @@
                         root.database.get_entry(select_spinner.text)['Comment'] = comment.text
                         root.database.write()
                         root.on_database()
-
+                RoundedButton:
+                    size_hint_x: 0.75
+                    id: show_config
+                    text: 'Show Config'
+                    on_release:
+                        root.show_config()

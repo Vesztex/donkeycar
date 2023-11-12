@@ -35,9 +35,10 @@
 <BackgroundLabel>
     background_color: 0.25, 0.125, 0.05, 1
     font_size: '12sp'
-    text_size: root.width, None
+    text_size: self.width, None
     size: self.texture_size
-    halign: 'center'
+    halign: 'left'
+
 
 
 <TransferSelector>:
@@ -67,8 +68,6 @@
 
 <CheckBoxRow>:
     orientation: 'horizontal'
-    #size_hint_y: None
-    #height: layout_height
     on_selected: self.screen.plot_dataframe(self.screen.dataframe, self.selected)
 
 

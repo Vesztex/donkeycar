@@ -10,9 +10,6 @@ from kivy.properties import ObjectProperty, NumericProperty, ListProperty, \
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from kivy.uix.screenmanager import Screen
-from kivy.uix.widget import Widget
-
 
 from donkeycar.management.ui.common import FileChooserBase, get_app_screen, \
     AppScreen, status
@@ -61,10 +58,6 @@ class ConfigParamPanel(GridLayout):
         # We need simulate a config change so the keys get populated
         cfg_setter.on_config()
         self.add_widget(cfg_setter)
-
-
-# class BackgroundColor(Widget):
-#     pass
 
 
 class BackgroundLabel(Label):

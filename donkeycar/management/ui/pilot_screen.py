@@ -200,7 +200,7 @@ class PilotScreen(AppScreen):
     transformation = ObjectProperty()
     post_trans_list = ListProperty(force_dispatch=True)
     post_transformation = ObjectProperty()
-    config = ObjectProperty()
+    config = ObjectProperty(allownone=True)
 
     def on_index(self, obj, index):
         """ Kivy method that is called if self.index changes. Here we update
@@ -219,6 +219,15 @@ class PilotScreen(AppScreen):
         self.ids.pilot_control.record_display = f"Record {i:06}"
         self.ids.img_1.update(record)
         self.ids.img_2.update(record)
+
+    def on_config(self, obj, cfg):
+        if not self.config:
+            return
+        try:
+            self.ids.pilot_loader_1.root_path = self.config.MODELS_PATH
+            self.ids.pilot_loader_2.root_path = self.config.MODELS_PATH
+        except Exception as e:
+            Logger.error(f'Error at config update in train screen: {e}')
 
     def initialise(self, e):
         self.ids.pilot_loader_1.on_model_type(None, None)

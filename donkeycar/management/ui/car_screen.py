@@ -8,7 +8,7 @@ from kivy.clock import Clock
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
     ListProperty, BooleanProperty
 
-from donkeycar.management.ui.common import get_app_screen, AppScreen
+from donkeycar.management.ui.common import get_app_screen, AppScreen, status
 from donkeycar.management.ui.rc_file_handler import rc_handler
 
 
@@ -39,9 +39,10 @@ class CarScreen(AppScreen):
     def list_car_dir(self, dir):
         self.car_dir = dir
         self.files = self.list_remote_dir(dir)
-        # non-empty director found
+        # non-empty, if directory found
         if self.files:
             rc_handler.data['robot_car_dir'] = dir
+            status(f'Successfully loaded directory: {dir}')
 
     def update_pilots(self):
         model_dir = os.path.join(self.car_dir, 'models')
@@ -51,7 +52,7 @@ class CarScreen(AppScreen):
         target = f'{self.config.PI_USERNAME}@{self.config.PI_HOSTNAME}' + \
                f':{os.path.join(self.car_dir, tub_dir)}'
         dest = self.config.DATA_PATH
-        if self.ids.create_dir.state == 'normal':
+        if not self.ids.create_dir.active:
             target += '/'
         cmd = ['rsync', '-rv', '--progress', '--partial', target, dest]
         Logger.info('car pull: ' + str(cmd))
@@ -162,20 +163,20 @@ class CarScreen(AppScreen):
             self.is_connected = False
             if return_val is None:
                 # command still running, do nothing and check next time again
-                status = 'Awaiting connection to...'
+                msg = 'Awaiting connection to...'
                 self.ids.connected.color = 0.8, 0.8, 0.0, 1
             else:
                 # command finished, check if successful and reset connection
                 if return_val == 0:
-                    status = 'Connected to'
+                    msg = 'Connected to'
                     self.ids.connected.color = 0, 0.9, 0, 1
                     self.is_connected = True
                 else:
-                    status = 'Disconnected from'
+                    msg = 'Disconnected from'
                     self.ids.connected.color = 0.9, 0, 0, 1
                 self.connection = None
             self.ids.connected.text \
-                = f'{status} {getattr(self.config, "PI_HOSTNAME")}'
+                = f'{msg} {getattr(self.config, "PI_HOSTNAME")}'
 
     def drive(self):
         model_args = ''

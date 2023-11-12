@@ -168,6 +168,8 @@ class TrainScreen(AppScreen):
 
     def on_dataframe(self, obj, dataframe):
         self.plot_dataframe(dataframe)
+        if self.dataframe.empty:
+            return
         pilot_names = self.dataframe.loc[:, 'Name']
         self.ids.transfer_spinner.values \
             = ['Choose transfer model'] + pilot_names

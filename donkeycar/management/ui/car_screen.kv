@@ -49,10 +49,11 @@
                             root.list_car_dir(self.text)
                             root.update_pilots()
                     MyLabel:
-                        text: 'Create car dir if it does not exist'
-                    RoundedToggleButton:
+                        text:
+                            'Create a new tub within your local data folder, '\
+                            'instead of updating the data folder.'
+                    CheckBox:
                         id: create_dir
-                        text: 'Create new folder'
                     MyLabel:
                         text: 'Select tub'
                     MySpinner:

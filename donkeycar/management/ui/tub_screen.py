@@ -8,11 +8,11 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
     ListProperty, BooleanProperty
-from kivy.uix.screenmanager import Screen
 
 from donkeycar import load_config
 from donkeycar.management.ui.common import FileChooserBase, \
-    PaddedBoxLayout, decompose, get_app_screen, BackgroundBoxLayout, AppScreen
+    PaddedBoxLayout, decompose, get_app_screen, BackgroundBoxLayout, AppScreen, \
+    status
 from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.types import TubRecord
@@ -20,7 +20,7 @@ from donkeycar.pipeline.types import TubRecord
 
 class ConfigManager(BackgroundBoxLayout, FileChooserBase):
     """ Class to manage loading of the config file from the car directory"""
-    config = ObjectProperty(None)
+    config = ObjectProperty(None, allownone=True)
     file_path = StringProperty(rc_handler.data.get('car_dir', ''))
 
     def load_action(self):
@@ -35,8 +35,26 @@ class ConfigManager(BackgroundBoxLayout, FileChooserBase):
             except FileNotFoundError:
                 Logger.error(f'Config: Directory {self.file_path} has no '
                              f'config.py')
+                self.config = None
             except Exception as e:
                 Logger.error(f'Config: {e}')
+                self.config = None
+
+    def on_config(self, obj, cfg):
+        tub_screen = get_app_screen('tub')
+        if tub_screen:
+            tub_screen.ids.tub_loader.ids.tub_button.disabled = False
+            tub_screen.ids.tub_loader.root_path = self.file_path
+        pilot_screen = get_app_screen('pilot')
+        if pilot_screen:
+            pilot_screen.config = self.config
+        train_screen = get_app_screen('train')
+        if train_screen:
+            train_screen.config = self.config
+        car_screen = get_app_screen('car')
+        if car_screen:
+            car_screen.config = self.config
+        status('Config loaded from' + self.file_path)
 
 
 class TubLoader(BackgroundBoxLayout, FileChooserBase):

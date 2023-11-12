@@ -90,6 +90,9 @@ class TransferSelector(BoxLayout, FileChooserBase):
 
 
 class ConfigViewerPopup(Popup):
+    """ Popup to view the config that was saved in the model database as part
+        of the training."""
+
     config = ObjectProperty()
 
     def _config_to_dict(self):
@@ -107,7 +110,7 @@ class ConfigViewerPopup(Popup):
             cfg_list = json.loads(s)
         except Exception as e:
             Logger.error(f'Failed json read of config: {e}')
-        assert isinstance(cfg_list, list), "Dejsonised config should be list"
+        assert isinstance(cfg_list, list), "De-jsonised config should be list"
         return dict(cfg_list)
 
     def fill_grid(self):
@@ -194,7 +197,7 @@ class TrainScreen(AppScreen):
         self.plot_dataframe(dataframe)
         if self.dataframe.empty:
             return
-        pilot_names = list(self.dataframe['Name'].values)
+        pilot_names = self.dataframe['Name'].values.tolist()
         self.ids.transfer_spinner.values \
             = ['Choose transfer model'] + pilot_names
         self.ids.select_spinner.values = pilot_names
@@ -205,24 +208,23 @@ class TrainScreen(AppScreen):
         grid.clear_widgets()
         # only set column chooser labels on initialisation when selected_cols
         # is not passed in. otherwise project df to selected columns
-        if selected_cols is not None:
-            df = df[selected_cols]
+        df1 = df[selected_cols] if selected_cols is not None else df
 
-        num_cols = len(df.columns)
-        rows = len(df)
+        num_cols = len(df1.columns)
+        rows = len(df1)
         grid.cols = num_cols
 
-        for i, col in enumerate(df.columns):
+        for i, col in enumerate(df1.columns):
             lab = BackgroundLabel(text=f"[b]{col}[/b]", markup=True)
             lab.size = lab.texture_size
             grid.add_widget(lab)
-            if col in ('Pilot', 'Comment'):
-                grid.cols_minimum |= {i: 100}
+            # if col in ('Pilot', 'Comment'):
+            #     grid.cols_minimum |= {i: 100}
 
         for row in range(rows):
             for col in range(num_cols):
-                cell = df.iloc[row][col]
-                if df.columns[col] == 'Time':
+                cell = df1.iloc[row][col]
+                if df1.columns[col] == 'Time':
                     cell = datetime.datetime.fromtimestamp(cell)
                     cell = cell.strftime("%Y-%m-%d %H:%M:%S")
                 cell = str(cell)

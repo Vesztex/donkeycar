@@ -103,6 +103,8 @@
                     size_hint_y: None
                     height: common_height
                     spacing: layout_pad_x
+                    ProgressBar:
+                        id: push_bar
                     RoundedButton:
                         id: send_pilots
                         multiline: False
@@ -110,9 +112,6 @@
                         on_release:
                             self.disabled = True
                             root.send_pilot()
-                    ProgressBar:
-                        id: push_bar
-                        # value: root.push_bar
 
         BackgroundBoxLayout:
             size_hint_y: 0.75

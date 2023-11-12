@@ -9,7 +9,7 @@
         text: 'Choose pilot'
         size_hint_x: 0.5
         disabled: True
-        on_press:
+        on_release:
             root.open_popup()
     MySpinner:
         id: pilot_spinner
@@ -130,7 +130,7 @@
                     id: button_bright
                     size_hint_x: 0.5
                     text: 'Brightness {:4.2f}'.format(slider_bright.value)
-                    on_press: root.set_brightness(slider_bright.value)
+                    on_release: root.set_brightness(slider_bright.value)
                 Slider:
                     id: slider_bright
                     value: 0
@@ -141,7 +141,7 @@
                     id: button_blur
                     size_hint_x: 0.5
                     text: 'Blur {:4.2f}'.format(slider_blur.value)
-                    on_press: root.set_blur(slider_blur.value)
+                    on_release: root.set_blur(slider_blur.value)
                 Slider:
                     id: slider_blur
                     value: 0
@@ -159,14 +159,14 @@
                     text: 'Set pre transformation'
                     pilot_screen: root
                     is_post: False
-                    on_press: self.open_popup()
+                    on_release: self.open_popup()
                 Transformations:
                     id: post_transformation
                     title: 'Post-Augmentation Transformations'
                     text: 'Set post transformation'
                     pilot_screen: root
                     is_post: True
-                    on_press: self.open_popup()
+                    on_release: self.open_popup()
 
         BackgroundBoxLayout:
             orientation: 'vertical'

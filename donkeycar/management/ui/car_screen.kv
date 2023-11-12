@@ -66,7 +66,7 @@
                     RoundedButton:
                         id: pull_tub
                         text: 'Pull tub ' + tub_dir_spinner.text
-                        on_press:
+                        on_release:
                             self.disabled = True
                             root.pull(tub_dir_spinner.text)
 
@@ -107,7 +107,7 @@
                         id: send_pilots
                         multiline: False
                         text: 'Push pilots'
-                        on_press:
+                        on_release:
                             self.disabled = True
                             root.send_pilot()
                     ProgressBar:
@@ -141,7 +141,7 @@
                     RoundedButton:
                         id: drive_btn
                         text: 'Drive'
-                        on_press:
+                        on_release:
                             root.drive()
                             self.disabled = True
                             stop_btn.disabled = False
@@ -149,7 +149,7 @@
                         id: stop_btn
                         text: 'Stop'
                         disabled: True
-                        on_press:
+                        on_release:
                             root.stop()
                             self.disabled = True
                             drive_btn.disabled = False

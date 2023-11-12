@@ -54,10 +54,10 @@ BoxLayout:
                 sm.current_screen.bind_keyboard()
         ActionButton:
             text: 'Settings'
-            on_press: app.open_settings()
+            on_release: app.open_settings()
         ActionButton:
             text: 'Quit'
-            on_press: app.get_running_app().stop()
+            on_release: app.get_running_app().stop()
 
     ScreenManager:
         id: sm

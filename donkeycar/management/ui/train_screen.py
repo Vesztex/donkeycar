@@ -171,7 +171,7 @@ class TrainScreen(AppScreen):
         self.plot_dataframe(dataframe)
         if self.dataframe.empty:
             return
-        pilot_names = self.dataframe.loc[:, 'Name']
+        pilot_names = list(self.dataframe['Name'].values)
         self.ids.transfer_spinner.values \
             = ['Choose transfer model'] + pilot_names
         self.ids.select_spinner.values = pilot_names

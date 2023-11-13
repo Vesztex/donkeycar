@@ -203,6 +203,7 @@ class DataPanel(BoxLayout):
                 self.throttle_field = field
             status(f'Adding {field}')
         if self.screen.name == 'tub':
+            # update the history graphics on the tub screen
             self.screen.ids.data_plot.plot_from_current_bars()
         self.ids.data_spinner.text = LABEL_SPINNER_TEXT
         self.auto_text = field
@@ -225,7 +226,7 @@ class FullImage(Image):
         self.core_image = None
 
     def update(self, record):
-        """ This method is called ever time a record gets updated. """
+        """ This method is called every time a record gets updated. """
         try:
             img_arr = self.get_image(record)
             pil_image = PilImage.fromarray(img_arr)
@@ -235,9 +236,11 @@ class FullImage(Image):
             self.core_image = CoreImage(bytes_io, ext='png')
             self.texture = self.core_image.texture
         except KeyError as e:
-            Logger.error(f'Record: Missing key: {e}')
+            Logger.error(f'Record {record.underlying["_index"]}: '
+                         f'Missing key: {e}')
         except Exception as e:
-            Logger.error(f'Record: Bad record: {e}')
+            Logger.error(f'Record : {record.underlying["_index"]}'
+                         f'Bad record: {e}')
 
     def get_image(self, record):
         return record.image()

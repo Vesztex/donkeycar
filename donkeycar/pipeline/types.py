@@ -1,4 +1,4 @@
-import copy
+from copy import copy, deepcopy
 import os
 from enum import Enum
 from typing import Any, List, Optional, Iterator, Union, Iterable
@@ -67,6 +67,18 @@ class TubRecord(object):
             getattr(self.config, 'CACHE_POLICY', 'ARRAY')]
         self._cache_images = getattr(self.config, 'CACHE_IMAGES', True)
         self._image: Optional[Any] = None
+
+    def __copy__(self):
+        """ Make shallow copies of config and image and full copies of the rest.
+        :return TubRecord:    TubRecord copy
+        """
+        tubrec = TubRecord(self.config,
+                           copy(self.base_path),
+                           copy(self.underlying))
+        tubrec._cache_policy = copy(self._cache_policy)
+        tubrec._cache_images = copy(self._cache_images)
+        tubrec._image = self._image
+        return tubrec
 
     def image(self, processor=None, as_nparray=True) -> np.ndarray:
         """

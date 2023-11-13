@@ -46,6 +46,35 @@
                 on_release: root.dismiss()
 
 
+<PilotViewer>
+    orientation: 'vertical'
+    PilotLoader:
+        size_hint_y: None
+        height: self.minimum_height + layout_height
+        id: pilot_loader
+    OverlayImage:
+        id: img
+        pilot: pilot_loader.pilot
+        # throttle field needs to be the user throttle field here, too.
+        throttle_field: root.data_in.throttle_field
+    DataPanel:
+        size_hint_y: None
+        height: self.minimum_height + 60
+        id: data_panel
+        font_color: [0.2, 0.2, 1, 1]
+        screen: root.screen
+        record: img.pilot_record
+        dual_mode: True
+        link: True
+        auto_text: root.map_pilot_field(root.data_in.auto_text)
+
+
+<PilotBoard>
+    orientation: 'horizontal'
+    size_hint_y: 1.5
+    spacing: 10
+
+
 <PilotScreen>:
     name: 'pilot'
     BoxLayout:
@@ -60,57 +89,10 @@
                 description:
                     'Load pilots from the Trainer screen and compare the model '\
                     'inference with the recorded user data.'
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 1.5
-            spacing: 10
-            BackgroundBoxLayout:
-                orientation: 'vertical'
-                PilotLoader:
-                    size_hint_y: None
-                    height: self.minimum_height + layout_height
-                    id: pilot_loader_1
-                    num: '1'
-                    data_panel: data_panel_1
-                OverlayImage:
-                    id: img_1
-                    pilot: pilot_loader_1.pilot
-                    throttle_field: data_in.throttle_field
-                    is_left: True
-                DataPanel:
-                    size_hint_y: None
-                    height: self.minimum_height + 60
-                    id: data_panel_1
-                    font_color: [0.2, 0.2, 1, 1]
-                    screen: root
-                    record: img_1.pilot_record
-                    dual_mode: True
-                    link: True
-                    auto_text: root.map_pilot_field(data_in.auto_text)
-            BackgroundBoxLayout:
-                orientation: 'vertical'
-                PilotLoader:
-                    size_hint_y: None
-                    height: self.minimum_height + layout_height
-                    id: pilot_loader_2
-                    num: '2'
-                    data_panel: data_panel_2
-                OverlayImage:
-                    id: img_2
-                    pilot: pilot_loader_2.pilot
-                    throttle_field: data_in.throttle_field
-                    is_left: False
-                DataPanel:
-                    size_hint_y: None
-                    height: self.minimum_height + 60
-                    id: data_panel_2
-                    font_color: [0.2, 0.2, 1, 1]
-                    screen: root
-                    record: img_1.pilot_record
-                    dual_mode: True
-                    link: True
-                    auto_text: root.map_pilot_field(data_in.auto_text)
-
+        PilotBoard:
+            id: pilot_board
+            data_in: data_in
+            screen: root
         BackgroundBoxLayout:
             orientation: 'vertical'
             size_hint_y: None

@@ -1,15 +1,11 @@
-from copy import copy
+from copy import copy #, deepcopy
 import os
 
 from kivy import Logger
-from kivy.app import App
 from kivy.properties import StringProperty, ObjectProperty, ListProperty, \
     NumericProperty, BooleanProperty
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.uix.label import Label
 from kivy.uix.popup import Popup
-from kivy.uix.screenmanager import Screen
 
 from donkeycar.management.ui.common import FileChooserBase, \
     FullImage, get_app_screen, get_norm_value, LABEL_SPINNER_TEXT, AppScreen, \
@@ -23,7 +19,7 @@ from donkeycar.parts.keras_2 import KerasSquarePlusImu, KerasSquarePlusMemoryLap
 
 class PilotLoader(BoxLayout, FileChooserBase):
     """ Class to manage loading of the config file from the car directory"""
-    num = StringProperty()
+    # num = StringProperty()
     model_type = StringProperty()
     pilot = ObjectProperty(None)
     filters = ['*.h5', '*.tflite', '*.savedmodel', '*.trt']
@@ -32,8 +28,8 @@ class PilotLoader(BoxLayout, FileChooserBase):
         if self.file_path and self.pilot:
             try:
                 self.pilot.load(os.path.join(self.file_path))
-                rc_handler.data['pilot_' + self.num] = self.file_path
-                rc_handler.data['model_type_' + self.num] = self.model_type
+                # rc_handler.data['pilot_' + self.num] = self.file_path
+                # rc_handler.data['model_type_' + self.num] = self.model_type
                 self.ids.pilot_spinner.text = self.model_type
                 Logger.info(f'Pilot: Successfully loaded {self.file_path}')
             except FileNotFoundError:
@@ -51,6 +47,7 @@ class PilotLoader(BoxLayout, FileChooserBase):
             if not cfg:
                 return
             try:
+                self.root_path = cfg.MODELS_PATH
                 self.pilot = get_model_by_type(self.model_type, cfg)
                 self.ids.pilot_button.disabled = False
                 if 'tflite' in self.model_type:
@@ -62,10 +59,10 @@ class PilotLoader(BoxLayout, FileChooserBase):
             except Exception as e:
                 status(f'Error: {e}')
 
-    def on_num(self, e, num):
-        """ Kivy method that is called if self.num changes. """
-        self.file_path = rc_handler.data.get('pilot_' + self.num, '')
-        self.model_type = rc_handler.data.get('model_type_' + self.num, '')
+    # def on_num(self, e, num):
+    #     """ Kivy method that is called if self.num changes. """
+    #     self.file_path = rc_handler.data.get('pilot_' + self.num, '')
+    #     self.model_type = rc_handler.data.get('model_type_' + self.num, '')
 
 
 class OverlayImage(FullImage):
@@ -129,7 +126,7 @@ class OverlayImage(FullImage):
             = rc_handler.data['user_pilot_map'][self.throttle_field]
         out_record.underlying[pilot_throttle_field] \
             = get_norm_value(output[1],
-                             get_app_screen('tub').ids.config_manager.config,
+                             config,
                              rc_handler.field_properties[self.throttle_field],
                              normalised=False)
         self.pilot_record = out_record
@@ -190,6 +187,30 @@ class Transformations(RoundedButton):
             self.pilot_screen.trans_list = self.selected
 
 
+class PilotViewer(BackgroundBoxLayout):
+    screen = ObjectProperty()
+    data_in = ObjectProperty()
+
+    def update(self, record):
+        self.ids.img.update(record)
+
+    def map_pilot_field(self, text):
+        """ Method to return user -> pilot mapped fields except for the
+            initial value called Add/remove. """
+        if text == LABEL_SPINNER_TEXT:
+            return text
+        return rc_handler.data['user_pilot_map'][text]
+
+
+class PilotBoard(BoxLayout):
+    screen = ObjectProperty()
+    data_in = ObjectProperty()
+
+    def add_viewer(self):
+        viewer = PilotViewer(data_in=self.data_in, screen=self.screen)
+        self.add_widget(viewer)
+
+
 class PilotScreen(AppScreen):
     """ Screen to do the pilot vs pilot comparison ."""
     index = NumericProperty(None, force_dispatch=True)
@@ -217,36 +238,32 @@ class PilotScreen(AppScreen):
             return
         i = record.underlying['_index']
         self.ids.pilot_control.record_display = f"Record {i:06}"
-        self.ids.img_1.update(record)
-        self.ids.img_2.update(record)
+        for c in self.ids.pilot_board.children:
+            c.update(record)
 
     def on_config(self, obj, cfg):
         if not self.config:
             return
         try:
-            self.ids.pilot_loader_1.root_path = self.config.MODELS_PATH
-            self.ids.pilot_loader_2.root_path = self.config.MODELS_PATH
+            for c in self.ids.pilot_board.children:
+                c.ids.pilot_loader.root_path = self.config.MODELS_PATH
+            # self.ids.pilot_loader_1.root_path = self.config.MODELS_PATH
+            # self.ids.pilot_loader_2.root_path = self.config.MODELS_PATH
         except Exception as e:
             Logger.error(f'Error at config update in train screen: {e}')
 
     def initialise(self, e):
-        self.ids.pilot_loader_1.on_model_type(None, None)
-        self.ids.pilot_loader_1.load_action()
-        self.ids.pilot_loader_2.on_model_type(None, None)
-        self.ids.pilot_loader_2.load_action()
+        self.ids.pilot_board.add_viewer()
+
+        for c in self.ids.pilot_board.children:
+            c.ids.pilot_loader.on_model_type(None, None)
+            c.ids.pilot_loader.load_action()
+            c.ids.data_panel.ids.data_spinner.disabled = True
+
         mapping = copy(rc_handler.data['user_pilot_map'])
-        del(mapping['user/angle'])
+        del mapping['user/angle']
         self.ids.data_in.ids.data_spinner.values = mapping.keys()
         self.ids.data_in.ids.data_spinner.text = 'user/angle'
-        self.ids.data_panel_1.ids.data_spinner.disabled = True
-        self.ids.data_panel_2.ids.data_spinner.disabled = True
-
-    def map_pilot_field(self, text):
-        """ Method to return user -> pilot mapped fields except for the
-            initial value called Add/remove. """
-        if text == LABEL_SPINNER_TEXT:
-            return text
-        return rc_handler.data['user_pilot_map'][text]
 
     def set_brightness(self, val=None):
         if not self.config:
@@ -278,7 +295,8 @@ class PilotScreen(AppScreen):
     def on_aug_list(self, obj, aug_list):
         if not self.config:
             return
-        self.config.AUGMENTATIONS = self.aug_list
+        # cast to python list, otherwise we have an ObservableList in the config
+        self.config.AUGMENTATIONS = list(self.aug_list)
         self.augmentation = ImageAugmentation(
             self.config, 'AUGMENTATIONS', always_apply=True)
         self.on_current_record(None, self.current_record)
@@ -286,7 +304,8 @@ class PilotScreen(AppScreen):
     def on_trans_list(self, obj, trans_list):
         if not self.config:
             return
-        self.config.TRANSFORMATIONS = self.trans_list
+        # cast to python list, otherwise we have an ObservableList in the config
+        self.config.TRANSFORMATIONS = list(self.trans_list)
         self.transformation = ImageTransformations(
             self.config, 'TRANSFORMATIONS')
         self.on_current_record(None, self.current_record)
@@ -294,7 +313,8 @@ class PilotScreen(AppScreen):
     def on_post_trans_list(self, obj, trans_list):
         if not self.config:
             return
-        self.config.POST_TRANSFORMATIONS = self.post_trans_list
+        # cast to python list, otherwise we have an ObservableList in the config
+        self.config.POST_TRANSFORMATIONS = list(self.post_trans_list)
         self.post_transformation = ImageTransformations(
             self.config, 'POST_TRANSFORMATIONS')
         self.on_current_record(None, self.current_record)

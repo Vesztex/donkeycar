@@ -24,6 +24,10 @@
             size: self.size
             radius: [10,]
     color: font_color
+    text_size: self.width, None
+    valgin: 'middle'
+    halign: 'center'
+    size: self.texture_size
 
 
 <RoundedToggleButton@ToggleButton>:
@@ -36,6 +40,10 @@
             size: self.size
             radius: [10,]
     color: font_color
+    text_size: self.width, None
+    valgin: 'middle'
+    halign: 'center'
+    size: self.texture_size
 
 
 <BackgroundColor>
@@ -158,7 +166,8 @@
             FileChooserListLayout
 
         BoxLayout:
-            size_hint: (1, 0.1)
+            size_hint_y: None
+            height: common_height
             pos_hint: {'center_x': .5, 'center_y': .5}
             spacing: 20
             RoundedButton:
@@ -219,6 +228,7 @@
 <DataPanel>
     orientation: 'vertical'
     spacing: 2
+    current_field: data_spinner.text
     GridLayout:
         cols: 2
         MyLabel:
@@ -229,9 +239,10 @@
             id: data_spinner
             size_hint_y: None
             height: 20
-            text: root.auto_text if root.link else 'Add/remove'
+            text: 'Add/remove'
             on_text: root.add_remove()
             on_values: root.clear()
+            disabled: root.current_field != self.text
 
 
 <ControlPanel>

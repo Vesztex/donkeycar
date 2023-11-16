@@ -5,6 +5,7 @@ from kivy import Logger
 from kivy.properties import StringProperty, ObjectProperty, ListProperty, \
     NumericProperty, BooleanProperty
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.popup import Popup
 
 from donkeycar.management.ui.common import FileChooserBase, \
@@ -58,11 +59,6 @@ class PilotLoader(BoxLayout, FileChooserBase):
                     self.filters = ['*.h5', '*.savedmodel']
             except Exception as e:
                 status(f'Error: {e}')
-
-    # def on_num(self, e, num):
-    #     """ Kivy method that is called if self.num changes. """
-    #     self.file_path = rc_handler.data.get('pilot_' + self.num, '')
-    #     self.model_type = rc_handler.data.get('model_type_' + self.num, '')
 
 
 class OverlayImage(FullImage):
@@ -189,7 +185,13 @@ class Transformations(RoundedButton):
 
 class PilotViewer(BackgroundBoxLayout):
     screen = ObjectProperty()
-    data_in = ObjectProperty()
+    current_user_field = StringProperty()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.ids.data_panel.ids.data_spinner.disabled = True
+        for field in self.screen.ids.data_in.labels.keys():
+            self.current_user_field = field
 
     def update(self, record):
         self.ids.img.update(record)
@@ -202,12 +204,11 @@ class PilotViewer(BackgroundBoxLayout):
         return rc_handler.data['user_pilot_map'][text]
 
 
-class PilotBoard(BoxLayout):
+class PilotBoard(GridLayout):
     screen = ObjectProperty()
-    data_in = ObjectProperty()
 
     def add_viewer(self):
-        viewer = PilotViewer(data_in=self.data_in, screen=self.screen)
+        viewer = PilotViewer(screen=self.screen)
         self.add_widget(viewer)
 
 
@@ -247,8 +248,6 @@ class PilotScreen(AppScreen):
         try:
             for c in self.ids.pilot_board.children:
                 c.ids.pilot_loader.root_path = self.config.MODELS_PATH
-            # self.ids.pilot_loader_1.root_path = self.config.MODELS_PATH
-            # self.ids.pilot_loader_2.root_path = self.config.MODELS_PATH
         except Exception as e:
             Logger.error(f'Error at config update in train screen: {e}')
 
@@ -258,12 +257,9 @@ class PilotScreen(AppScreen):
         for c in self.ids.pilot_board.children:
             c.ids.pilot_loader.on_model_type(None, None)
             c.ids.pilot_loader.load_action()
-            c.ids.data_panel.ids.data_spinner.disabled = True
 
-        mapping = copy(rc_handler.data['user_pilot_map'])
-        del mapping['user/angle']
+        mapping = rc_handler.data['user_pilot_map']
         self.ids.data_in.ids.data_spinner.values = mapping.keys()
-        self.ids.data_in.ids.data_spinner.text = 'user/angle'
 
     def set_brightness(self, val=None):
         if not self.config:

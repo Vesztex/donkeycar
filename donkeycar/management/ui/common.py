@@ -162,13 +162,8 @@ class DataPanel(BoxLayout):
     """ Data panel widget that contains the label/bar widgets and the drop
         down menu to select/deselect fields."""
     record = ObjectProperty()
-    # dual mode is used in the pilot arena where we only show angle and
-    # throttle or speed
-    dual_mode = BooleanProperty(False)
-    auto_text = StringProperty(LABEL_SPINNER_TEXT)
-    throttle_field = StringProperty('user/throttle')
     font_color = ListProperty([0.8, 0.9, 0.9, 1])
-    link = False
+    current_field = StringProperty()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -182,16 +177,11 @@ class DataPanel(BoxLayout):
         field = self.ids.data_spinner.text
         if field is LABEL_SPINNER_TEXT:
             return
-        if field in self.labels and not self.dual_mode:
+        if field in self.labels:
             self.remove_widget(self.labels[field])
             del self.labels[field]
             status(f'Removing {field}')
         else:
-            # in dual mode replace the second entry with the new one
-            if self.dual_mode and len(self.labels) == 2:
-                k, v = list(self.labels.items())[-1]
-                self.remove_widget(v)
-                del self.labels[k]
             field_property = rc_handler.field_properties.get(decompose(field)[0])
             cfg = get_app_screen('tub').ids.config_manager.config
             lb = LabelBar(field=field, field_property=field_property,
@@ -199,14 +189,13 @@ class DataPanel(BoxLayout):
             self.labels[field] = lb
             self.add_widget(lb)
             lb.update(self.record)
-            if len(self.labels) == 2:
-                self.throttle_field = field
             status(f'Adding {field}')
         if self.screen.name == 'tub':
             # update the history graphics on the tub screen
             self.screen.ids.data_plot.plot_from_current_bars()
+        # Updating the spinner text again, forces to re-enter this method but
+        # then exiting early because of the text being 'add/remove'
         self.ids.data_spinner.text = LABEL_SPINNER_TEXT
-        self.auto_text = field
 
     def on_record(self, obj, record):
         """ Kivy function that is called every time self.record changes"""

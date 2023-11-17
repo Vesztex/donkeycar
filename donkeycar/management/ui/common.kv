@@ -11,6 +11,7 @@
 
 
 #:set font_color 0.8, 0.9, 0.9, 1
+#:set action_text_color 0.6, 0.6, 0.4, 1
 
 # Define your background color Template
 
@@ -99,23 +100,17 @@
     spacing: layout_pad_x
 
 
-<StatusLabel@MyLabel>:
+<StatusBar>:
+    orientation: 'vertical'
+    padding: [10, 0, 10, 10]
     size_hint_y: None
-    height: 20
-    text_size: self.size
-    halign: 'left'
-    valign: 'bottom'
-    text: 'Donkey ready'
-
-
-<StatusBar>
-    size_hint_y: None
-    height: 20
-    MyLabel:
-        valign: 'bottom'
-        font_size: '12sp'
-        color: 0.6, 0.6, 0, 1
-        text: root.text
+    height: 30
+    BackgroundBoxLayout:
+        MyLabel:
+            valign: 'middle'
+            font_size: '12sp'
+            color: action_text_color
+            text: root.text
 
 
 <MySpinnerOption>:
@@ -148,6 +143,11 @@
             size: self.size
             radius: [10,]
     color: font_color
+
+
+<MyTextInput@TextInput>:
+    background_color: 0.15, 0.17, 0.19, 1
+    foreground_color: action_text_color
 
 
 <FileChooserPopup>:

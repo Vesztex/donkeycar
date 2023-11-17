@@ -12,7 +12,7 @@
         id: cfg_spinner
         text_autoupdate: True
         values: []
-    TextInput:
+    MyTextInput:
         id: cfg_overwrite
         multiline: False
         text:
@@ -32,13 +32,13 @@
     cols: 1
 
 
-<BackgroundLabel>
-    background_color: 0.25, 0.125, 0.05, 1
+<BackgroundLabel>:
     font_size: '12sp'
     text_size: self.width, None
     size: self.texture_size
+    valign: 'middle'
     halign: 'left'
-
+    color: font_color
 
 
 <TransferSelector>:
@@ -155,15 +155,14 @@
                 height: common_height
                 spacing: layout_pad_x
                 MyLabel:
-                    size_hint_x: 0.5
                     text: 'Select model type'
                 MySpinner:
                     id: train_spinner
-                    size_hint_x: 0.5
                     text: 'linear'
                     values: supported_models
-                TextInput:
+                MyTextInput:
                     id: comment
+                    size_hint_x: 2.05
                     multiline: False
                     text: 'Comment'
                     on_text: app.root.ids.status.text = f'Adding comment: {self.text}'
@@ -227,19 +226,14 @@
                         entry = root.database.get_entry(select_spinner.text)
                         txt = entry.get('Comment') or ''
                         comment.text = txt
-                BoxLayout:
-                    orientation: 'vertical'
-                    size_hint_x: 0.4
-                    MyLabel:
-                        valign: 'top'
-                        halign: 'center'
-                        font_size: '11sp'
-                        text: 'Enable delete'
-                    Switch:
-                        id: delete_switch
-                        active: False
-                        on_active:
-                            delete_btn.disabled = False if self.active else True
+                RoundedToggleButton:
+                    id: delete_switch
+                    font_size: '11sp'
+                    text: 'Enable delete'
+                    size_hint_x: 0.3
+                    active: False
+                    on_release:
+                        delete_btn.disabled = False if self.state == 'down' else True
                 RoundedButton:
                     size_hint_x: 0.75
                     id: delete_btn
@@ -249,7 +243,7 @@
                     on_release:
                         root.database.delete_entry(select_spinner.text)
                         root.reload_database()
-                        delete_switch.active = False
+                        delete_switch.state = 'normal'
                 RoundedButton:
                     size_hint_x: 0.75
                     id: update_comment

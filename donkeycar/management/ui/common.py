@@ -341,7 +341,7 @@ class PaddedBoxLayout(BoxLayout):
     pass
 
 
-class StatusBar(BackgroundBoxLayout):
+class StatusBar(BoxLayout):
     text = StringProperty()
 
 

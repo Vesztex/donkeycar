@@ -149,6 +149,7 @@ class TubEditor(BoxLayout):
 
 class TubFilter(BoxLayout):
     """ Tub filter widget. """
+    screen = ObjectProperty()
     filter_expression = StringProperty(None)
     record_filter = StringProperty(rc_handler.data.get('record_filter', ''))
 
@@ -175,18 +176,24 @@ class TubFilter(BoxLayout):
             exec(filter_func_text, globals(), ldict)
             filter_func = ldict['filter_func']
             res = filter_func(record)
-            status = f'Filter result on current record: {res}'
+            msg = f'Filter result on current record: {res}'
             if isinstance(res, bool):
                 self.record_filter = filter_text
                 self.filter_expression = filter_expression
                 rc_handler.data['record_filter'] = self.record_filter
                 setattr(config, 'TRAIN_FILTER', filter_func)
             else:
-                status += ' - non bool expression can\'t be applied'
-            status += ' - press <Reload tub> to see effect'
-            status(status)
+                msg += ' - non bool expression can\'t be applied'
+            msg += ' - press <Reload tub> to see effect'
+            status(msg)
         except Exception as e:
             status(f'Filter error on current record: {e}')
+
+    def filter_focus(self):
+        focus = self.ids.record_filter.focus
+        self.screen.keys_enabled = not focus
+        if not focus:
+            self.screen.bind_keyboard()
 
     @staticmethod
     def create_filter_string(filter_text, record_name='record'):
@@ -266,6 +273,7 @@ class TubScreen(AppScreen):
     """ First screen of the app managing the tub data. """
     index = NumericProperty(None, force_dispatch=True)
     current_record = ObjectProperty(None)
+    keys_enabled = BooleanProperty(True)
 
     def initialise(self, e):
         self.ids.config_manager.load_action()
@@ -284,5 +292,7 @@ class TubScreen(AppScreen):
         self.ids.control_panel.record_display = f"Record {i:06}"
 
     def on_keyboard(self, keyboard, scancode, text=None, modifier=None):
+        if not self.keys_enabled:
+            return
         self.ids.control_panel.on_keyboard(keyboard, scancode, text, modifier)
 

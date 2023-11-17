@@ -18,20 +18,27 @@ from donkeycar.utils import get_model_by_type
 from donkeycar.parts.keras_2 import KerasSquarePlusImu, KerasSquarePlusMemoryLap
 
 
+ALL_FILTERS = ['*.h5', '*.tflite', '*.savedmodel', '*.trt']
+
+
 class PilotLoader(BoxLayout, FileChooserBase):
     """ Class to manage loading of the config file from the car directory"""
     # num = StringProperty()
     model_type = StringProperty()
     pilot = ObjectProperty(None)
-    filters = ['*.h5', '*.tflite', '*.savedmodel', '*.trt']
+    is_loaded = BooleanProperty(False)
+    filters = copy(ALL_FILTERS)
 
     def load_action(self):
         if self.file_path and self.pilot:
             try:
                 self.pilot.load(os.path.join(self.file_path))
-                # rc_handler.data['pilot_' + self.num] = self.file_path
-                # rc_handler.data['model_type_' + self.num] = self.model_type
+                self.is_loaded = True
                 self.ids.pilot_spinner.text = self.model_type
+                entry = [self.file_path, self.model_type]
+                # if successfully loaded, add to rc file
+                if entry not in rc_handler.data['pilots']:
+                    rc_handler.data['pilots'].append(entry)
                 Logger.info(f'Pilot: Successfully loaded {self.file_path}')
             except FileNotFoundError:
                 Logger.error(f'Pilot: Model {self.file_path} not found')
@@ -60,10 +67,17 @@ class PilotLoader(BoxLayout, FileChooserBase):
             except Exception as e:
                 status(f'Error: {e}')
 
+    def remove_from_rcfile(self):
+        if not self.is_loaded:
+            return
+        entry = [self.file_path, self.model_type]
+        if entry in rc_handler.data['pilots']:
+            rc_handler.data['pilots'].remove(entry)
+
 
 class OverlayImage(FullImage):
     """ Widget to display the image and the user/pilot data for the tub. """
-    pilot = ObjectProperty()
+    pilot_loader = ObjectProperty()
     pilot_record = ObjectProperty()
     throttle_field = StringProperty('user/throttle')
 
@@ -93,13 +107,13 @@ class OverlayImage(FullImage):
             rc_handler.field_properties[self.throttle_field])
         rgb = (0, 255, 0)
         MakeMovie.draw_line_into_image(angle, throttle, False, img_arr, rgb)
-        if not self.pilot:
+        if not self.pilot_loader.is_loaded:
             return img_arr
 
-        if isinstance(self.pilot, KerasSquarePlusImu):
+        if isinstance(self.pilot_loader.pilot, KerasSquarePlusImu):
             imu = record.underlying['car/accel'] + record.underlying['car/gyro']
             args = (aug_img_arr, imu)
-        elif isinstance(self.pilot, KerasSquarePlusMemoryLap):
+        elif isinstance(self.pilot_loader.pilot, KerasSquarePlusMemoryLap):
             lap_pct = getattr(config, 'LAP_PCT_L', config.LAP_PCT) if \
                 self.is_left else getattr(config, 'LAP_PCT_R', config.LAP_PCT)
             # lap_pct needs to be passed as array, as this is the run interface
@@ -109,7 +123,7 @@ class OverlayImage(FullImage):
         output = (0, 0)
         try:
             # Not each model is supported in each interpreter
-            output = self.pilot.run(*args)
+            output = self.pilot_loader.pilot.run(*args)
         except Exception as e:
             Logger.error(e)
 
@@ -190,6 +204,7 @@ class PilotViewer(BackgroundBoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.ids.data_panel.ids.data_spinner.disabled = True
+        # for any new create viewer, copy the user fields over
         for field in self.screen.ids.data_in.labels.keys():
             self.current_user_field = field
 
@@ -203,6 +218,9 @@ class PilotViewer(BackgroundBoxLayout):
             return text
         return rc_handler.data['user_pilot_map'][text]
 
+    def remove_from_rcfile(self):
+        self.ids.pilot_loader.remove_from_rcfile()
+
 
 class PilotBoard(GridLayout):
     screen = ObjectProperty()
@@ -210,6 +228,11 @@ class PilotBoard(GridLayout):
     def add_viewer(self):
         viewer = PilotViewer(screen=self.screen)
         self.add_widget(viewer)
+        return viewer
+
+    def remove_viewer(self, viewer):
+        viewer.remove_from_rcfile()
+        self.remove_widget(viewer)
 
 
 class PilotScreen(AppScreen):
@@ -252,11 +275,14 @@ class PilotScreen(AppScreen):
             Logger.error(f'Error at config update in train screen: {e}')
 
     def initialise(self, e):
-        self.ids.pilot_board.add_viewer()
-
-        for c in self.ids.pilot_board.children:
-            c.ids.pilot_loader.on_model_type(None, None)
-            c.ids.pilot_loader.load_action()
+        # self.ids.pilot_board.add_viewer()
+        for entry in rc_handler.data.get('pilots', []):
+            model_path = entry[0]
+            model_type = entry[1]
+            viewer = self.ids.pilot_board.add_viewer()
+            viewer.ids.pilot_loader.model_type = model_type
+            viewer.ids.pilot_loader.file_path = model_path
+            viewer.ids.pilot_loader.load_action()
 
         mapping = rc_handler.data['user_pilot_map']
         self.ids.data_in.ids.data_spinner.values = mapping.keys()

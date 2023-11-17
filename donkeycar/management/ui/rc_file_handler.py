@@ -65,6 +65,7 @@ class RcFileHandler:
         data = dict()
         data['user_pilot_map'] = {'user/throttle': 'pilot/throttle',
                                   'user/angle': 'pilot/angle'}
+        data['pilots'] = []
         return data
 
     def read_file(self):

@@ -7,17 +7,16 @@
     RoundedButton:
         id: pilot_button
         text: 'Choose pilot'
-        size_hint_x: 0.5
         disabled: True
         on_release:
             root.open_popup()
     MySpinner:
         id: pilot_spinner
-        size_hint_x: 0.5
         text: 'Model type'
         values: drive_models
     MyLabel:
         id: pilot_file
+        size_hint_x: 3.0
         text: root.file_path
 
 
@@ -62,18 +61,16 @@
             size_hint_x: 0.1
             text: '-'
             on_release:
-                root.screen.ids.pilot_board.remove_widget(root)
+                root.screen.ids.pilot_board.remove_viewer(root)
     OverlayImage:
         id: img
-        pilot: pilot_loader.pilot
+        pilot_loader: pilot_loader
     DataPanel:
-        size_hint_y: None
-        height: self.minimum_height + 60
+        size_hint_y: 0.4
         id: data_panel
         font_color: [0.2, 0.2, 1, 1]
         screen: root.screen
         record: img.pilot_record
-
 
 
 <PilotBoard>
@@ -132,6 +129,7 @@
                 size_hint_y: None
                 height: common_height
                 orientation: 'horizontal'
+                spacing: 10
                 RoundedToggleButton:
                     id: button_bright
                     size_hint_x: 0.5

@@ -53,9 +53,6 @@ BoxLayout:
                 sm.current_screen.update_pilots()
                 sm.current_screen.bind_keyboard()
         ActionButton:
-            text: 'Settings'
-            on_release: app.open_settings()
-        ActionButton:
             text: 'Quit'
             on_release: app.get_running_app().stop()
 

@@ -66,11 +66,14 @@
         id: img
         pilot_loader: pilot_loader
     DataPanel:
-        size_hint_y: 0.4
+        size_hint_y: None
+        height: 20 + (self.minimum_height - 20) * 15
         id: data_panel
+        is_linked: True
         font_color: [0.2, 0.2, 1, 1]
         screen: root.screen
         record: img.pilot_record
+        on_height: print(self.minimum_height)
 
 
 <PilotBoard>

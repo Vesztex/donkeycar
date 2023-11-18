@@ -1,3 +1,4 @@
+import datetime
 import os
 import io
 import time
@@ -14,6 +15,7 @@ from kivy.properties import ObjectProperty, StringProperty, ListProperty, \
     BooleanProperty, NumericProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
@@ -126,44 +128,51 @@ class LabelBar(BoxLayout):
     field = StringProperty()
     field_property = ObjectProperty()
     config = ObjectProperty()
+    # allowing the font color to change for using as user or pilot bar
     font_color = ListProperty([0.8, 0.9, 0.9, 1])
-    msg = ''
+    format_timestamp = BooleanProperty(False)
 
     def update(self, record):
         """ This function is called everytime the current record is updated"""
         if not record:
             return
         field, index = decompose(self.field)
-        if field in record.underlying:
-            val = record.underlying[field]
-            if index is not None:
-                val = val[index]
-            # Update bar if a field property for this field is known
-            if self.field_property:
-                norm_value = get_norm_value(val, self.config,
-                                            self.field_property)
-                new_bar_val = (norm_value + 1) * 50 if \
-                    self.field_property.centered else norm_value * 100
-                self.ids.bar.value = new_bar_val
-            self.ids.field_label.text = self.field
-            if isinstance(val, float) or isinstance(val, np.float32):
-                text = f'{val:+07.3f}'
-            elif isinstance(val, int):
-                text = f'{val:10}'
-            else:
-                text = str(val)
-            self.ids.value_label.text = text
-        else:
+        if not field in record.underlying:
             Logger.error(f'Record: Bad record {record.underlying["_index"]} - '
                          f'missing field {self.field}')
+            return
+        val = record.underlying[field]
+        if index is not None:
+            val = val[index]
+        # Update bar if a field property for this field is known
+        if self.field_property:
+            norm_value = get_norm_value(val, self.config,
+                                        self.field_property)
+            new_bar_val = (norm_value + 1) * 50 if \
+                self.field_property.centered else norm_value * 100
+            self.ids.bar.value = new_bar_val
+        self.ids.field_label.text = self.field
+        if isinstance(val, float) or isinstance(val, np.float32):
+            text = f'{val:+07.3f}'
+        elif field == '_timestamp_ms' and self.format_timestamp:
+            ts = int(val) / 1000
+            dt = datetime.datetime.fromtimestamp(ts)
+            text = dt.isoformat(sep=' ', timespec='milliseconds')
+        elif isinstance(val, int):
+            text = f'{val:10}'
+        else:
+            text = str(val)
+        self.ids.value_label.text = text
 
 
-class DataPanel(BoxLayout):
+class DataPanel(GridLayout):
     """ Data panel widget that contains the label/bar widgets and the drop
         down menu to select/deselect fields."""
     record = ObjectProperty()
     font_color = ListProperty([0.8, 0.9, 0.9, 1])
     current_field = StringProperty()
+    is_linked = BooleanProperty(False)
+    format_timestamp = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -185,7 +194,8 @@ class DataPanel(BoxLayout):
             field_property = rc_handler.field_properties.get(decompose(field)[0])
             cfg = get_app_screen('tub').ids.config_manager.config
             lb = LabelBar(field=field, field_property=field_property,
-                          config=cfg, font_color=self.font_color)
+                          config=cfg, font_color=self.font_color,
+                          format_timestamp=self.format_timestamp)
             self.labels[field] = lb
             self.add_widget(lb)
             lb.update(self.record)

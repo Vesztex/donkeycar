@@ -9,12 +9,12 @@
 #:set font_size_14 '14sp'
 #:set font_size_12 '12sp'
 
-
 #:set font_color 0.8, 0.9, 0.9, 1
 #:set action_text_color 0.6, 0.6, 0.4, 1
+#:set label_bar_back_color 0.15, 0.16, 0.18, 1
 
-# Define your background color Template
 
+# Define button background color template
 <RoundedButton>:
     background_color: 0,0,0,0  # the last zero is the critical on, make invisible
     canvas.before:
@@ -191,7 +191,7 @@
         color: root.font_color
         canvas.before:
             Color:
-                rgba: 0.13, 0.14, 0.15, 1
+                rgba: label_bar_back_color
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
@@ -207,7 +207,7 @@
         padding_x: 10
         canvas.before:
             Color:
-                rgba: 0.13, 0.14, 0.15, 1
+                rgba: label_bar_back_color
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
@@ -226,21 +226,31 @@
 
 
 <DataPanel>
-    orientation: 'vertical'
+    cols: 1
     spacing: 2
     current_field: data_spinner.text
-    GridLayout:
-        cols: 2
+    BoxLayout:
+        size_hint_y: None
+        height: 20
+        spacing: 2
         MyLabel:
             id: label
-            text: 'Record field'
+            size_hint_x: 0.4
+            text: 'Field'
+        RoundedToggleButton:
+            id: format_button
+            size_hint_x: 0.4
+            font_size: '10sp'
+            text: 'Format timestamp'
+            disabled: root.is_linked
+            on_press:
+                root.format_timestamp = (self.state == 'down')
         MySpinner:
             id: data_spinner
-            size_hint_y: 0.5
             text: 'Add/remove'
             on_text: root.add_remove()
             on_values: root.clear()
-            disabled: root.current_field != self.text
+            disabled: root.current_field != self.text or root.is_linked
 
 
 <ControlPanel>

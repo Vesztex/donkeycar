@@ -22,9 +22,9 @@
     RoundedButton:
         id: cfg_add_remove
         size_hint_x: 0.15
-        text: root.button_text
+        text: "-"
         on_release:
-            root.screen.ids.config_panel.add() if root.is_global else root.screen.ids.config_panel.remove_widget(root)
+            root.screen.ids.config_panel.remove_widget(root)
 
 
 <ConfigParamPanel>:
@@ -102,7 +102,7 @@
             orientation: 'vertical'
             spacing: 10
             size_hint_y: None
-            height: self.minimum_height + cfg_setter.height + common_height
+            height: self.minimum_height + 60
             Header:
                 size_hint_y: 1.2
                 id: cfg_header
@@ -111,23 +111,23 @@
                     "Use dropdown menus to edit config parameters. Add more"\
                     " rows to keep track of more parameters without scrolling."
             BoxLayout:
+                id: lower_row
                 orientation: 'horizontal'
-                ConfigParamSetter:
-                    id: cfg_setter
-                    screen: root
-                    config: root.config
-                    is_global: True
+                size_hint_y: 0.75
+                spacing: 10
                 MyLabel:
-                    size_hint_x: 0.06
-                    halign: 'right'
-                    font_size: '11sp'
-                    text: 'Two column'
-                CheckBox:
-                    size_hint_x: 0.1
-                    id: col_check
-                    active: False
-                    on_active:
-                        config_panel.cols = 2 if self.active else 1
+                    text: 'Add config setter'
+                RoundedButton:
+                    text: '+'
+                    on_release: config_panel.add()
+                MyLabel:
+                    text: 'Number columns'
+                MySpinner:
+                    id: col_setter
+                    values: ['1', '2', '3', '4']
+                    text: '1'
+                    on_text:
+                        config_panel.cols = int(self.text)
 
             ConfigParamPanel:
                 id: config_panel

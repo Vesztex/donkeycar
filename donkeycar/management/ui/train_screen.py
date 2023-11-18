@@ -21,8 +21,6 @@ from donkeycar.pipeline.training import train
 class ConfigParamSetter(BoxLayout):
     screen = ObjectProperty()
     config = ObjectProperty(force_dispatch=True, allownone=True)
-    button_text = StringProperty("+")
-    is_global = False
 
     def get_keys(self):
         if self.config:
@@ -54,8 +52,7 @@ class ConfigParamPanel(GridLayout):
     def add(self):
         train_screen = get_app_screen('train')
         cfg_setter = ConfigParamSetter(screen=train_screen,
-                                       config=train_screen.config,
-                                       button_text='-')
+                                       config=train_screen.config)
         # We need simulate a config change so the keys get populated
         cfg_setter.on_config()
         self.add_widget(cfg_setter)

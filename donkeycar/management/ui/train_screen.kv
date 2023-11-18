@@ -10,8 +10,10 @@
     spacing: 10
     MySpinner:
         id: cfg_spinner
-        text_autoupdate: True
+        # text_autoupdate: True
         values: []
+        on_text:
+            root.update_rc(self.text)
     MyTextInput:
         id: cfg_overwrite
         multiline: False
@@ -102,14 +104,16 @@
             orientation: 'vertical'
             spacing: 10
             size_hint_y: None
-            height: self.minimum_height + 60
+            height: self.minimum_height + 80
             Header:
-                size_hint_y: 1.2
+                size_hint_y: 1.5
                 id: cfg_header
                 title: 'Config Editor'
                 description:
-                    "Use dropdown menus to edit config parameters. Add more"\
-                    " rows to keep track of more parameters without scrolling."
+                    'Use dropdown menus to edit config parameters. Add more'\
+                    ' rows to keep track of more parameters without scrolling.'\
+                    ' Use json syntax, i.e. double-quoted "string" and true,'\
+                    ' false.'
             BoxLayout:
                 id: lower_row
                 orientation: 'horizontal'

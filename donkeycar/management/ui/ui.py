@@ -9,6 +9,7 @@ from kivy.core.window import Window
 
 from donkeycar.management.ui.car_screen import CarScreen
 from donkeycar.management.ui.pilot_screen import PilotScreen
+from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.management.ui.train_screen import TrainScreen
 from donkeycar.management.ui.tub_screen import TubScreen
 from common import AppScreen
@@ -37,6 +38,7 @@ class DonkeyApp(App):
 
     def initialise(self, event):
         self.root.ids.tub_screen.ids.config_manager.load_action()
+        self.root.ids.train_screen.initialise()
         self.root.ids.pilot_screen.initialise(event)
         self.root.ids.car_screen.initialise()
         self.root.ids.tub_screen.ids.tub_loader.update_tub()
@@ -52,7 +54,8 @@ class DonkeyApp(App):
         tub = self.root.ids.tub_screen.ids.tub_loader.tub
         if tub:
             tub.close()
-        Logger.info("Good bye Donkey")
+        #rc_handler.write_file()
+        Logger.info("App: Good bye Donkey")
 
 
 def main():

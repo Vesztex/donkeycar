@@ -13,7 +13,8 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 
 from donkeycar.management.ui.common import FileChooserBase, get_app_screen, \
-    AppScreen, status, MyLabel
+    AppScreen, status
+from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.training import train
 
@@ -39,7 +40,18 @@ class ConfigParamSetter(BoxLayout):
             val = input
         att = self.ids.cfg_spinner.text
         setattr(self.config, att, val)
-        status(f'Setting {att} to {val} of type {type(val).__name__}')
+        msg = f'Setting {att} to {val} of type {type(val).__name__}'
+        if val in ('True', 'False', 'TRUE', 'FALSE'):
+            msg += f' - ATTENTION: {val} is not a Boolean but a String!'
+        status(msg)
+
+    @staticmethod
+    def update_rc(att):
+        cfg_params = rc_handler.data.get('config_params')
+        if cfg_params is None:
+            rc_handler.data['config_params'] = [att]
+        elif att not in cfg_params:
+            cfg_params.append(att)
 
 
 class ConfigParamPanel(GridLayout):
@@ -56,6 +68,14 @@ class ConfigParamPanel(GridLayout):
         # We need simulate a config change so the keys get populated
         cfg_setter.on_config()
         self.add_widget(cfg_setter)
+        return cfg_setter
+
+    def remove_widget(self, cfg_setter, *args, **kwargs):
+        att = cfg_setter.ids.cfg_spinner.text
+        cfg_params = rc_handler.data.get('config_params', [])
+        if att in cfg_params:
+            cfg_params.remove(att)
+        super().remove_widget(cfg_setter)
 
 
 class BackgroundLabel(Label):
@@ -206,7 +226,6 @@ class TrainScreen(AppScreen):
         # only set column chooser labels on initialisation when selected_cols
         # is not passed in. otherwise project df to selected columns
         df1 = df[selected_cols] if selected_cols is not None else df
-
         num_cols = len(df1.columns)
         rows = len(df1)
         grid.cols = num_cols
@@ -235,3 +254,13 @@ class TrainScreen(AppScreen):
         popup = ConfigViewerPopup(config=cfg, title=f'Config for {pilot}')
         popup.fill_grid()
         popup.open()
+
+    def initialise(self):
+        cfg_params = rc_handler.data.get('config_params', [])
+        for param in cfg_params:
+            # only restore parameters that are in the config
+            if not hasattr(self.config, param):
+                continue
+            cfg_setter = self.ids.config_panel.add()
+            cfg_setter.ids.cfg_spinner.text = param
+

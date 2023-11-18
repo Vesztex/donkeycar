@@ -695,6 +695,7 @@ def execute_from_command_line():
         'train': Train,
         'models': ModelDatabase,
         'ui': Gui,
+        'app': Gui,
         'monitor': Monitor
     }
 

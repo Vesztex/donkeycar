@@ -34,7 +34,7 @@ class StartScreen(AppScreen):
 
 
 class DonkeyApp(App):
-    title = 'Donkey Manager'
+    title = 'Donkey App'
 
     def initialise(self, event):
         self.root.ids.tub_screen.ids.config_manager.load_action()
@@ -54,7 +54,6 @@ class DonkeyApp(App):
         tub = self.root.ids.tub_screen.ids.tub_loader.tub
         if tub:
             tub.close()
-        #rc_handler.write_file()
         Logger.info("App: Good bye Donkey")
 
 

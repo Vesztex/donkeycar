@@ -45,6 +45,17 @@ class Config:
             if attr.isupper():
                 print(attr, ":", getattr(self, attr))
 
+    def to_pyfile(self, path):
+        lines = []
+        for attr in dir(self):
+            if attr.isupper():
+                v = getattr(self, attr)
+                if isinstance(v, str):
+                    v = f'"{v}"'
+                lines.append(f'{attr} = {v}{os.linesep}')
+        with open(path, 'w') as f:
+            f.writelines(lines)
+
 
 def load_config(config_path=None, myconfig="myconfig.py"):
     

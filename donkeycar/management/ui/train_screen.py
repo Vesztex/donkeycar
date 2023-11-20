@@ -12,6 +12,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 
+from donkeycar.config import Config
 from donkeycar.management.ui.common import FileChooserBase, get_app_screen, \
     AppScreen, status
 from donkeycar.management.ui.rc_file_handler import rc_handler
@@ -44,6 +45,13 @@ class ConfigParamSetter(BoxLayout):
         if val in ('True', 'False', 'TRUE', 'FALSE'):
             msg += f' - ATTENTION: {val} is not a Boolean but a String!'
         status(msg)
+        if get_app_screen('train').ids.save_cfg.state == 'down':
+            car_path = get_app_screen('tub').ids.config_manager.file_path
+            my_cfg_path = os.path.join(car_path, 'myconfig.py')
+            my_cfg = Config()
+            my_cfg.from_pyfile(my_cfg_path)
+            my_cfg.from_dict({att: val})
+            my_cfg.to_pyfile(my_cfg_path)
 
     @staticmethod
     def update_rc(att):
@@ -52,6 +60,8 @@ class ConfigParamSetter(BoxLayout):
             rc_handler.data['config_params'] = [att]
         elif att not in cfg_params:
             cfg_params.append(att)
+
+
 
 
 class ConfigParamPanel(GridLayout):

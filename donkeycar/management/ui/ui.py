@@ -12,7 +12,7 @@ from donkeycar.management.ui.pilot_screen import PilotScreen
 from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.management.ui.train_screen import TrainScreen
 from donkeycar.management.ui.tub_screen import TubScreen
-from common import AppScreen
+from donkeycar.management.ui.common import AppScreen
 
 Logger.setLevel(LOG_LEVELS["info"])
 
@@ -45,8 +45,10 @@ class DonkeyApp(App):
         self.root.ids.status.text = 'Donkey ready'
 
     def build(self):
-        # the builder returns the screen manager
-        dm = Builder.load_file(os.path.join(os.path.dirname(__file__), 'ui.kv'))
+        # the builder returns the screen manager in ui.kv file
+        for kv in ['common.kv', 'tub_screen.kv', 'train_screen.kv',
+                   'pilot_screen.kv', 'car_screen.kv', 'ui.kv']:
+            dm = Builder.load_file(os.path.join(os.path.dirname(__file__), kv))
         Clock.schedule_once(self.initialise)
         return dm
 

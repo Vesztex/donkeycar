@@ -66,7 +66,7 @@ setup(name='donkeycar',
               'adafruit-circuitpython-rplidar',
               'RPi.GPIO',
               'opencv-python',
-              'tensorflow @ https://github.com/PINTO0309/Tensorflow-bin/releases/download/v2.9.0/tensorflow-2.9.0-cp39-none-linux_aarch64.whl'
+              'tensorflow'
           ],
           'nano45': [
               'Adafruit_PCA9685',
@@ -105,7 +105,7 @@ setup(name='donkeycar',
               'mypy'
           ],
           'ci': ['codecov'],
-          'tf': ['tensorflow==2.9'],
+          'tf': ['tensorflow'],
           'torch': [
               'pytorch',
               'torchvision==0.12',
@@ -131,8 +131,9 @@ setup(name='donkeycar',
           'License :: OSI Approved :: MIT License',
           # Specify the Python versions you support here. In particular, ensure
           # that you indicate whether you support Python 2, Python 3 or both.
-          'Programming Language :: Python :: 3.6',
-          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.9',
+          'Programming Language :: Python :: 3.10',
+          'Programming Language :: Python :: 3.11',
       ],
       keywords='selfdriving cars donkeycar diyrobocars',
       packages=find_packages(exclude=(['tests', 'docs', 'site', 'env'])),

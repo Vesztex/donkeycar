@@ -45,6 +45,43 @@
                 on_release: root.dismiss()
 
 
+<TubplotPopup>:
+    size_hint: 0.5, 0.5
+    auto_dismiss: False
+    pos_hint: {'center_x': .5, 'center_y': .5}
+    BoxLayout:
+        orientation: "vertical"
+        padding: 10
+        spacing: 10
+        BackgroundBoxLayout:
+            orientation: "vertical"
+            spacing: 10
+            BoxLayout:
+                MyLabel:
+                    size_hint_x: 0.5
+                    text: 'Select pilot'
+                MySpinner:
+                    id: tubplot_spinner
+                    size_hint_y: 1
+                    text_autoupdate: True
+                    values: root.screen.ids.pilot_board.get_pilot_names()
+            Slider:
+                id: slider
+                min: root.screen.ids.slider.min
+                max: root.screen.ids.slider.max
+                value: 1000
+            MyLabel:
+                valign: 'center'
+                text: f'Selected records 0 to {int(slider.value)}'
+            RoundedButton:
+                text: 'Tub plot'
+                on_release:
+                    root.screen.tub_plot(tubplot_spinner.text, int(slider.value))
+            RoundedButton:
+                text: "Close"
+                on_release: root.dismiss()
+
+
 <PilotViewer>
     orientation: 'vertical'
     current_user_field: root.screen.ids.data_in.current_field
@@ -111,6 +148,9 @@
                     id: col_spinner
                     values: ['1', '2', '3', '4']
                     text: '2'
+                Tubplot:
+                    text: 'Tub plot'
+                    on_release: self.open_popup(root)
 
         PilotBoard:
             id: pilot_board
@@ -184,7 +224,8 @@
                 id: slider
                 min: 0
                 value: 0
-                on_value: root.index = int(self.value)
+                on_value:
+                    root.index = int(self.value)
             BoxLayout:
                 orientation: 'horizontal'
                 spacing: 10

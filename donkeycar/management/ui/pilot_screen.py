@@ -8,6 +8,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.popup import Popup
 
+from donkeycar.management.base import ShowPredictionPlots
 from donkeycar.management.ui.common import FileChooserBase, \
     FullImage, get_app_screen, get_norm_value, LABEL_SPINNER_TEXT, AppScreen, \
     status, BackgroundBoxLayout, RoundedButton, MyLabel
@@ -23,7 +24,6 @@ ALL_FILTERS = ['*.h5', '*.tflite', '*.savedmodel', '*.trt']
 
 class PilotLoader(BoxLayout, FileChooserBase):
     """ Class to manage loading of the config file from the car directory"""
-    # num = StringProperty()
     model_type = StringProperty()
     pilot = ObjectProperty(None)
     is_loaded = BooleanProperty(False)
@@ -234,6 +234,20 @@ class PilotBoard(GridLayout):
         viewer.remove_from_rcfile()
         self.remove_widget(viewer)
 
+    def get_pilot_names(self):
+        return [c.ids.pilot_loader.file_path for c in self.children]
+
+
+class TubplotPopup(Popup):
+    screen = ObjectProperty()
+
+
+class Tubplot(RoundedButton):
+
+    def open_popup(self, screen):
+        popup = TubplotPopup(title='Tub Plot', screen=screen)
+        popup.open()
+
 
 class PilotScreen(AppScreen):
     """ Screen to do the pilot vs pilot comparison ."""
@@ -358,6 +372,20 @@ class PilotScreen(AppScreen):
             status('Crop off')
             if 'CROP' in self.trans_list:
                 self.trans_list.remove('CROP')
+
+    def tub_plot(self, model_path, limit):
+        model_type = None
+        for c in self.ids.pilot_board.children:
+            if c.ids.pilot_loader.file_path == model_path:
+                model_type = c.ids.pilot_loader.model_type
+        assert model_type, f"Could not find{model_path} in pilot display"
+        ShowPredictionPlots().plot_predictions(
+            cfg=self.config,
+            tub_paths=get_app_screen('tub').ids.tub_loader.file_path,
+            model_path=model_path,
+            limit=limit,
+            model_type=model_type,
+            noshow=False)
 
     def on_keyboard(self, keyboard, scancode, text=None, modifier=None):
         self.ids.pilot_control.on_keyboard(keyboard, scancode, text, modifier)

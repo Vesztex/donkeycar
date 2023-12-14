@@ -446,7 +446,7 @@ class ShowCnnActivations(BaseCommand):
 class ShowPredictionPlots(BaseCommand):
 
     def plot_predictions(self, cfg, tub_paths, model_path, limit, model_type,
-                         noshow):
+                         noshow, dark=False):
         """
         Plot model predictions for angle and throttle against data from tubs.
         """
@@ -493,7 +493,8 @@ class ShowPredictionPlots(BaseCommand):
                                   'pilot_angle': pilot_angles})
         throttles_df = pd.DataFrame({'user_throttle': user_throttles,
                                      'pilot_throttle': pilot_throttles})
-
+        if dark:
+            plt.style.use('dark_background')
         fig = plt.figure()
         title = f"Model Predictions\nTubs: {tub_paths}\nModel: {model_path}\n" \
                 f"Type: {model_type}"

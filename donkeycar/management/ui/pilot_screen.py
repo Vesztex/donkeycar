@@ -385,7 +385,8 @@ class PilotScreen(AppScreen):
             model_path=model_path,
             limit=limit,
             model_type=model_type,
-            noshow=False)
+            noshow=False,
+            dark=True)
 
     def on_keyboard(self, keyboard, scancode, text=None, modifier=None):
         self.ids.pilot_control.on_keyboard(keyboard, scancode, text, modifier)

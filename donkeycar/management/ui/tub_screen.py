@@ -9,10 +9,10 @@ from kivy import Logger
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
     ListProperty, BooleanProperty
-from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+from kivy_garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib import cycler
+
 
 from donkeycar import load_config
 from donkeycar.management.ui.common import FileChooserBase, \

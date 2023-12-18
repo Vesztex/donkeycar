@@ -42,6 +42,7 @@ dependencies:
   - pip:
     - tensorflow==2.9
     - git+https://github.com/autorope/keras-vis.git
+    - https://github.com/kivy-garden/matplotlib/archive/master.zip
     - simple-pid
     - moviepy
 

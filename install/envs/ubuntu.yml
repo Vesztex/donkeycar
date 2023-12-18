@@ -1,4 +1,4 @@
-name: donkey
+name: donkey2
 
 channels:
   - defaults
@@ -44,3 +44,4 @@ dependencies:
     - git+https://github.com/autorope/keras-vis.git
     - simple-pid
     - kivy==2.1
+    - https://github.com/kivy-garden/matplotlib/archive/master.zip

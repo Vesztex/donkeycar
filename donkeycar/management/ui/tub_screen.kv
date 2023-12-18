@@ -1,4 +1,4 @@
-#:import TsPlot donkeycar.management.graph.TsPlot
+# #:import TsPlot donkeycar.management.graph.TsPlot
 
 <ConfigManager>
     title: 'Choose the car directory'
@@ -91,6 +91,8 @@
 
 
 <DataPlot>:
+    padding: 0
+    spacing: 10
     RoundedButton:
         text: 'Reload Graph'
         on_release: root.plot_from_current_bars()
@@ -163,7 +165,7 @@
         BackgroundBoxLayout:
             orientation: 'vertical'
             size_hint_y: 1.5
-            TsPlot:
+            Plot:
                 id: graph
             DataPlot:
                 id: data_plot

@@ -1,22 +1,34 @@
 import os
+
+import numpy as np
 import plotly.express as px
 import pandas as pd
 
 
 from kivy import Logger
-from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty, \
     ListProperty, BooleanProperty
+from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib import cycler
 
 from donkeycar import load_config
 from donkeycar.management.ui.common import FileChooserBase, \
     PaddedBoxLayout, decompose, get_app_screen, BackgroundBoxLayout, AppScreen, \
     status
 from donkeycar.management.ui.rc_file_handler import rc_handler
-from donkeycar.management.ui.common import status
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.pipeline.types import TubRecord
+
+
+mpl.rcParams.update({'font.size': 8})
+plt.style.use('dark_background')
+fig, ax = plt.subplots()
+plt.tight_layout(pad=1.5)
+plt.subplots_adjust(bottom=0.16)
+cmap = mpl.cm.get_cmap("plasma")
 
 
 class ConfigManager(BackgroundBoxLayout, FileChooserBase):
@@ -213,6 +225,23 @@ class TubFilter(BoxLayout):
         return filter_text
 
 
+class Plot(FigureCanvasKivyAgg):
+    df = ObjectProperty(force_dispatch=True, allownone=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(fig, **kwargs)
+
+    def on_df(self, e=None, z=None):
+        ax.clear()
+        if not self.df.empty:
+            n = len(self.df.columns)
+            it = np.linspace(0, 1, n)
+            self.df.plot(ax=ax, linewidth=0.5, color=cmap(it))
+            # Put a legend to the right of the current axis
+            ax.legend(loc='center left', bbox_to_anchor=(0.87, 0.5))
+        self.draw()
+
+
 class DataPlot(PaddedBoxLayout):
     """ Data plot panel which embeds matplotlib interactive graph"""
     df = ObjectProperty(force_dispatch=True, allownone=True)
@@ -261,7 +290,7 @@ class DataPlot(PaddedBoxLayout):
         tub_screen = get_app_screen('tub')
         generator = (t.underlying for t in tub_screen.ids.tub_loader.records)
         self.df = pd.DataFrame(generator).dropna()
-        to_drop = {'cam/image_array'}
+        to_drop = ['cam/image_array']
         self.df.drop(labels=to_drop, axis=1, errors='ignore', inplace=True)
         self.df.set_index('_index', inplace=True)
         self.unravel_vectors()

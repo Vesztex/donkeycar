@@ -3,6 +3,7 @@ import os
 from threading import Thread
 import json
 
+import pandas as pd
 from kivy import Logger
 from kivy.clock import Clock
 from kivy.properties import ObjectProperty, NumericProperty, ListProperty, \
@@ -11,6 +12,10 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
+from kivy_garden.matplotlib import FigureCanvasKivyAgg
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
 
 from donkeycar.config import Config
 from donkeycar.management.ui.common import FileChooserBase, get_app_screen, \
@@ -18,6 +23,13 @@ from donkeycar.management.ui.common import FileChooserBase, get_app_screen, \
 from donkeycar.management.ui.rc_file_handler import rc_handler
 from donkeycar.pipeline.database import PilotDatabase
 from donkeycar.pipeline.training import train
+
+
+mpl.rcParams.update({'font.size': 8})
+plt.style.use('dark_background')
+fig1, ax1 = plt.subplots()
+plt.tight_layout(pad=1.5)
+cmap = mpl.cm.get_cmap("viridis")
 
 
 class ConfigParamSetter(BoxLayout):
@@ -60,8 +72,6 @@ class ConfigParamSetter(BoxLayout):
             rc_handler.data['config_params'] = [att]
         elif att not in cfg_params:
             cfg_params.append(att)
-
-
 
 
 class ConfigParamPanel(GridLayout):
@@ -146,6 +156,33 @@ class ConfigViewerPopup(Popup):
             for x in kv:
                 label = BackgroundLabel(text=str(x), font_size='13sp')
                 self.ids.pilot_cfg_viewer_grid.add_widget(label)
+
+
+class HistoryViewerPopup(Popup):
+    df = ObjectProperty()
+
+    def open(self, *_args, **kwargs):
+        super().open(*_args, **kwargs)
+
+
+class HistoryPlot(FigureCanvasKivyAgg):
+    df = ObjectProperty(force_dispatch=True, allownone=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(fig1, **kwargs)
+
+    def on_df(self, e=None, z=None):
+        ax1.clear()
+        if self.df is None or self.df.empty:
+            return
+        # only look at loss graphs but not accuracy
+        drop = [c for c in self.df.columns if 'loss' not in c]
+        loss_df = self.df.drop(columns=drop)
+        n = len(loss_df.columns)
+        it = np.linspace(0, 1, n)
+        loss_df.plot(ax=ax1, linewidth=1.0, color=cmap(it))
+        ax1.legend()
+        self.draw()
 
 
 class TrainScreen(AppScreen):
@@ -260,9 +297,22 @@ class TrainScreen(AppScreen):
 
     def show_config(self, obj=None):
         pilot = self.ids.select_spinner.text
-        cfg = self.database.get_entry(pilot)['Config']
+        cfg = self.database.get_entry(pilot).get('Config')
+        if not cfg:
+            Logger.Error(f'Config for pilot {pilot} not found in database')
+            return
         popup = ConfigViewerPopup(config=cfg, title=f'Config for {pilot}')
         popup.fill_grid()
+        popup.open()
+
+    def show_history(self, obj=None):
+        pilot = self.ids.select_spinner.text
+        history = self.database.get_entry(pilot).get('History')
+        if not history:
+            Logger.Error(f'History for pilot {pilot} not found in database')
+            return
+        df = pd.DataFrame(history)
+        popup = HistoryViewerPopup(df=df, title=f'Training history for {pilot}')
         popup.open()
 
     def initialise(self):

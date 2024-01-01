@@ -93,6 +93,24 @@
             size_hint_y: 0.05
             on_release: root.dismiss()
 
+<HistoryViewerPopup>
+    auto_dismiss: False
+    pos_hint: {'center_x': .5, 'center_y': .5}
+    BoxLayout:
+        orientation: "vertical"
+        padding: 10
+        spacing: 10
+        BackgroundBoxLayout:
+            orientation: "vertical"
+            spacing: 10
+            HistoryPlot:
+                id: history_plot
+                df: root.df
+            RoundedButton:
+                size_hint_y: 0.1
+                text: "Close"
+                on_release: root.dismiss()
+
 
 <TrainScreen>:
     name: 'train'
@@ -267,3 +285,9 @@
                     text: 'Show Config'
                     on_release:
                         root.show_config()
+                RoundedButton:
+                    size_hint_x: 0.75
+                    id: show_history()
+                    text: 'Training history'
+                    on_release:
+                        root.show_history()

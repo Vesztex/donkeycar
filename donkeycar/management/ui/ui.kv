@@ -22,18 +22,21 @@ BoxLayout:
             width: 0
         ActionButton:
             id: tub_btn
+            color: font_color
             text: 'Tub Manager'
             on_release:
                 sm.current = 'tub'
                 sm.current_screen.bind_keyboard()
         ActionButton:
             id: train_btn
+            color: font_color
             text: 'Trainer'
             on_release:
                 sm.current = 'train'
                 sm.current_screen.bind_keyboard()
         ActionButton:
             id: pilot_btn
+            color: font_color
             text: 'Pilot Arena'
             on_release:
                 sm.current = 'pilot'
@@ -41,12 +44,14 @@ BoxLayout:
                 sm.current_screen.bind_keyboard()
         ActionButton:
             id: car_btn
+            color: font_color
             text: 'Car Connector'
             on_release:
                 sm.current = 'car'
                 sm.current_screen.update_pilots()
                 sm.current_screen.bind_keyboard()
         ActionButton:
+            color: font_color
             text: 'Quit'
             on_release: app.get_running_app().stop()
 

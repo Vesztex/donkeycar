@@ -15,7 +15,6 @@ from kivy.uix.popup import Popup
 from kivy_garden.matplotlib import FigureCanvasKivyAgg
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
 
 from donkeycar.config import Config
 from donkeycar.management.ui.common import FileChooserBase, get_app_screen, \
@@ -29,7 +28,6 @@ mpl.rcParams.update({'font.size': 8})
 plt.style.use('dark_background')
 fig1, ax1 = plt.subplots()
 plt.tight_layout(pad=1.5)
-cmap = mpl.cm.get_cmap("viridis")
 
 
 class ConfigParamSetter(BoxLayout):
@@ -159,10 +157,7 @@ class ConfigViewerPopup(Popup):
 
 
 class HistoryViewerPopup(Popup):
-    df = ObjectProperty()
-
-    def open(self, *_args, **kwargs):
-        super().open(*_args, **kwargs)
+    df = ObjectProperty(force_dispatch=True, allownone=True)
 
 
 class HistoryPlot(FigureCanvasKivyAgg):
@@ -179,9 +174,14 @@ class HistoryPlot(FigureCanvasKivyAgg):
         drop = [c for c in self.df.columns if 'loss' not in c]
         loss_df = self.df.drop(columns=drop)
         n = len(loss_df.columns)
-        it = np.linspace(0, 1, n)
-        loss_df.plot(ax=ax1, linewidth=1.0, color=cmap(it))
-        ax1.legend()
+        # arrange subplots
+        non_val_cols = [c for c in loss_df.columns if c[:4] != 'val_']
+        if len(non_val_cols) != n / 2:
+            Logger.Error(f"Issue with history data, validation data history "
+                         f"is not half of the loss data")
+            return
+        subplots = [(nv, f'val_{nv}') for nv in non_val_cols]
+        loss_df.plot(ax=ax1, linewidth=1.0, subplots=subplots)
         self.draw()
 
 
@@ -204,9 +204,9 @@ class TrainScreen(AppScreen):
         if transfer == 'Choose transfer model':
             transfer_model = None
         elif os.path.exists(sm):
-            transfer_model = sm
+            transfer_model = str(sm)
         elif os.path.exists(h5):
-            transfer_model = h5
+            transfer_model = str(h5)
         else:
             transfer_model = None
             status(f'Could find neither {sm} nor {h5} - training without '
@@ -274,7 +274,6 @@ class TrainScreen(AppScreen):
         # is not passed in. otherwise project df to selected columns
         df1 = df[selected_cols] if selected_cols is not None else df
         num_cols = len(df1.columns)
-        rows = len(df1)
         grid.cols = num_cols
 
         for i, col in enumerate(df1.columns):
@@ -284,10 +283,10 @@ class TrainScreen(AppScreen):
             # if col in ('Pilot', 'Comment'):
             #     grid.cols_minimum |= {i: 100}
 
-        for row in range(rows):
-            for col in range(num_cols):
-                cell = df1.iloc[row][col]
-                if df1.columns[col] == 'Time':
+        for idx in df1.index:
+            for col in df1.columns:
+                cell = df1[col][idx]
+                if col == 'Time':
                     cell = datetime.datetime.fromtimestamp(cell)
                     cell = cell.strftime("%Y-%m-%d %H:%M:%S")
                 cell = str(cell)

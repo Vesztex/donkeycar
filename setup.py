@@ -1,4 +1,5 @@
 import os
+import pynum
 
 from setuptools import find_packages, setup
 
